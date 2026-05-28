@@ -4490,92 +4490,49 @@ input::placeholder,textarea::placeholder{ color:#9fb4d8!important;opacity:1; }
 /* Live strip: nome leggibile */
 .live-strip-team strong{ color:#ffffff!important;overflow-wrap:anywhere; }
 
-/* === v109 mobile-first blu/arancio match detail === */
-.public-match-modal-content{
+/* v53 - Stronger blue/orange match detail theme */
+.public-match-modal .modal-content{
   background:
-    radial-gradient(circle at top left,rgba(31,99,255,.22),transparent 34%),
-    radial-gradient(circle at top right,rgba(255,122,24,.18),transparent 30%),
-    linear-gradient(180deg,#07152f 0%,#050d1d 100%)!important;
-  border:1px solid rgba(255,122,24,.28)!important;
-  box-shadow:0 30px 90px rgba(0,0,0,.58),0 0 0 1px rgba(31,99,255,.12) inset!important;
+    radial-gradient(circle at top left, rgba(31,99,255,.30), transparent 34%),
+    radial-gradient(circle at top right, rgba(255,122,24,.16), transparent 28%),
+    linear-gradient(180deg,#081427 0%,#091a33 48%,#06101f 100%);
+  border:1px solid rgba(70,120,255,.34);
+  box-shadow:0 30px 90px rgba(0,0,0,.58),0 0 40px rgba(31,99,255,.16);
 }
-.public-match-detail-card{
-  background:transparent!important;
+.public-match-modal .section-title{
+  background:linear-gradient(180deg,rgba(7,18,38,.98),rgba(8,20,42,.94));
+  border-bottom:1px solid rgba(70,120,255,.24);
 }
-.public-match-hero{
-  border-radius:28px!important;
-  padding:22px!important;
+.public-match-hero,
+.match-center-hero{
   background:
-    radial-gradient(circle at 0% 0%,rgba(31,99,255,.34),transparent 40%),
-    radial-gradient(circle at 100% 0%,rgba(255,122,24,.22),transparent 34%),
-    linear-gradient(145deg,#0c2f78 0%,#081a46 100%)!important;
-}
-.public-score-team{
-  background:linear-gradient(180deg,rgba(2,12,37,.54),rgba(4,20,58,.82));
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:24px;
-  min-height:120px;
-  padding:18px 14px;
-  justify-content:center;
-  gap:14px;
-}
-.public-score-team .team-logo,
-.public-score-team img{
-  width:74px!important;
-  height:74px!important;
+    radial-gradient(circle at top left,rgba(31,99,255,.24),transparent 42%),
+    linear-gradient(135deg,rgba(8,26,58,.96),rgba(10,22,44,.92));
+  border:1px solid rgba(70,120,255,.24);
 }
 .public-score-center{
-  min-width:132px;
-  min-height:82px;
-  border-radius:24px!important;
+  background:linear-gradient(135deg,rgba(31,99,255,.30),rgba(255,122,24,.20));
+  border:1px solid rgba(90,140,255,.32);
 }
-.public-score-center span{
-  font-size:2.5rem!important;
+.public-match-meta-grid > *,
+.public-match-panels > *,
+.public-match-detail-card .card{
+  background:linear-gradient(180deg,rgba(8,22,46,.92),rgba(6,16,33,.94));
+  border-color:rgba(70,120,255,.20);
 }
-.public-match-panel{
-  background:linear-gradient(180deg,rgba(10,19,40,.92),rgba(5,11,24,.96))!important;
-  border-radius:24px!important;
+.public-match-actions .btn,
+.public-match-modal .btn.primary{
+  background:linear-gradient(135deg,#ff7a18 0%,#1f63ff 100%);
+  color:#fff;
 }
-.public-match-actions .btn.primary{
-  background:linear-gradient(90deg,#ff9a3c 0%,#2d68ff 100%)!important;
-  border:none!important;
-  color:#081427!important;
-  font-weight:800;
-}
-
-@media (max-width: 640px){
-  .public-scoreboard{
-    gap:10px!important;
-    align-items:center!important;
-  }
-  .public-score-team{
-    flex:0 0 auto;
-    width:92px;
-    min-height:92px;
-    padding:12px;
-    border-radius:20px;
+@media(max-width:720px){
+  .public-match-modal .section-title{
+    background:rgba(6,18,38,.98);
   }
   .public-score-team strong{
-    display:none!important;
+    display:none;
   }
-  .public-score-team .team-logo,
-  .public-score-team img{
-    width:58px!important;
-    height:58px!important;
-    margin:0 auto;
-  }
-  .public-score-center{
-    min-width:98px;
-    min-height:68px;
-    padding:10px 12px!important;
-  }
-  .public-score-center span{
-    font-size:2rem!important;
-  }
-  .public-match-hero{
-    padding:16px!important;
-  }
-  .public-match-meta-grid{
-    grid-template-columns:1fr;
+  .public-scoreboard{
+    grid-template-columns:minmax(0,1fr) 72px minmax(0,1fr);
   }
 }
