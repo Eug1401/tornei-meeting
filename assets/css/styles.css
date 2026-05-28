@@ -4563,3 +4563,96 @@ input::placeholder,textarea::placeholder{ color:#9fb4d8!important;opacity:1; }
     padding:10px 12px!important;
   }
 }
+
+/* v110 - Fix dettaglio partita: loghi centrati e chiusura mobile senza sfarfallio */
+.public-match-modal .public-score-team .team-logo,
+.public-match-modal .public-score-team img.team-logo,
+.public-match-modal .public-score-team .team-logo-fallback{
+  display:block!important;
+  margin:0 auto!important;
+  justify-self:center!important;
+  align-self:center!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+  background:rgba(4,15,38,.38)!important;
+}
+
+.public-match-modal .public-score-team{
+  place-items:center!important;
+}
+
+.public-match-modal .public-score-home,
+.public-match-modal .public-score-away{
+  text-align:center!important;
+}
+
+.public-match-modal .public-score-away .team-logo,
+.public-match-modal .public-score-away .team-logo-fallback{
+  order:initial!important;
+}
+
+@media(max-width:768px){
+  .public-match-modal .public-score-team{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    justify-content:center!important;
+    justify-items:center!important;
+    align-items:center!important;
+    min-width:0!important;
+    min-height:78px!important;
+    padding:8px!important;
+  }
+  .public-match-modal .public-score-team .team-logo,
+  .public-match-modal .public-score-team img.team-logo,
+  .public-match-modal .public-score-team .team-logo-fallback{
+    width:58px!important;
+    height:58px!important;
+    border-radius:18px!important;
+  }
+}
+
+@media(max-width:420px){
+  .public-match-modal .public-score-team{
+    min-height:64px!important;
+    padding:6px!important;
+  }
+  .public-match-modal .public-score-team .team-logo,
+  .public-match-modal .public-score-team img.team-logo,
+  .public-match-modal .public-score-team .team-logo-fallback{
+    width:46px!important;
+    height:46px!important;
+    border-radius:14px!important;
+  }
+}
+
+#matchModal.public-match-modal{
+  opacity:1;
+  transition:opacity .14s ease-out;
+}
+
+#matchModal.public-match-modal.is-closing{
+  opacity:0;
+  pointer-events:none;
+  animation:none!important;
+}
+
+#matchModal.public-match-modal.is-closing .modal-content,
+#matchModal.public-match-modal.is-closing .public-match-modal-content{
+  animation:none!important;
+  transform:translate3d(0,0,0)!important;
+}
+
+@media(max-width:720px){
+  #matchModal.public-match-modal,
+  #matchModal.public-match-modal .modal-content,
+  #matchModal.public-match-modal .public-match-modal-content{
+    animation:none!important;
+    transform:translate3d(0,0,0)!important;
+    backface-visibility:hidden;
+    -webkit-backface-visibility:hidden;
+  }
+  #matchModal.public-match-modal{
+    -webkit-backdrop-filter:none!important;
+    backdrop-filter:none!important;
+  }
+}
