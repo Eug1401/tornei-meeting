@@ -2,7 +2,20 @@
  const store=NexoraStore, UI=NexoraUI, A=NexoraAdmin;
  let playerTeamFilter='', standingsGroup='all';
  const BRAND_LOGO='assets/brand/new-generation-logo-transparent.png';
- const PDF_COLORS={ink:[24,16,6], muted:[108,91,54], gold:[185,130,24], gold2:[244,219,120], cream:[255,248,231], line:[221,177,73], soft:[255,246,218]};
+ // Palette PDF tema Coppa del Mondo (blu/arancio). Le chiavi storiche restano
+ // per compatibilità ma puntano ai colori del tema: header blu scuro, accenti
+ // arancio, testo chiaro leggibile su fondo scuro, superfici chiare pulite.
+ const PDF_COLORS={
+   ink:[6,19,45],          // blu scuro: fondo header + testo scuro su carta
+   muted:[90,108,140],     // azzurro tenue per sottotitoli/testo secondario
+   gold:[255,122,24],      // accento principale = arancio
+   gold2:[255,255,255],    // testo/elementi chiari su header scuro = bianco
+   cream:[247,251,255],    // testo chiarissimo su scuro
+   line:[255,122,24],      // linee/bordi = arancio
+   soft:[233,241,251],     // superficie chiara (righe tabella, box)
+   blue:[31,99,255],       // blu brand (per accenti secondari)
+   accentSoft:[255,176,95] // arancio chiaro
+ };
  const imageCache=new Map();
  function teamFilterOptions(s,selected){return '<option value="">Tutte le squadre</option>'+s.teams.map(t=>`<option value="${t.id}" ${t.id===selected?'selected':''}>${UI.esc(t.name)}</option>`).join('');}
  function filteredPlayerStats(s){const rows=store.selectors.playerStats(s);return playerTeamFilter?rows.filter(p=>p.teamId===playerTeamFilter):rows.filter(p=>p.goals>0).slice(0,15);}
@@ -85,18 +98,18 @@
  }
  function drawHeader(doc,s,title,subtitle,logo){
    const w=doc.internal.pageSize.getWidth();
-   setRgb(doc,'setFillColor',[7,6,4]);doc.rect(0,0,w,48,'F');
-   setRgb(doc,'setFillColor',[32,24,10]);doc.rect(0,48,w,3,'F');
+   setRgb(doc,'setFillColor',[6,19,45]);doc.rect(0,0,w,48,'F');
+   setRgb(doc,'setFillColor',[6,19,45]);doc.rect(0,48,w,3,'F');
    drawLogo(doc,logo,w/2-12,6.5,24,s.rules?.name||'NG');
    setRgb(doc,'setTextColor',PDF_COLORS.cream);doc.setFont('helvetica','bold');doc.setFontSize(15);doc.text(String(s.rules?.name||'New Generation'),w/2,34,{align:'center'});
    setRgb(doc,'setTextColor',PDF_COLORS.gold2);doc.setFontSize(10);doc.text(String(title||'Report ufficiale'),w/2,40.5,{align:'center'});
-   setRgb(doc,'setTextColor',[210,190,140]);doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.text(String(subtitle||''),w/2,45.3,{align:'center'});
+   setRgb(doc,'setTextColor',[255,176,95]);doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.text(String(subtitle||''),w/2,45.3,{align:'center'});
  }
  function addFooter(doc,s){
    const pages=doc.internal.getNumberOfPages();
-   for(let i=1;i<=pages;i++){doc.setPage(i);const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight();setRgb(doc,'setDrawColor',[225,184,80]);doc.setLineWidth(.2);doc.line(12,h-12,w-12,h-12);setRgb(doc,'setTextColor',PDF_COLORS.muted);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text(`${s.rules?.name||'New Generation'} · generato ${today()}`,12,h-7);doc.text(`Pagina ${i}/${pages}`,w-12,h-7,{align:'right'});}
+   for(let i=1;i<=pages;i++){doc.setPage(i);const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight();setRgb(doc,'setDrawColor',[255,122,24]);doc.setLineWidth(.2);doc.line(12,h-12,w-12,h-12);setRgb(doc,'setTextColor',PDF_COLORS.muted);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text(`${s.rules?.name||'New Generation'} · generato ${today()}`,12,h-7);doc.text(`Pagina ${i}/${pages}`,w-12,h-7,{align:'right'});}
  }
- function tableTheme(){return {theme:'grid',styles:{font:'helvetica',fontSize:8,cellPadding:2.1,lineColor:[232,210,150],lineWidth:.12,textColor:PDF_COLORS.ink,overflow:'linebreak',valign:'middle'},headStyles:{fillColor:PDF_COLORS.ink,textColor:PDF_COLORS.gold2,fontStyle:'bold',fontSize:7.5,halign:'center'},alternateRowStyles:{fillColor:[255,252,241]},margin:{left:12,right:12},showHead:'everyPage'};}
+ function tableTheme(){return {theme:'grid',styles:{font:'helvetica',fontSize:8,cellPadding:2.1,lineColor:[255,176,95],lineWidth:.12,textColor:PDF_COLORS.ink,overflow:'linebreak',valign:'middle'},headStyles:{fillColor:PDF_COLORS.ink,textColor:PDF_COLORS.gold2,fontStyle:'bold',fontSize:7.5,halign:'center'},alternateRowStyles:{fillColor:[247,251,255]},margin:{left:12,right:12},showHead:'everyPage'};}
  function didDrawTeamLogo(logos,teamsByRow,colIndex=1){return function(data){if(data.section!=='body'||data.column.index!==colIndex)return;const row=teamsByRow[data.row.index];if(!row)return;drawLogo(data.doc,logos[row.teamId],data.cell.x+1.6,data.cell.y+1.4,6.2,row.name||row.teamName||row.team);};}
  function didParseTeamCell(colIndex=1){return function(data){if(data.section==='body'&&data.column.index===colIndex){data.cell.styles.cellPadding={top:2.1,right:2.1,bottom:2.1,left:10};data.cell.styles.fontStyle='bold';}};}
  function standingsRows(s,phase){return store.selectors.calculateStandings(s,phase);}
@@ -135,7 +148,7 @@
    addFooter(doc,s); doc.save(pdfName(s,'calendario-completo'));
  }
  function drawTeamLine(doc,s,logos,m,side,x,y,w){const id=side==='home'?m.homeTeamId:m.awayTeamId;const label=side==='home'?m.homeLabel:m.awayLabel;const name=store.teamName(s,id,label||'Da definire');const sc=store.matchGoals(s,m);const score=store.hasScore(s,m)?(side==='home'?sc.home:sc.away):'';drawLogo(doc,logos[id],x+1.5,y+1,5.7,name);setRgb(doc,'setTextColor',PDF_COLORS.ink);doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.text(String(name).slice(0,24),x+9,y+5.1,{maxWidth:w-16});if(score!==''){doc.setFontSize(7);doc.text(String(score),x+w-3,y+5.1,{align:'right'});} }
- function drawBracketPage(doc,s,logos,bracket,logo,addNewPage=true){if(addNewPage)doc.addPage('a4','landscape');drawHeader(doc,s,`Tabellone · ${bracket.name}`,'Grafica del tabellone con squadre, placeholder e risultati dal calendario.',logo);const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight();const left=12,right=12,top=58,bottom=20;const rounds=bracket.rounds;const gap=5;const colW=(w-left-right-gap*(rounds.length-1))/Math.max(1,rounds.length);rounds.forEach((round,ri)=>{const x=left+ri*(colW+gap);setRgb(doc,'setFillColor',PDF_COLORS.ink);doc.roundedRect(x,top-8,colW,6,1.8,1.8,'F');setRgb(doc,'setTextColor',PDF_COLORS.gold2);doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text(String(round.name),x+colW/2,top-4,{align:'center',maxWidth:colW-2});const count=Math.max(round.matches.length,1);const cardH=Math.max(15,Math.min(26,(h-top-bottom-(count-1)*5)/count));const usable=h-top-bottom-cardH;round.matches.forEach((m,mi)=>{const y=top+(count===1?usable/2:(usable*mi/(count-1))) ;setRgb(doc,'setFillColor',[255,252,241]);setRgb(doc,'setDrawColor',PDF_COLORS.line);doc.roundedRect(x,y,colW,cardH,3,3,'FD');setRgb(doc,'setTextColor',PDF_COLORS.muted);doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.text(`${m.round||round.name} · ${m.field||'Campo da definire'}`,x+2,y+4);drawTeamLine(doc,s,logos,m,'home',x+2,y+5,colW-4);drawTeamLine(doc,s,logos,m,'away',x+2,y+12,colW-4);if(ri<rounds.length-1){setRgb(doc,'setDrawColor',PDF_COLORS.gold);doc.setLineWidth(.25);const yMid=y+cardH/2;doc.line(x+colW,yMid,x+colW+gap*.65,yMid);}});});}
+ function drawBracketPage(doc,s,logos,bracket,logo,addNewPage=true){if(addNewPage)doc.addPage('a4','landscape');drawHeader(doc,s,`Tabellone · ${bracket.name}`,'Grafica del tabellone con squadre, placeholder e risultati dal calendario.',logo);const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight();const left=12,right=12,top=58,bottom=20;const rounds=bracket.rounds;const gap=5;const colW=(w-left-right-gap*(rounds.length-1))/Math.max(1,rounds.length);rounds.forEach((round,ri)=>{const x=left+ri*(colW+gap);setRgb(doc,'setFillColor',PDF_COLORS.ink);doc.roundedRect(x,top-8,colW,6,1.8,1.8,'F');setRgb(doc,'setTextColor',PDF_COLORS.gold2);doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text(String(round.name),x+colW/2,top-4,{align:'center',maxWidth:colW-2});const count=Math.max(round.matches.length,1);const cardH=Math.max(15,Math.min(26,(h-top-bottom-(count-1)*5)/count));const usable=h-top-bottom-cardH;round.matches.forEach((m,mi)=>{const y=top+(count===1?usable/2:(usable*mi/(count-1))) ;setRgb(doc,'setFillColor',[247,251,255]);setRgb(doc,'setDrawColor',PDF_COLORS.line);doc.roundedRect(x,y,colW,cardH,3,3,'FD');setRgb(doc,'setTextColor',PDF_COLORS.muted);doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.text(`${m.round||round.name} · ${m.field||'Campo da definire'}`,x+2,y+4);drawTeamLine(doc,s,logos,m,'home',x+2,y+5,colW-4);drawTeamLine(doc,s,logos,m,'away',x+2,y+12,colW-4);if(ri<rounds.length-1){setRgb(doc,'setDrawColor',PDF_COLORS.gold);doc.setLineWidth(.25);const yMid=y+cardH/2;doc.line(x+colW,yMid,x+colW+gap*.65,yMid);}});});}
  async function pdfBracket(){
    const s=currentPdfState(), logos=await preloadTeamLogos(s); const {doc,logo}=await baseDoc(s,'Tabellone fase finale','Grafica tabellone con squadre, placeholder e risultati.','l');
    const data=store.bracketData(s);
