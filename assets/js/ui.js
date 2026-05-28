@@ -201,7 +201,7 @@
 
 
   function siteSettings(state){return store.defaultSite?store.defaultSite():{title:'Coppa del Mondo',subtitle:'Risultati, squadre, giocatori e dettagli della Coppa del Mondo.',logo:'assets/brand/meeting-calcio-logo.png'};}
-  function siteTitle(state){return state?.rules?.name||'Coppa del Mondo';}
+  function siteTitle(state){const t=state?.site?.title;return (t&&String(t).trim())||state?.rules?.name||'Coppa del Mondo';}
   function siteSubtitle(state){return state?.site?.subtitle||'Risultati, squadre, giocatori e dettagli della Coppa del Mondo.';}
   function siteLogoMarkup(state,big=false){
     const site=siteSettings(state); const cls=`brand-logo-img ${big?'big':''}`;
@@ -215,7 +215,9 @@
       document.querySelectorAll('[data-brand-title]').forEach(el=>{if(!el.dataset.brandSuffix){const txt=String(el.textContent||'');const i=txt.indexOf('·');if(i>=0)el.dataset.brandSuffix=' '+txt.slice(i).trim();}el.textContent=siteTitle(state)+(el.dataset.brandSuffix||'');});
       document.querySelectorAll('[data-brand-subtitle]').forEach(el=>{el.textContent=siteSubtitle(state);});
       document.querySelectorAll('[data-brand-logo]').forEach(el=>{el.innerHTML=siteLogoMarkup(state);});
-      document.title=(document.title||'Coppa del Mondo').replace(/^Coppa del Mondo/,siteTitle(state));
+      const baseDoc=(document.documentElement.dataset.docBase||(document.documentElement.dataset.docBase=String(document.title||'Coppa del Mondo')));
+      const suffixIdx=baseDoc.indexOf('·');
+      document.title=siteTitle(state)+(suffixIdx>=0?' '+baseDoc.slice(suffixIdx).trim():'');
     }catch(e){console.warn('Tema sito non applicato',e);}
   }
 

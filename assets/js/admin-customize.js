@@ -13,7 +13,7 @@
  }
  function render(){const s=A.state(); UI.applySiteTheme(s); const site={...store.defaultSite(),...(s.site||{})};
   const form=UI.$('#customizeForm'); if(!form)return;
-  form.title.value=site.title||''; form.subtitle.value=site.subtitle||''; form.primary.value=site.primary||'#fff45a'; form.accent.value=site.accent||'#d2a63a'; form.surface.value=site.surface||'#17170f'; form.radius.value=site.radius||'24';
+  form.title.value=site.title||''; form.subtitle.value=site.subtitle||''; form.primary.value=site.primary||'#ff7a18'; form.accent.value=site.accent||'#1f63ff'; form.surface.value=site.surface||'#08245a'; form.radius.value=site.radius||'24';
   renderPreview(s);
  }
  document.addEventListener('DOMContentLoaded',render);

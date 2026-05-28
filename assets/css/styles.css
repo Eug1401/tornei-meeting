@@ -4314,3 +4314,178 @@ input::placeholder,textarea::placeholder{color:#8ea4cd;opacity:1}
 .team-logo-fallback span:before{content:none!important}
 /* Toggle live diretta */
 .check-card.live-toggle input[type="checkbox"]{accent-color:var(--cdm-orange)}
+
+/* =====================================================================
+   v108 · UI POLISH FINALE (senior pattern design)
+   Carica per ultimo: vince la cascade dove serve.
+   Obiettivi richiesti:
+   1) Nomi squadre mai tagliati / sempre leggibili (utente + admin)
+   2) Palette pienamente blu/arancio: rimozione residui oro
+   3) Dettaglio partita (modale) coerente col tema blu/arancio
+   4) Contrasto e leggibilità di ogni scritta
+   ===================================================================== */
+
+/* --- 1. NOMI SQUADRE: leggibilità garantita ovunque -------------------
+   Sostituiamo i troncamenti "a riga singola + ellissi" (che tagliavano i
+   nomi lunghi) con un wrap pulito a 2 righe e bilanciamento del testo. */
+.fixture-team strong{
+  white-space:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;
+  overflow-wrap:anywhere;word-break:break-word;text-wrap:balance;
+  line-height:1.12;
+}
+.public-score-team strong,
+.public-match-modal .public-score-team strong{
+  white-space:normal!important;
+  overflow:visible!important;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;
+  overflow-wrap:anywhere;word-break:break-word;text-wrap:balance;
+  line-height:1.1;max-width:100%;
+}
+/* Liste a pulsante (scelta squadra/partita) e bracket: nessun taglio netto */
+.flow-pick-btn strong,.match-pick-btn strong{
+  white-space:normal!important;overflow:visible!important;text-overflow:clip!important;
+  overflow-wrap:anywhere;word-break:break-word;line-height:1.15;
+}
+.bracket-team span{
+  white-space:normal!important;overflow:visible!important;text-overflow:clip!important;
+  overflow-wrap:anywhere;line-height:1.15;
+}
+.team-inline h3,.team-inline strong,.team-card h3,.team-row strong{
+  overflow-wrap:anywhere;word-break:break-word;
+}
+/* Celle classifica: il nome squadra può andare a capo invece di sforare */
+td .team-inline,td .team-inline span,td.team-cell{white-space:normal;}
+.standings-table .team-inline span,.standings-table .team-inline h3{
+  overflow-wrap:anywhere;word-break:break-word;line-height:1.15;
+}
+
+/* --- 2+3. DETTAGLIO PARTITA + residui oro -> blu/arancio --------------- */
+:root{
+  --cdm-score-digit:#ffffff;          /* cifre punteggio: bianco pieno     */
+  --cdm-score-sep:#ffd9b8;            /* separatore: arancio chiaro        */
+  --cdm-eyebrow:#ffb05f;              /* eyebrow/etichette: arancio chiaro  */
+}
+/* Punteggio centrale: testo bianco leggibilissimo, niente crema/oro */
+.public-score-center span,
+.public-match-modal .public-score-center span,
+.fixture-center strong{
+  color:var(--cdm-score-digit)!important;
+  text-shadow:0 1px 3px rgba(0,16,53,.55);
+}
+.public-score-center em,
+.public-match-modal .public-score-center em{ color:var(--cdm-score-sep)!important; }
+/* Stato "live": arancio acceso coerente */
+.public-score-center.is-live span,
+.public-score-center.is-live em{ color:#ff7a18!important; }
+
+/* Box punteggio: gradiente arancio->blu, niente sfondo oro */
+.public-score-center,
+.public-match-modal .public-score-center,
+.fixture-center{
+  background:linear-gradient(135deg,rgba(255,122,24,.20),rgba(31,99,255,.16))!important;
+  border:1px solid rgba(255,122,24,.34)!important;
+  box-shadow:inset 0 1px rgba(255,255,255,.10)!important;
+}
+
+/* Hero del dettaglio: alone arancio coerente con il tema */
+.public-match-hero{
+  border:1px solid rgba(255,122,24,.30)!important;
+  background:
+    radial-gradient(circle at 12% -10%,rgba(31,99,255,.30),transparent 46%),
+    linear-gradient(135deg,rgba(9,37,92,.92),rgba(5,22,57,.92))!important;
+}
+.public-match-hero:before{
+  background:radial-gradient(ellipse at center,rgba(255,122,24,.18),transparent 64%)!important;
+}
+/* Etichetta fase (pill) nel dettaglio: arancio leggibile su scuro */
+.public-match-modal .public-match-hero-top .pill,
+.public-match-detail-card .public-match-hero-top .pill{
+  border-color:rgba(255,122,24,.40);
+  background:rgba(255,122,24,.14);
+  color:#ffe4cf;
+}
+/* Meta grid (data/campo/arbitro): label arancio, valore bianco */
+.public-match-meta-grid small{ color:var(--cdm-eyebrow)!important; }
+.public-match-meta-grid strong{ color:#ffffff!important; }
+.public-match-meta-grid span{ border-color:rgba(255,122,24,.16)!important; }
+
+/* Pannelli marcatori/cartellini: bordo arancio tenue, titoli bianchi */
+.public-match-panel{ border-color:rgba(255,122,24,.20)!important; }
+.public-match-panel h3{ color:#ffffff!important; }
+.public-match-event-item strong{ color:#ffffff; }
+/* Pallini evento coerenti (giallo cartellino -> giallo, rosso -> rosso,
+   gol -> arancio del tema invece di oro) */
+.event-dot{ background:rgba(255,122,24,.18)!important; color:#ffe4cf!important; }
+.event-dot.yellow{ background:rgba(255,209,102,.20)!important; color:#1a1207!important; }
+.event-dot.red{ background:rgba(255,77,95,.22)!important; color:#ffe7ea!important; }
+
+/* Blocco rigori: coerente blu/arancio */
+.public-penalty-block{
+  border:1px solid rgba(255,122,24,.30);
+  background:linear-gradient(135deg,rgba(255,122,24,.10),rgba(31,99,255,.10));
+}
+.public-penalty-winner{ color:#ffe4cf; }
+
+/* Eyebrow / chip filtri / preset / cockpit: oro -> arancio ------------- */
+.match-center-eyebrow,
+.match-center-hero .match-center-eyebrow{ color:var(--cdm-eyebrow)!important; }
+.filter-chip-btn.active{
+  border-color:rgba(255,122,24,.70)!important;
+  background:linear-gradient(135deg,rgba(255,122,24,.22),rgba(31,99,255,.10))!important;
+  box-shadow:0 10px 28px rgba(255,122,24,.12)!important;
+}
+.filter-option.active{
+  border-color:rgba(255,122,24,.72)!important;
+  background:linear-gradient(135deg,rgba(255,122,24,.18),rgba(31,99,255,.08))!important;
+}
+.match-preset:hover,.match-preset:focus-visible{ border-color:rgba(255,122,24,.58)!important; }
+.match-preset.active{
+  background:linear-gradient(135deg,rgba(255,122,24,.20),rgba(31,99,255,.08))!important;
+  border-color:rgba(255,122,24,.70)!important;
+}
+.match-preset span{ background:rgba(255,122,24,.16)!important; color:#ffe4cf!important; }
+.match-center-hero{
+  background:
+    radial-gradient(circle at 15% 0%,rgba(31,99,255,.20),transparent 38%),
+    linear-gradient(135deg,rgba(255,255,255,.06),rgba(255,255,255,.025))!important;
+  border-color:rgba(255,122,24,.24)!important;
+}
+.admin-cockpit-head{
+  background:linear-gradient(135deg,rgba(255,122,24,.12),rgba(31,99,255,.08))!important;
+  border-color:rgba(255,122,24,.22)!important;
+}
+.admin-cockpit-grid a:hover,.admin-cockpit-grid a:focus-visible{
+  border-color:rgba(255,122,24,.50)!important;background:rgba(255,122,24,.07)!important;
+}
+
+/* --- 4. CONTRASTO GLOBALE: scritte sempre nitide ---------------------- */
+/* Heading sempre bianco pieno (anche dentro card/modali) */
+h1,h2,h3,h4,h5,
+.card h2,.card h3,.modal-content h2,.section-title h2,.section-title h3,
+.public-match-modal h2,.public-match-modal h3{ color:#ffffff!important; }
+/* Testo segnaposto e muted abbastanza chiaro su blu profondo */
+.muted,.brand p,.section-title p{ color:#c4d4f0!important; }
+input::placeholder,textarea::placeholder{ color:#9fb4d8!important;opacity:1; }
+/* Badge stato partita: testo nitido su gradient */
+.match-status-badge,.score-badge.match-status-badge{
+  color:#ffffff!important;text-shadow:0 1px 2px rgba(0,16,53,.5);font-weight:950;
+}
+/* Pulsante chiudi del dettaglio sempre evidente */
+.match-modal-close{ font-weight:900; }
+
+/* Modale: superfici coerenti e bordo arancio */
+.public-match-modal-content,.modal-content{
+  border-color:rgba(255,122,24,.26)!important;
+}
+
+/* Pulsanti "scelta squadra" attivi: alone arancio, niente oro */
+.flow-pick-btn.active,.match-pick-btn.active{
+  box-shadow:0 18px 46px rgba(255,122,24,.14),0 0 0 1px rgba(255,122,24,.18) inset!important;
+}
+.match-pick-round,.flow-pick-btn em,.match-pick-btn em{ color:#ffe4cf!important; }
+
+/* Live strip: nome leggibile */
+.live-strip-team strong{ color:#ffffff!important;overflow-wrap:anywhere; }
