@@ -5,7 +5,7 @@
 // Finché ENABLED è false, l'app continua a funzionare in locale con localStorage.
 window.NEW_GENERATION_SUPABASE = {
   ENABLED: true,
-  URL: 'https://zkhbpxwwbsfysgbybdwh.supabase.co/rest/v1/',
+  URL: 'https://zkhbpxwwbsfysgbybdwh.supabase.co',
   ANON_KEY: 'sb_publishable_DQ_5MwmLWuJlH1KYlngSpw_ApVULy5s',
   TABLE: 'app_state',
   ROW_ID: 'main'
