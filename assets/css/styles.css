@@ -4490,71 +4490,76 @@ input::placeholder,textarea::placeholder{ color:#9fb4d8!important;opacity:1; }
 /* Live strip: nome leggibile */
 .live-strip-team strong{ color:#ffffff!important;overflow-wrap:anywhere; }
 
-/* === FIX SFARFALLIO DETTAGLIO PARTITA (mobile) ====================== */
+/* v109 mobile modal refinement + anti flicker */
+.public-match-modal,
 .public-match-modal-content,
+.public-match-detail-card,
 .public-match-hero,
-.public-match-panel,
-.public-score-center,
-#matchModal,
-#matchModalBody{
+.public-score-center{
   transform:translateZ(0);
   backface-visibility:hidden;
-  -webkit-backface-visibility:hidden;
+  -webkit-font-smoothing:antialiased;
   will-change:auto;
 }
 
-/* Riduce repaint pesanti su mobile */
+.public-match-modal{
+  contain:layout style paint;
+}
+
+.public-match-modal-content{
+  background:
+    radial-gradient(circle at top left,rgba(41,98,255,.22),transparent 32%),
+    radial-gradient(circle at top right,rgba(255,122,24,.10),transparent 26%),
+    linear-gradient(180deg,#071a44 0%,#081731 45%,#091426 100%)!important;
+  box-shadow:0 24px 80px rgba(0,0,0,.48),0 0 0 1px rgba(64,132,255,.12) inset!important;
+}
+
+.public-match-hero{
+  background:
+    radial-gradient(circle at 10% 0%,rgba(65,125,255,.34),transparent 42%),
+    radial-gradient(circle at 90% 10%,rgba(255,122,24,.12),transparent 30%),
+    linear-gradient(135deg,#0c2f73 0%,#0a255a 45%,#081a3f 100%)!important;
+}
+
+.public-match-panel,
+.public-match-meta-grid span,
+.public-penalty-block{
+  background:linear-gradient(180deg,rgba(15,41,92,.92),rgba(9,26,58,.96))!important;
+}
+
 @media (max-width: 768px){
-  .public-match-modal-content{
-    background:
-      linear-gradient(180deg,#08204a 0%,#061731 100%)!important;
-    box-shadow:0 12px 40px rgba(0,0,0,.42)!important;
-    backdrop-filter:none!important;
-    -webkit-backdrop-filter:none!important;
-  }
-
-  .public-match-hero,
-  .public-match-panel,
-  .public-score-center{
-    animation:none!important;
-    transition:background-color .2s ease,border-color .2s ease,transform .2s ease!important;
-  }
-
-  /* UI mobile solo loghi */
-  .public-score-team strong,
-  .fixture-team strong{
+  .public-match-modal .public-score-team strong,
+  .public-match-modal .fixture-team strong{
     display:none!important;
   }
 
-  .public-score-team{
-    min-width:84px;
-    justify-content:center!important;
-    align-items:center!important;
+  .public-match-modal .public-score-team,
+  .public-match-modal .fixture-team{
     gap:0!important;
+    min-width:72px;
+    justify-content:center;
   }
 
-  .public-score-team img,
-  .fixture-team img{
-    width:56px!important;
-    height:56px!important;
-    object-fit:cover;
-    border-radius:18px;
-    padding:6px;
-    background:linear-gradient(135deg,rgba(31,99,255,.28),rgba(255,122,24,.18));
-    border:1px solid rgba(255,122,24,.28);
+  .public-match-modal .team-logo,
+  .public-match-modal .team-logo-fallback{
+    width:64px!important;
+    height:64px!important;
+    border-radius:20px!important;
     box-shadow:
-      0 0 0 1px rgba(255,255,255,.04) inset,
-      0 8px 22px rgba(31,99,255,.24);
+      0 10px 30px rgba(0,0,0,.28),
+      0 0 0 1px rgba(90,146,255,.18) inset,
+      0 0 24px rgba(41,98,255,.20);
   }
 
-  .public-score-shell,
-  .public-match-scoreboard{
-    gap:10px!important;
-    align-items:center!important;
+  .public-match-modal .public-scoreline,
+  .public-match-modal .fixture-scoreline{
+    align-items:center;
+    gap:12px!important;
   }
 
-  .public-score-center{
-    min-width:78px!important;
+  .public-match-modal .public-score-center,
+  .public-match-modal .fixture-center{
+    min-width:92px;
     padding:10px 12px!important;
   }
 }
