@@ -4490,49 +4490,71 @@ input::placeholder,textarea::placeholder{ color:#9fb4d8!important;opacity:1; }
 /* Live strip: nome leggibile */
 .live-strip-team strong{ color:#ffffff!important;overflow-wrap:anywhere; }
 
-/* v53 - Stronger blue/orange match detail theme */
-.public-match-modal .modal-content{
-  background:
-    radial-gradient(circle at top left, rgba(31,99,255,.30), transparent 34%),
-    radial-gradient(circle at top right, rgba(255,122,24,.16), transparent 28%),
-    linear-gradient(180deg,#081427 0%,#091a33 48%,#06101f 100%);
-  border:1px solid rgba(70,120,255,.34);
-  box-shadow:0 30px 90px rgba(0,0,0,.58),0 0 40px rgba(31,99,255,.16);
-}
-.public-match-modal .section-title{
-  background:linear-gradient(180deg,rgba(7,18,38,.98),rgba(8,20,42,.94));
-  border-bottom:1px solid rgba(70,120,255,.24);
-}
+/* === FIX SFARFALLIO DETTAGLIO PARTITA (mobile) ====================== */
+.public-match-modal-content,
 .public-match-hero,
-.match-center-hero{
-  background:
-    radial-gradient(circle at top left,rgba(31,99,255,.24),transparent 42%),
-    linear-gradient(135deg,rgba(8,26,58,.96),rgba(10,22,44,.92));
-  border:1px solid rgba(70,120,255,.24);
+.public-match-panel,
+.public-score-center,
+#matchModal,
+#matchModalBody{
+  transform:translateZ(0);
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+  will-change:auto;
 }
-.public-score-center{
-  background:linear-gradient(135deg,rgba(31,99,255,.30),rgba(255,122,24,.20));
-  border:1px solid rgba(90,140,255,.32);
-}
-.public-match-meta-grid > *,
-.public-match-panels > *,
-.public-match-detail-card .card{
-  background:linear-gradient(180deg,rgba(8,22,46,.92),rgba(6,16,33,.94));
-  border-color:rgba(70,120,255,.20);
-}
-.public-match-actions .btn,
-.public-match-modal .btn.primary{
-  background:linear-gradient(135deg,#ff7a18 0%,#1f63ff 100%);
-  color:#fff;
-}
-@media(max-width:720px){
-  .public-match-modal .section-title{
-    background:rgba(6,18,38,.98);
+
+/* Riduce repaint pesanti su mobile */
+@media (max-width: 768px){
+  .public-match-modal-content{
+    background:
+      linear-gradient(180deg,#08204a 0%,#061731 100%)!important;
+    box-shadow:0 12px 40px rgba(0,0,0,.42)!important;
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
   }
-  .public-score-team strong{
-    display:none;
+
+  .public-match-hero,
+  .public-match-panel,
+  .public-score-center{
+    animation:none!important;
+    transition:background-color .2s ease,border-color .2s ease,transform .2s ease!important;
   }
-  .public-scoreboard{
-    grid-template-columns:minmax(0,1fr) 72px minmax(0,1fr);
+
+  /* UI mobile solo loghi */
+  .public-score-team strong,
+  .fixture-team strong{
+    display:none!important;
+  }
+
+  .public-score-team{
+    min-width:84px;
+    justify-content:center!important;
+    align-items:center!important;
+    gap:0!important;
+  }
+
+  .public-score-team img,
+  .fixture-team img{
+    width:56px!important;
+    height:56px!important;
+    object-fit:cover;
+    border-radius:18px;
+    padding:6px;
+    background:linear-gradient(135deg,rgba(31,99,255,.28),rgba(255,122,24,.18));
+    border:1px solid rgba(255,122,24,.28);
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,.04) inset,
+      0 8px 22px rgba(31,99,255,.24);
+  }
+
+  .public-score-shell,
+  .public-match-scoreboard{
+    gap:10px!important;
+    align-items:center!important;
+  }
+
+  .public-score-center{
+    min-width:78px!important;
+    padding:10px 12px!important;
   }
 }
