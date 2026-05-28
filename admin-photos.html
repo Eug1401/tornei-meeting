@@ -1,0 +1,26 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="preconnect" href="https://avypkzuwyfydmayoewdi.supabase.co" crossorigin><link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin><link rel="preconnect" href="https://res.cloudinary.com" crossorigin><link rel="dns-prefetch" href="https://res.cloudinary.com"><link rel="dns-prefetch" href="https://avypkzuwyfydmayoewdi.supabase.co"><link rel="dns-prefetch" href="https://cdn.jsdelivr.net"><title>Coppa del Mondo · Foto squadre</title><link rel="stylesheet" href="assets/css/styles.css?v=v107-coppa-theme"></head><body><div class="shell"><header class="site-header"><div class="brand"><div data-brand-logo><div class="logo"><span></span></div></div><div><h1 data-brand-title>Coppa del Mondo · Foto squadre</h1><p data-brand-subtitle>Carica e gestisci le foto di ogni squadra del torneo.</p></div></div><div class="actions"><button class="btn primary" id="simulateTournamentBtn" type="button">Simula</button><button class="btn danger" id="resetAllBtn" type="button">Reset</button></div></header><nav class="admin-nav"><a href="admin.html" class="">Dashboard</a><a href="admin-rules.html" class="">Regole &amp; calendario</a><a href="admin-groups.html" class="">Gironi</a><a href="admin-teams.html" class="">Squadre</a><a href="admin-players.html" class="">Giocatori</a><a href="admin-matches.html" class="">Partite &amp; referti</a><a href="admin-articles.html" class="">Articoli</a><a href="admin-photos.html" class="active">Foto</a><a href="admin-reports.html" class="">Report &amp; PDF</a></nav><main>
+<div class="grid photos-admin-grid">
+  <article class="card pad span-4 photos-sidebar">
+    <div class="section-title"><div><h2>Squadre</h2><p>Seleziona una squadra per gestire le sue foto.</p></div></div>
+    <div id="photosTeamList"></div>
+  </article>
+  <article class="card pad span-8 photos-workspace" id="photosWorkspace">
+    <div class="section-title"><div><h2 id="photosTitle">Foto squadra</h2><p id="photosSubtitle">Scegli una squadra a sinistra per iniziare.</p></div><span class="pill"><strong id="photosCount">0</strong>&nbsp;foto</span></div>
+    <div id="photosUploadArea" hidden>
+      <form id="photosUploadForm">
+        <div id="photosDropZone" class="photos-dropzone">
+          <input id="photosFileInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden>
+          <div class="dropzone-content">
+            <div class="dropzone-icon">📷</div>
+            <div class="dropzone-text"><strong>Trascina qui le foto</strong><small>oppure <button type="button" id="photosDropTrigger" class="link-btn">scegli dal dispositivo</button></small></div>
+            <small class="dropzone-hint">Compressione automatica · max 10MB · JPG, PNG, WebP, GIF</small>
+          </div>
+        </div>
+        <div id="photosUploadProgress"></div>
+      </form>
+      <div id="photosMsg"></div>
+    </div>
+    <div id="photosGrid" class="photos-grid"></div>
+  </article>
+</div>
+</main></div><script defer src="assets/js/store.js?v=v107-coppa-theme"></script><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script defer src="assets/js/supabase-config.js?v=v106-cloudinary"></script><script defer src="assets/js/supabase-sync.js?v=v104-rebuilt"></script><script defer src="assets/js/ui.js?v=v107-coppa-theme"></script><script defer src="assets/js/photos.js?v=v106-cloudinary"></script><script defer src="assets/js/photo-runtime.js?v=v106-cloudinary"></script><script defer src="assets/js/admin-common.js?v=v104-rebuilt"></script><script defer src="assets/js/admin-photos.js?v=v106-cloudinary"></script></body></html>
