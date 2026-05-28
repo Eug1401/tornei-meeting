@@ -10,12 +10,3 @@ window.NEW_GENERATION_SUPABASE = {
   TABLE: 'app_state',
   ROW_ID: 'main'
 };
-
-// Configurazione foto squadra via Cloudinary.
-// Le chiavi segrete NON devono stare nel frontend: sono nei Secrets della Edge Function Supabase.
-window.NEW_GENERATION_CLOUDINARY = {
-  CLOUD_NAME: 'dc17izhac',
-  FOLDER: 'squadra',
-  SECTION: 'foto-squadra',
-  EDGE_FUNCTION: 'team-photos'
-};
