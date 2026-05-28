@@ -1,8 +1,8 @@
 (function(){
  const store=NexoraStore, A=NexoraAdmin;
  function fileToDataURL(file){return new Promise((resolve,reject)=>{
-  if(!file){resolve('');return;}
-  if(!file.type.startsWith('image/')){reject(new Error('Carica solo immagini.'));return;}
+  if(!file || !file.size){resolve('');return;}
+  if(!file.type || !file.type.startsWith('image/')){reject(new Error('Carica solo immagini.'));return;}
   const reader=new FileReader();
   reader.onerror=()=>reject(new Error('Impossibile leggere il logo.'));
   reader.onload=()=>{
@@ -29,10 +29,22 @@
  document.addEventListener('submit',async e=>{
   const f=e.target;
   if(f.id==='teamCreateForm'){
-   e.preventDefault();const fd=new FormData(f);const uploaded=await fileToDataURL(fd.get('logoFile'));A.commit(s=>s.teams.push({id:store.uid('team'),name:fd.get('name').trim(),logo:uploaded||'',president:{id:store.uid('president'),name:(fd.get('presidentName')||'').trim()},coach:{name:(fd.get('coachName')||'').trim()},players:[]}));f.reset();render();
+   e.preventDefault();
+   try{
+    const fd=new FormData(f);
+    const uploaded=await fileToDataURL(fd.get('logoFile'));
+    A.commit(s=>s.teams.push({id:store.uid('team'),name:fd.get('name').trim(),logo:uploaded||'',president:{id:store.uid('president'),name:(fd.get('presidentName')||'').trim()},coach:{name:(fd.get('coachName')||'').trim()},players:[]}));
+    f.reset();render();
+   }catch(err){alert(err.message||err);}
   }
   if(f.classList.contains('team-edit-form')){
-   e.preventDefault();const fd=new FormData(f);const uploaded=await fileToDataURL(fd.get('logoFile'));A.commit(s=>{const t=store.getTeam(s,f.dataset.teamId);if(t){t.name=fd.get('name').trim();t.president=t.president||{id:store.uid('president'),name:''};t.president.name=(fd.get('presidentName')||'').trim();t.coach=t.coach||{name:''};t.coach.name=(fd.get('coachName')||'').trim();if(uploaded)t.logo=uploaded;}});render();
+   e.preventDefault();
+   try{
+    const fd=new FormData(f);
+    const uploaded=await fileToDataURL(fd.get('logoFile'));
+    A.commit(s=>{const t=store.getTeam(s,f.dataset.teamId);if(t){t.name=fd.get('name').trim();t.president=t.president||{id:store.uid('president'),name:''};t.president.name=(fd.get('presidentName')||'').trim();t.coach=t.coach||{name:''};t.coach.name=(fd.get('coachName')||'').trim();if(uploaded)t.logo=uploaded;}});
+    render();
+   }catch(err){alert(err.message||err);}
   }
  });
  document.addEventListener('click',e=>{

@@ -7,7 +7,7 @@
   const PDF_COLORS={bg:[6,19,45],ink:[6,19,45],muted:[90,108,140],gold:[255,122,24],gold2:[255,255,255],paper:[247,251,255],line:[255,122,24]};
   const PUBLIC_ACTIVE_TAB_KEY='new-generation-public-active-tab-v1';
   const PUBLIC_FILTERS_KEY='new-generation-public-filter-state-v1';
-  const PUBLIC_TABS=new Set(['home','teams','players','matches','bracket','articles','photos','search']);
+  const PUBLIC_TABS=new Set(['home','teams','players','matches','bracket','articles','search']);
   function safeSessionGet(key){try{return sessionStorage.getItem(key)||'';}catch(_){return '';}}
   function safeSessionSet(key,value){try{sessionStorage.setItem(key,value);}catch(_){}}
   function persistPublicFilters(){
@@ -629,10 +629,10 @@
 
   function setupMobileNavigation(){
     if(document.querySelector('.mobile-bottom-nav')) return;
-    const labels={home:'Panoramica',teams:'Squadre',players:'Giocatori',matches:'Partite',bracket:'Tabellone',articles:'Articoli',photos:'Foto',search:'Cerca'};
-    const icons={home:'⌂',teams:'◎',players:'♙',matches:'⚽',bracket:'▥',articles:'✦',photos:'📷',search:'⌕'};
+    const labels={home:'Panoramica',teams:'Squadre',players:'Giocatori',matches:'Partite',bracket:'Tabellone',articles:'Articoli',search:'Cerca'};
+    const icons={home:'⌂',teams:'◎',players:'♙',matches:'⚽',bracket:'▥',articles:'✦',search:'⌕'};
     const mainTabs=['home','teams','matches','search'];
-    const moreTabs=['players','bracket','articles','photos'];
+    const moreTabs=['players','bracket','articles'];
     const nav=document.createElement('nav');
     nav.className='mobile-bottom-nav';
     nav.setAttribute('aria-label','Navigazione principale mobile');
