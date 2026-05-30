@@ -228,7 +228,9 @@
     // la lista sotto al modal: era la causa principale dello sfarfallio.
     if(isArticleModalOpen() && el.dataset.rendered==='1'){
       _deferredArticleRender=true;
-      _lastArticlesFP=fp;
+      // Non aggiorno _lastArticlesFP qui: il DOM non è stato toccato.
+      // In questo modo, alla chiusura del dettaglio, la lista viene aggiornata
+      // solo se serve davvero e non si forza un re-render inutile.
       return;
     }
     const active=document.activeElement;
@@ -554,14 +556,16 @@
   function closeArticleModal(){
     const modal=$('#articleModal');
     if(!modal)return;
+    if(!modal.classList.contains('open'))return;
     modal.classList.remove('open');
-    document.body.classList.remove('modal-open');
-    if(lastArticleTrigger&&document.contains(lastArticleTrigger))lastArticleTrigger.focus?.({preventScroll:true});
-    // Eseguo eventuali refresh rimandati solo dopo il repaint di chiusura, così la UI
-    // non lampeggia mentre il modal sparisce.
+    document.body.classList.remove('modal-open','article-modal-open');
+    // Evito focus/scroll immediati sulla card: su alcuni browser causavano un repaint
+    // visibile della lista subito dopo la chiusura del dettaglio.
+    // Eseguo eventuali refresh rimandati dopo la chiusura visiva e senza force=true:
+    // se lo stato non è cambiato, la lista non viene ricreata.
     if(_deferredArticleRender){
       _deferredArticleRender=false;
-      requestAnimationFrame(()=>renderArticles(true));
+      setTimeout(()=>requestAnimationFrame(()=>renderArticles(false)),180);
     }
   }
   function showArticle(id,trigger=null){
@@ -571,12 +575,14 @@
     const modal=ensureArticleModal();
     const body=$('#articleModalBody');
     $('#articleModalTitle').textContent=article.title||'Articolo';
-    if(body.dataset.articleId!==id){
-      body.innerHTML=UI.articleDetail(article);
-      body.dataset.articleId=id;
+    const nextHtml=UI.articleDetail(article);
+    if(body.dataset.articleId!==String(id)||body.dataset.articleHtml!==nextHtml){
+      body.innerHTML=nextHtml;
+      body.dataset.articleId=String(id);
+      body.dataset.articleHtml=nextHtml;
     }
     modal.classList.add('open');
-    document.body.classList.add('modal-open');
+    document.body.classList.add('modal-open','article-modal-open');
     requestAnimationFrame(()=>$('#closeArticleModal')?.focus?.({preventScroll:true}));
   }
   function resetFiltersForNewState(){
