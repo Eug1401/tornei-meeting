@@ -5513,3 +5513,35 @@ details.ng-disclosure[open] > .ng-disclosure-summary .disclosure-action {
 .article-card .article-placeholder{
   min-height: inherit !important;
 }
+
+
+/* ================================================================
+   v110 - Stabilità sezione Articoli: niente sfarfallio su apertura/chiusura dettagli
+   ================================================================ */
+html{scrollbar-gutter:stable;}
+body.modal-open{overflow:hidden;}
+#articles.tab-panel.active{animation:none!important;}
+#publicArticles .article-card,
+#searchResults .article-card{
+  animation:none!important;
+  transition:border-color .18s ease, box-shadow .18s ease!important;
+  transform:none!important;
+}
+#publicArticles .article-card:hover,
+#searchResults .article-card:hover{
+  transform:none!important;
+}
+.article-modal,
+.article-modal-content{
+  will-change:auto!important;
+}
+.article-modal.open .article-modal-content{
+  animation:none!important;
+}
+.article-modal.open{
+  animation:none!important;
+}
+@media (prefers-reduced-motion: no-preference){
+  .article-modal.open{animation:articleModalSoftFade .12s ease-out both!important;}
+}
+@keyframes articleModalSoftFade{from{opacity:.96}to{opacity:1}}

@@ -206,7 +206,41 @@
   function renderPublicMatchCenter(){const slot=document.getElementById('publicMatchCenter');if(slot)slot.remove();}
   function renderMatches(){const slot=document.getElementById('publicMatchCenter');if(slot)slot.remove();resetFiltersForNewState();persistPublicFilters();renderFilters();$('#publicMatches').innerHTML=UI.matchList(state,filteredMatches(),true);decorateFavoriteUI();}
   function renderBracket(){const el=$('#publicBracket');if(el)el.innerHTML=UI.bracketMarkup(state);decorateFavoriteUI();}
-  function renderArticles(){const el=$('#publicArticles');if(el)el.innerHTML=UI.articleList(store.selectors.articles(state),false);}
+  let _lastArticlesFP='';
+  let _deferredArticleRender=false;
+  function articleListFingerprint(list){
+    try{
+      return JSON.stringify((list||[]).map(a=>[
+        a.id||'',a.title||'',a.body||'',a.createdAt||'',a.updatedAt||'',
+        // non serializzo tutta la base64: basta una traccia stabile per capire se cambia
+        (a.image||'').length,String(a.image||'').slice(0,48),String(a.image||'').slice(-48)
+      ]));
+    }catch(_){return String(Date.now());}
+  }
+  function isArticleModalOpen(){return !!$('#articleModal')?.classList.contains('open');}
+  function renderArticles(force=false){
+    const el=$('#publicArticles');
+    if(!el)return;
+    const list=store.selectors.articles(state);
+    const fp=articleListFingerprint(list);
+    if(!force && fp===_lastArticlesFP && el.dataset.rendered==='1')return;
+    // Se arriva un refresh realtime mentre il dettaglio articolo è aperto, non ricreo
+    // la lista sotto al modal: era la causa principale dello sfarfallio.
+    if(isArticleModalOpen() && el.dataset.rendered==='1'){
+      _deferredArticleRender=true;
+      _lastArticlesFP=fp;
+      return;
+    }
+    const active=document.activeElement;
+    const activeId=active?.closest?.('[data-article-id]')?.dataset?.articleId||'';
+    el.innerHTML=UI.articleList(list,false);
+    el.dataset.rendered='1';
+    _lastArticlesFP=fp;
+    if(activeId){
+      const restored=el.querySelector(`[data-article-id="${CSS.escape(activeId)}"]`);
+      restored?.focus?.({preventScroll:true});
+    }
+  }
 
   // ---- Sezione Foto squadre rimossa: le immagini restano solo negli articoli ----
   function renderPhotos(){ /* feature foto rimossa */ }
@@ -517,8 +551,34 @@
     document.body.appendChild(modal);
     return modal;
   }
-  function closeArticleModal(){const modal=$('#articleModal');if(!modal)return;modal.classList.remove('open');document.body.classList.remove('modal-open');if(lastArticleTrigger&&document.contains(lastArticleTrigger))lastArticleTrigger.focus?.();}
-  function showArticle(id,trigger=null){const article=store.selectors.articles(state).find(x=>x.id===id);if(!article)return;lastArticleTrigger=trigger;const modal=ensureArticleModal();$('#articleModalTitle').textContent=article.title||'Articolo';$('#articleModalBody').innerHTML=UI.articleDetail(article);modal.classList.add('open');document.body.classList.add('modal-open');setTimeout(()=>$('#closeArticleModal')?.focus(),0);}
+  function closeArticleModal(){
+    const modal=$('#articleModal');
+    if(!modal)return;
+    modal.classList.remove('open');
+    document.body.classList.remove('modal-open');
+    if(lastArticleTrigger&&document.contains(lastArticleTrigger))lastArticleTrigger.focus?.({preventScroll:true});
+    // Eseguo eventuali refresh rimandati solo dopo il repaint di chiusura, così la UI
+    // non lampeggia mentre il modal sparisce.
+    if(_deferredArticleRender){
+      _deferredArticleRender=false;
+      requestAnimationFrame(()=>renderArticles(true));
+    }
+  }
+  function showArticle(id,trigger=null){
+    const article=store.selectors.articles(state).find(x=>x.id===id);
+    if(!article)return;
+    lastArticleTrigger=trigger;
+    const modal=ensureArticleModal();
+    const body=$('#articleModalBody');
+    $('#articleModalTitle').textContent=article.title||'Articolo';
+    if(body.dataset.articleId!==id){
+      body.innerHTML=UI.articleDetail(article);
+      body.dataset.articleId=id;
+    }
+    modal.classList.add('open');
+    document.body.classList.add('modal-open');
+    requestAnimationFrame(()=>$('#closeArticleModal')?.focus?.({preventScroll:true}));
+  }
   function resetFiltersForNewState(){
     if(phaseFilter && !store.selectors.phases(state).includes(phaseFilter)) phaseFilter='';
     if(statusFilter==='favorite' && (!favoriteTeamId||!store.getTeam(state,favoriteTeamId))) statusFilter='';
