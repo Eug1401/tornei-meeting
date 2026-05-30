@@ -176,34 +176,26 @@
     document.querySelectorAll('[data-match-detail]').forEach(el=>{const m=state.matches.find(x=>x.id===el.dataset.matchDetail);if(m&&(m.homeTeamId===favoriteTeamId||m.awayTeamId===favoriteTeamId))el.classList.add('is-favorite-match');});
   }
   function renderHome(){document.title=UI.siteTitle?UI.siteTitle(state):(state.rules.name||'New Generation');const titleEl=$('#publicTitle');if(titleEl)titleEl.textContent=state.rules.name||'New Generation';const summaryEl=$('#publicSummary');if(summaryEl)summaryEl.innerHTML=UI.rulesSummary(state);const statsEl=$('#publicStats');if(statsEl)statsEl.innerHTML=UI.statsGrid(store.selectors.stats(state));renderLiveHome();renderFavoriteHome();const standingsMenu=$('#publicStandingsMenu');if(standingsMenu)standingsMenu.innerHTML=store.selectors.hasGroupStage(state)?UI.groupStandingsSelector(state,standingsGroup,'publicGroupStandingsFilter'):'';$('#publicStandings').innerHTML=store.selectors.hasGroupStage(state)?UI.groupStandingsTables(state,standingsGroup,{includeLive:true}):UI.standingsTable(store.selectors.calculateStandings(state,undefined,{includeLive:true}),state);$('#publicPlayersMini').innerHTML=UI.playerStatsTable(store.selectors.playerStats(state).filter(p=>p.goals>0).slice(0,10))+(state.rules.isKingsLeague?'<div class="mini-section-title margin-top"><h3>Presidenti marcatori</h3></div>'+UI.presidentStatsTable(store.selectors.presidentScorers(state).slice(0,10)):'');decorateFavoriteUI();}
+  var _lastTeamsFingerprint="";
   function renderTeams(){
-    var container=$('#publicTeams');
+    var container=$("#publicTeams");
     if(!container)return;
-    // ── Fingerprint leggero: solo i campi usati da UI.teamGrid() ──────────
-    // Se i dati non sono cambiati rispetto all'ultimo render, saltiamo la
-    // sostituzione innerHTML (zero DOM churn, zero flash a schermo).
     var fp=JSON.stringify((state.teams||[]).map(function(t){
-      return [
-        t.id, t.name, t.logo||'',
-        (t.players||[]).map(function(p){return (p.name||'')+'|'+(p.birthYear||'')+'|'+(p.number||'');}).join(','),
-        (t.president&&t.president.name)||'',
-        (t.coach&&t.coach.name)||''
-      ];
+      return [t.id,t.name,t.logo||"",
+        (t.players||[]).map(function(p){return (p.name||"")+(p.birthYear||"")+(p.number||"");}).join(","),
+        (t.president&&t.president.name)||"",(t.coach&&t.coach.name)||""];
     }));
-    if(fp===_lastTeamsFingerprint){
-      decorateFavoriteUI(); // aggiorna solo le classi CSS (favorite), nessun DOM swap
-      return;
-    }
+    if(fp===_lastTeamsFingerprint){decorateFavoriteUI();return;}
     _lastTeamsFingerprint=fp;
-    // ── I dati sono davvero cambiati: re-render completo ──────────────────
-    var openId=container.querySelector('details.ng-disclosure[open]')?.dataset?.teamId||'';
-    container.classList.add('ng-teams-restoring');
+    var openId=(container.querySelector("details.ng-disclosure[open]")||{}).dataset&&
+               container.querySelector("details.ng-disclosure[open]").dataset.teamId||"";
+    container.classList.add("ng-teams-restoring");
     container.innerHTML=UI.teamGrid(state).replaceAll('data-favorite-placeholder="','data-favorite-team="');
     if(openId){
-      var el=container.querySelector('details.ng-disclosure[data-team-id="'+CSS.escape(openId)+'"]');
-      if(el) el.setAttribute('open','');
+      var el=container.querySelector("details.ng-disclosure[data-team-id=\""+CSS.escape(openId)+"\"]");
+      if(el)el.setAttribute("open","");
     }
-    requestAnimationFrame(function(){container.classList.remove('ng-teams-restoring');});
+    requestAnimationFrame(function(){container.classList.remove("ng-teams-restoring");});
     decorateFavoriteUI();
   }
   function renderPlayers(){ resetFiltersForNewState(); persistPublicFilters(); renderPlayerFilter(); $('#publicPlayers').innerHTML=UI.playerStatsTable(filteredPlayerStats()); }
@@ -226,51 +218,7 @@
       img.onerror=()=>resolve(''); img.src=src;
     });
   }
-  // Rende il logo in un canvas QUADRATO con letterbox (contain semantics + padding 7%).
-  // La funzione base dataUrlFromImage preserva le dimensioni originali per il brand logo;
-  // questa produce invece un quadrato usabile direttamente in jsPDF senza deformazioni.
-  async function dataUrlFromImageContained(src, boxSize=400){
-    if(!src) return '';
-    if(String(src).startsWith('data:image/')){
-      // Già data URL: rende comunque su canvas quadrato letterboxed
-      return new Promise(resolve=>{
-        const img=new Image();
-        img.onload=()=>{
-          try{
-            const c=document.createElement('canvas'); c.width=boxSize; c.height=boxSize;
-            const ctx=c.getContext('2d');
-            ctx.clearRect(0,0,boxSize,boxSize);
-            ctx.fillStyle='rgba(4,14,44,0.90)'; ctx.fillRect(0,0,boxSize,boxSize);
-            const pad=Math.round(boxSize*0.07); const inner=boxSize-pad*2;
-            const ar=(img.naturalWidth||img.width||1)/(img.naturalHeight||img.height||1);
-            const dw=ar>=1?inner:inner*ar; const dh=ar>=1?inner/ar:inner;
-            ctx.drawImage(img,pad+(inner-dw)/2,pad+(inner-dh)/2,dw,dh);
-            resolve(c.toDataURL('image/png'));
-          }catch(_){resolve('');}
-        };
-        img.onerror=()=>resolve(''); img.src=src;
-      });
-    }
-    return new Promise(resolve=>{
-      const img=new Image(); img.crossOrigin='anonymous';
-      img.onload=()=>{
-        try{
-          const c=document.createElement('canvas'); c.width=boxSize; c.height=boxSize;
-          const ctx=c.getContext('2d');
-          ctx.clearRect(0,0,boxSize,boxSize);
-          ctx.fillStyle='rgba(4,14,44,0.90)'; ctx.fillRect(0,0,boxSize,boxSize);
-          const pad=Math.round(boxSize*0.07); const inner=boxSize-pad*2;
-          const ar=(img.naturalWidth||img.width||1)/(img.naturalHeight||img.height||1);
-          const dw=ar>=1?inner:inner*ar; const dh=ar>=1?inner/ar:inner;
-          ctx.drawImage(img,pad+(inner-dw)/2,pad+(inner-dh)/2,dw,dh);
-          resolve(c.toDataURL('image/png'));
-        }catch(_){resolve('');}
-      };
-      img.onerror=()=>resolve(''); img.src=src;
-    });
-  }
   function drawPdfLogo(doc,src,x,y,size,fallback='NG'){
-    // src è già un canvas quadrato letterboxed → disegno diretto senza deformazioni
     if(src){try{doc.addImage(src,'PNG',x,y,size,size,undefined,'FAST');return;}catch(_){}}
     setRgb(doc,'setFillColor',PDF_COLORS.gold);doc.roundedRect(x,y,size,size,5,5,'F');setRgb(doc,'setTextColor',PDF_COLORS.ink);doc.setFont('helvetica','bold');doc.setFontSize(Math.max(8,size*.28));doc.text(String(fallback||'NG').slice(0,2).toUpperCase(),x+size/2,y+size*.6,{align:'center'});
   }
@@ -289,7 +237,7 @@
     const team=store.getTeam(state,teamId); if(!team) return;
     if(!window.jspdf||!window.jspdf.jsPDF){alert('Librerie PDF non disponibili. Controlla la connessione e riprova.');return;}
     const {jsPDF}=window.jspdf; const doc=new jsPDF({orientation:'p',unit:'mm',format:'a4',compress:true});
-    const brandLogo=await dataUrlFromImageContained(BRAND_LOGO); const teamLogo=await dataUrlFromImageContained(team.logo);
+    const brandLogo=await dataUrlFromImage(BRAND_LOGO); const teamLogo=await dataUrlFromImage(team.logo);
     const w=doc.internal.pageSize.getWidth();
     setRgb(doc,'setFillColor',PDF_COLORS.bg);doc.rect(0,0,w,48,'F');drawPdfLogo(doc,brandLogo,w/2-13,7,26,state.rules?.name||'NG');
     setRgb(doc,'setTextColor',PDF_COLORS.gold2);doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text(String(state.rules?.name||'New Generation').toUpperCase(),w/2,39,{align:'center'});
@@ -417,18 +365,7 @@
     const homeLogo=await getTeamLogoImage(homeT),awayLogo=await getTeamLogoImage(awayT);
     function drawLogo(img,x,y,name){
       roundRectPath(ctx,x-76,y-76,152,152,30);ctx.fillStyle='rgba(255,255,255,.07)';ctx.fill();ctx.strokeStyle='rgba(255,255,255,.10)';ctx.lineWidth=1.5;ctx.stroke();
-      if(img){
-        ctx.save();
-        roundRectPath(ctx,x-64,y-64,128,128,24); ctx.clip();
-        // Sfondo neutro
-        ctx.fillStyle='rgba(4,14,44,.88)'; ctx.fillRect(x-64,y-64,128,128);
-        // Letterbox: proporzioni originali, padding 8px
-        const pad=8; const inner=128-pad*2;
-        const ar=(img.naturalWidth||img.width||1)/(img.naturalHeight||img.height||1);
-        const dw=ar>=1?inner:inner*ar; const dh=ar>=1?inner/ar:inner;
-        ctx.drawImage(img,(x-64)+pad+(inner-dw)/2,(y-64)+pad+(inner-dh)/2,dw,dh);
-        ctx.restore();
-      }
+      if(img){ctx.save();roundRectPath(ctx,x-64,y-64,128,128,24);ctx.clip();ctx.drawImage(img,x-64,y-64,128,128);ctx.restore();}
       else{ctx.fillStyle='#e6c760';ctx.font='900 42px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(name||'?').slice(0,2).toUpperCase(),x,y);ctx.textBaseline='alphabetic';}
     }
     drawLogo(homeLogo,300,375,home);drawLogo(awayLogo,1300,375,away);
@@ -704,21 +641,16 @@
     if(!img)return;
     const media=img.closest('.article-media');
     media?.classList.add('image-ready');
-    // Rilevamento foto verticale (portrait): aggiunge classe per layout adattivo
-    if(img.naturalWidth && img.naturalHeight){
-      const isPortrait=img.naturalHeight>img.naturalWidth;
-      if(isPortrait){
-        img.classList.add('is-portrait');
-        media?.classList.add('has-portrait');
-        img.closest('.article-card')?.classList.add('has-portrait-media');
-      }
+    if(img.naturalWidth&&img.naturalHeight&&img.naturalHeight>img.naturalWidth){
+      img.classList.add('is-portrait');
+      media?.classList.add('has-portrait');
     }
     const detailFrame=img.closest('.article-detail-frame');
-    if(detailFrame && img.naturalWidth && img.naturalHeight){
-      detailFrame.style.setProperty('--article-natural-w', img.naturalWidth + 'px');
-      detailFrame.style.setProperty('--article-natural-h', img.naturalHeight + 'px');
+    if(detailFrame&&img.naturalWidth&&img.naturalHeight){
+      detailFrame.style.setProperty('--article-natural-w',img.naturalWidth+'px');
+      detailFrame.style.setProperty('--article-natural-h',img.naturalHeight+'px');
       detailFrame.classList.add('natural-size-ready');
-      if(img.naturalHeight>img.naturalWidth) detailFrame.classList.add('has-portrait');
+      if(img.naturalHeight>img.naturalWidth)detailFrame.classList.add('has-portrait');
     }
   },true);
 
@@ -764,7 +696,6 @@
   const _origShowTeamDetail = showTeamDetail;
   showTeamDetail = function(teamId, trigger=null){ openTeamModalId = teamId; _origShowTeamDetail(teamId, trigger); };
   let _lastMatchModalHtml='', _lastTeamModalHtml='';
-  let _lastTeamsFingerprint='';
   let _matchCloseTimer=null;
   function closeMatchModal(){
     const modal=$('#matchModal');
