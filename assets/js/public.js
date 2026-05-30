@@ -179,16 +179,30 @@
   function renderTeams(){
     var container=$('#publicTeams');
     if(!container)return;
-    // Salva quale disclosure era aperto prima del re-render (polling Supabase ogni ~6s)
+    // ── Fingerprint leggero: solo i campi usati da UI.teamGrid() ──────────
+    // Se i dati non sono cambiati rispetto all'ultimo render, saltiamo la
+    // sostituzione innerHTML (zero DOM churn, zero flash a schermo).
+    var fp=JSON.stringify((state.teams||[]).map(function(t){
+      return [
+        t.id, t.name, t.logo||'',
+        (t.players||[]).map(function(p){return (p.name||'')+'|'+(p.birthYear||'')+'|'+(p.number||'');}).join(','),
+        (t.president&&t.president.name)||'',
+        (t.coach&&t.coach.name)||''
+      ];
+    }));
+    if(fp===_lastTeamsFingerprint){
+      decorateFavoriteUI(); // aggiorna solo le classi CSS (favorite), nessun DOM swap
+      return;
+    }
+    _lastTeamsFingerprint=fp;
+    // ── I dati sono davvero cambiati: re-render completo ──────────────────
     var openId=container.querySelector('details.ng-disclosure[open]')?.dataset?.teamId||'';
-    // Lock: nessuna animazione durante il ripristino silenzioso
     container.classList.add('ng-teams-restoring');
     container.innerHTML=UI.teamGrid(state).replaceAll('data-favorite-placeholder="','data-favorite-team="');
     if(openId){
       var el=container.querySelector('details.ng-disclosure[data-team-id="'+CSS.escape(openId)+'"]');
       if(el) el.setAttribute('open','');
     }
-    // Rimuove il lock dopo un frame: le aperture successive saranno animate
     requestAnimationFrame(function(){container.classList.remove('ng-teams-restoring');});
     decorateFavoriteUI();
   }
@@ -695,6 +709,7 @@
   const _origShowTeamDetail = showTeamDetail;
   showTeamDetail = function(teamId, trigger=null){ openTeamModalId = teamId; _origShowTeamDetail(teamId, trigger); };
   let _lastMatchModalHtml='', _lastTeamModalHtml='';
+  let _lastTeamsFingerprint='';
   let _matchCloseTimer=null;
   function closeMatchModal(){
     const modal=$('#matchModal');
