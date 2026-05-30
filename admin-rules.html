@@ -41,7 +41,7 @@
           <div class="field-full league-ko-only" id="superCupBox" style="display:none"><h3>Supercoppa</h3><label><input type="checkbox" name="superCupEnabled" id="superCupEnabled" style="width:auto"> Abilita Supercoppa</label><div class="supercup-grid margin-top"><div><label>Prima finalista</label><select id="superCupHome" name="superCupHome"></select></div><div><label>Seconda finalista</label><select id="superCupAway" name="superCupAway"></select></div></div><p class="muted">Disponibile solo se hai almeno due competizioni. Di base: vincente Playoff Oro contro vincente Playoff Argento.</p></div>
 
           <div><label>Numero campi disponibili</label><select name="fieldCount" id="fieldCount"><option value="1">1 campo</option><option value="2">2 campi</option></select></div>
-          <div class="fields-policy"><label>Assegnazione campi</label><select name="groupFieldPolicy" id="groupFieldPolicy"><option value="auto">Automatica bilanciata</option><option value="rotate_per_team">Ruota i campi per ogni squadra</option><option value="fixed_by_group" class="groups-only-opt">Un girone per campo</option></select><p class="muted" id="groupFieldPolicyHint">Con più campi puoi far ruotare i campi così che una squadra non giochi sempre sullo stesso. In modalità gironi puoi invece fissare ogni girone sul proprio campo.</p></div>
+          <div class="fields-policy"><input type="hidden" name="groupFieldPolicy" id="groupFieldPolicy" value="rotate_per_team"><p class="muted" id="groupFieldPolicyHint">Con 2 campi la rotazione è automatica: ogni squadra gioca su entrambi i campi, con almeno una partita su Campo 1.</p></div>
           <div><label><input type="checkbox" name="oneDay" id="oneDay" style="width:auto"> Torneo tutto in un giorno</label><p class="muted">Se attivo, il sistema usa data, ora inizio, durata e pause. L’ora fine viene calcolata automaticamente.</p></div>
           <div class="field-full multi-day-field"><label>Giorni della settimana in cui si gioca</label><div class="weekday-grid" id="playingDaysBox"><label><input type="checkbox" name="playingDays" value="1"> Lun</label><label><input type="checkbox" name="playingDays" value="2"> Mar</label><label><input type="checkbox" name="playingDays" value="3"> Mer</label><label><input type="checkbox" name="playingDays" value="4"> Gio</label><label><input type="checkbox" name="playingDays" value="5"> Ven</label><label><input type="checkbox" name="playingDays" value="6"> Sab</label><label><input type="checkbox" name="playingDays" value="0"> Dom</label></div><p class="muted">Per tornei lunghi il calendario usa solo questi giorni. Se l'intervallo non basta, viene indicata la data fine consigliata.</p></div>
           <div><label>Data inizio / data torneo</label><input name="startDate" id="startDate" type="date"></div>
@@ -59,7 +59,7 @@
               </div>
             </div>
           </div>
-          <div class="field-full split-actions"><button class="btn primary" type="submit">Salva regole</button><button class="btn" id="generateCalendarBtn" type="button">Genera calendario automatico</button></div>
+          <div class="field-full split-actions"><button class="btn primary" type="submit">Salva regole</button><button class="btn" id="generateCalendarBtn" type="button">Genera calendario</button><button class="btn danger" id="reshuffleCalendarBtn" type="button">Rigenera (nuovo ordine)</button></div>
         </form>
         <div id="rulesMessage" class="margin-top"></div>
       </article>

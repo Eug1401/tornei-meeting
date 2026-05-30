@@ -524,23 +524,54 @@
   // Le fasi/roundIndex vengono pianificate in ordine, così un turno KO non viene calendarizzato prima del turno precedente.
 
   function enforceField1Fallback(matches){
-    const teamF1={};
-    for(const m of matches){
-      const fn=fieldNoFromLabel(m.field);
-      if(!fn)continue;
-      for(const t of matchTeamIds(m)){if(!teamF1[t])teamF1[t]=0;if(fn===1)teamF1[t]++;}
+    // Conta partite su Campo 1 per ogni squadra
+    var teamF1={}, teamTotal={};
+    for(var i=0;i<matches.length;i++){
+      var m=matches[i]; var fn=fieldNoFromLabel(m.field); if(!fn)continue;
+      var ids=matchTeamIds(m);
+      for(var j=0;j<ids.length;j++){
+        var t=ids[j]; teamF1[t]=(teamF1[t]||0)+(fn===1?1:0); teamTotal[t]=(teamTotal[t]||0)+1;
+      }
     }
-    const makeKey=(m,f)=>`${m.date||""}|${m.time||"x"}|${f}`;
-    const occupied=new Set(matches.map(m=>makeKey(m,fieldNoFromLabel(m.field))));
-    for(const teamId of Object.keys(teamF1)){
-      if(teamF1[teamId]>0)continue;
-      const match=matches.find(m=>matchTeamIds(m).includes(teamId)&&fieldNoFromLabel(m.field)===2);
-      if(!match)continue;
-      const key1=makeKey(match,1);const key2=makeKey(match,2);
-      if(!occupied.has(key1)){
-        occupied.delete(key2);match.field="Campo 1";occupied.add(key1);
-        teamF1[teamId]=1;
-        for(const t of matchTeamIds(match)){if(t!==teamId&&!teamF1[t])teamF1[t]=1;}
+    // Per ogni squadra con 0 partite su Campo 1:
+    for(var tid in teamF1){
+      if(teamF1[tid]>0)continue;
+      // Strategia A: trova uno slot dove Campo 1 e' libero
+      var found=false;
+      for(var i2=0;i2<matches.length&&!found;i2++){
+        var mx=matches[i2];
+        if(fieldNoFromLabel(mx.field)!==2||!matchTeamIds(mx).includes(tid))continue;
+        // Cerca se Campo 1 nello stesso slot e' libero
+        var slotBusy=false;
+        for(var k=0;k<matches.length;k++){
+          if(matches[k]!==mx&&matches[k].date===mx.date&&matches[k].time===mx.time&&fieldNoFromLabel(matches[k].field)===1){slotBusy=true;break;}
+        }
+        if(!slotBusy){ mx.field="Campo 1"; teamF1[tid]++; for(var j2=0;j2<matchTeamIds(mx).length;j2++){var tt=matchTeamIds(mx)[j2];teamF1[tt]=(teamF1[tt]||0)+1;} found=true; }
+      }
+      if(found)continue;
+      // Strategia B: SWAP con una squadra che ha 2+ partite su Campo 1
+      for(var i3=0;i3<matches.length&&!found;i3++){
+        var myCampo2=matches[i3];
+        if(fieldNoFromLabel(myCampo2.field)!==2||!matchTeamIds(myCampo2).includes(tid))continue;
+        // Trova la partita su Campo 1 nello stesso slot
+        for(var k2=0;k2<matches.length;k2++){
+          var otherCampo1=matches[k2];
+          if(otherCampo1===myCampo2)continue;
+          if(otherCampo1.date!==myCampo2.date||otherCampo1.time!==myCampo2.time)continue;
+          if(fieldNoFromLabel(otherCampo1.field)!==1)continue;
+          // Verifica che tutte le squadre su Campo 1 abbiano 2+ partite Campo 1
+          var otherIds=matchTeamIds(otherCampo1);
+          var canSwap=true;
+          for(var j3=0;j3<otherIds.length;j3++){if((teamF1[otherIds[j3]]||0)<2){canSwap=false;break;}}
+          if(canSwap){
+            // Scambia i campi
+            myCampo2.field="Campo 1"; otherCampo1.field="Campo 2";
+            teamF1[tid]++;
+            for(var j4=0;j4<matchTeamIds(myCampo2).length;j4++){teamF1[matchTeamIds(myCampo2)[j4]]++;}
+            for(var j5=0;j5<otherIds.length;j5++){teamF1[otherIds[j5]]--;}
+            found=true; break;
+          }
+        }
       }
     }
   }

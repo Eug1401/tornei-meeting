@@ -254,9 +254,6 @@
     });
   }
   function drawPdfLogo(doc,src,x,y,size,fallback='NG'){
-    // Sfondo prima: il logo non tocca mai il testo adiacente
-    setRgb(doc,'setFillColor',[6,22,68]);
-    doc.roundedRect(x,y,size,size,Math.max(1.5,size*.16),Math.max(1.5,size*.16),'F');
     if(src){try{doc.addImage(src,'PNG',x,y,size,size,undefined,'FAST');return;}catch(_){}}
     setRgb(doc,'setFillColor',PDF_COLORS.gold);doc.roundedRect(x,y,size,size,5,5,'F');setRgb(doc,'setTextColor',PDF_COLORS.ink);doc.setFont('helvetica','bold');doc.setFontSize(Math.max(8,size*.28));doc.text(String(fallback||'NG').slice(0,2).toUpperCase(),x+size/2,y+size*.6,{align:'center'});
   }
@@ -408,7 +405,7 @@
         roundRectPath(ctx,x-64,y-64,128,128,24);
         ctx.clip();
         // Sfondo neutro + letterbox: proporzioni preservate, logo non tocca il bordo
-        ctx.fillStyle="rgba(6,22,68,.88)"; ctx.fillRect(x-64,y-64,128,128);
+        // sfondo trasparente
         var pad=10; var inner=128-pad*2;
         var ar=(img.naturalWidth||img.width||1)/(img.naturalHeight||img.height||1);
         var dw=ar>=1?inner:inner*ar; var dh=ar>=1?inner/ar:inner;

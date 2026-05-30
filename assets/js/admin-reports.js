@@ -130,10 +130,6 @@
  function teamInitial(name){return String(name||'?').trim().split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()||'NG';}
  function drawPlaceholderLogo(doc,x,y,size,label){setRgb(doc,'setFillColor',PDF_COLORS.soft);setRgb(doc,'setDrawColor',PDF_COLORS.line);doc.roundedRect(x,y,size,size,2.2,2.2,'FD');setRgb(doc,'setTextColor',PDF_COLORS.gold);doc.setFont('helvetica','bold');doc.setFontSize(Math.max(5,size*.45));doc.text(teamInitial(label),x+size/2,y+size*.62,{align:'center'});}
  function drawLogo(doc,src,x,y,size,label){
-   // Sfondo arrotondato: il logo non tocca mai il testo/bordo adiacente
-   var r = Math.max(1.5, size * 0.16);
-   setRgb(doc,"setFillColor",[6,22,68]);
-   doc.roundedRect(x, y, size, size, r, r, "F");
    if(src){
      try{ doc.addImage(src,"PNG",x,y,size,size,undefined,"FAST"); return; }catch(e){
      try{ doc.addImage(src,"JPEG",x,y,size,size,undefined,"FAST"); return; }catch(_){}}

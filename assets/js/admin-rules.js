@@ -56,13 +56,7 @@
     // Politica campi: visibile solo con almeno 2 campi (con 1 campo non c'è nulla da assegnare).
     UI.$$('.fields-policy').forEach(x=>x.style.display=fieldsNow>1?'block':'none');
     // L'opzione "un girone per campo" ha senso solo nei gironi.
-    const fixedOpt=UI.$('#groupFieldPolicy')?.querySelector('option[value="fixed_by_group"]');if(fixedOpt)fixedOpt.hidden=format!=='groups_knockout';
-    const policySel=UI.$('#groupFieldPolicy');if(policySel&&policySel.value==='fixed_by_group'&&format!=='groups_knockout')policySel.value='auto';if(policySel&&policySel.value==='rotate_per_team'&&fieldsNow<2)policySel.value='auto';
-    const min=store.minimumTeams(draft.rules),hint=store.FORMAT_HELP[format]||'';const groupHint=format==='groups_knockout'?`<br><span class="muted">Gironi configurati: ${draft.rules.groupConfigs.map(g=>`${UI.esc(g.name)} ${g.size} squadre / ${g.qualifiers} qualificate`).join(' · ')}</span>`:'';const policyHint=UI.$('#groupFieldPolicyHint');if(policyHint){const groups=draft.rules.groupConfigs.length,fields=fieldsNow,pol=draft.rules.groupFieldPolicy;
-      if(pol==='fixed_by_group'){policyHint.textContent=groups===fields?`Ogni girone usa sempre il proprio campo (${draft.rules.groupConfigs.map((g,i)=>`${g.name} → Campo ${i+1}`).join(' · ')}).`:`Per attivarla servono stesso numero di gironi e campi. Ora: ${groups} gironi e ${fields} campi.`;}
-      else if(pol==='rotate_per_team'){policyHint.textContent=fields>=2?`Rotazione attiva su ${fields} campi: le partite di ogni squadra vengono distribuite tra i campi, così nessuna squadra gioca sempre sullo stesso campo.`:'La rotazione richiede almeno 2 campi disponibili.';}
-      else{policyHint.textContent='Automatica: il calendario sceglie il primo campo libero rispettando sovrapposizioni e riposi (una squadra può capitare spesso sullo stesso campo).';}
-    }UI.$('#formatHint').innerHTML=`<div class="help-box"><strong>${UI.esc(store.FORMAT_LABELS[format]||format)}</strong><br>${UI.esc(hint)}<br><span class="muted">Minimo squadre richieste: ${min}</span>${groupHint}</div>`;}
+    const min=store.minimumTeams(draft.rules),hint=store.FORMAT_HELP[format]||'';const groupHint=format==='groups_knockout'?`<br><span class="muted">Gironi configurati: ${draft.rules.groupConfigs.map(g=>`${UI.esc(g.name)} ${g.size} squadre / ${g.qualifiers} qualificate`).join(' · ')}</span>`:'';const policyHint=UI.$('#groupFieldPolicyHint');if(policyHint){policyHint.textContent=fieldsNow>=2?'Rotazione automatica: ogni squadra gioca su entrambi i campi, con almeno una partita su Campo 1.':'';}UI.$('#formatHint').innerHTML=`<div class="help-box"><strong>${UI.esc(store.FORMAT_LABELS[format]||format)}</strong><br>${UI.esc(hint)}<br><span class="muted">Minimo squadre richieste: ${min}</span>${groupHint}</div>`;}
   function render(){const s=A.state();UI.$('#tournamentSummary').innerHTML=UI.rulesSummary(s);UI.$('#generatedCalendar').innerHTML=UI.matchList(s);const draft=currentDraftState();const plan=store.generationPlan(draft);UI.$('#generationPreview').innerHTML=`<div class="message ${plan.ok?'ok':'error'}">${UI.esc(plan.message)}</div>`;const est=plan.estimate;UI.$('#suggestedEndHint').textContent=(!draft.rules.oneDay&&est?.ok)?`Fine consigliata: ${est.suggestedEndDate}`:'';UI.$('#calendarAdvisor').innerHTML=est?`<div class="advisor-card"><strong>Consiglio calendario</strong><span>${UI.esc(est.message)}</span><span class="muted">Il calcolo considera formato, gironi, qualificate, campi disponibili, giorni di gioco e vincoli anti-sovrapposizione.</span></div>`:'';}
 
   document.addEventListener('DOMContentLoaded',()=>{fill();render();});
@@ -91,6 +85,20 @@
 
   UI.$('#rulesForm').addEventListener('submit',e=>{e.preventDefault();let draft=A.state();readInto(draft);const check=store.validateGeneration(draft);if(!check.ok){A.flash('#rulesMessage',check.message,'error');render();return;}let res;A.commit(s=>{readInto(s);res=store.generateCalendar(s,{preserveResults:true});});const type=res.ok?'ok':'error';const msg=res.ok?'Regole salvate, classifica aggiornata e calendario allineato. '+res.message:'Regole salvate, ma il calendario non può essere aggiornato: '+res.message;A.flash('#rulesMessage',msg,type);fill();render();});
   UI.$('#generateCalendarBtn').addEventListener('click',()=>{const old=A.state();const hasReports=old.matches.some(m=>(m.goals&&m.goals.length)||(m.cards&&m.cards.length));if(hasReports&&!confirm('Rigenerare il calendario? I risultati/referti delle partite ancora compatibili verranno preservati, gli altri potrebbero essere rimossi.'))return;let res;A.commit(s=>{readInto(s);res=store.generateCalendar(s,{preserveResults:true});});A.flash('#rulesMessage',res.message,res.ok?'ok':'error');fill();render();});
+  UI.$('#reshuffleCalendarBtn')?.addEventListener('click',function(){
+    if(!confirm('Rigenerare il calendario con un ordine completamente nuovo? I risultati esistenti verranno rimossi.'))return;
+    var res;
+    A.commit(function(s){
+      readInto(s);
+      var arr=s.teams;
+      for(var i=arr.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=arr[i];arr[i]=arr[j];arr[j]=tmp;}
+      s.rules.groupAssignments={};
+      res=store.generateCalendar(s,{preserveResults:false});
+    });
+    A.flash('#rulesMessage',res.ok?'Calendario rigenerato con ordine nuovo. '+res.message:res.message,res.ok?'ok':'error');
+    fill();render();
+  });
+
   window.NexoraAdminRefresh=function(){try{fill();render();}catch(_){}};
   window.addEventListener('ng:admin-state-loaded',()=>window.NexoraAdminRefresh());
 })();
