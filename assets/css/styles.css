@@ -6438,3 +6438,114 @@ header, .site-header {
   }
 }
 
+
+
+/* =====================================================================
+   v301 — TEAM DISCLOSURE: transizione smooth + fix auto-close
+   Spiega il meccanismo:
+   • ng-teams-restoring: classe temporanea aggiunta durante il re-render
+     silenzioso; blocca l'animazione di apertura per evitare il flash.
+   • Apertura esplicita dall'utente: animazione slide+fade da top.
+   • Chiusura: brevissimo fade-out via CSS (details[open] non supporta
+     transition nativa, usiamo animation sul body con fill-mode).
+   ===================================================================== */
+
+/* --- Entrance animation: corpo della disclosure si apre dall'alto --- */
+details.ng-disclosure[open] > .ng-disclosure-body {
+  animation: ngDisclosureSlideIn .32s cubic-bezier(.16, 1, .3, 1) both;
+}
+
+@keyframes ngDisclosureSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scaleY(.96);
+    clip-path: inset(0 0 100% 0 round 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+    clip-path: inset(0 0 0% 0 round 0px);
+  }
+}
+
+/* Durante il ripristino silenzioso (re-render da polling): nessuna animazione */
+.ng-teams-restoring details.ng-disclosure > .ng-disclosure-body {
+  animation: none !important;
+  clip-path: none !important;
+}
+
+/* --- Summary: transizione colori al hover e all'apertura --- */
+.ng-disclosure > .ng-disclosure-summary {
+  transition:
+    background .2s ease,
+    border-radius .2s ease;
+}
+
+.ng-disclosure > .ng-disclosure-summary:hover {
+  background: rgba(255, 122, 24, .07);
+}
+
+/* Quando aperta: header disclosure più intenso, bordo arancio netto */
+details.ng-disclosure[open] {
+  border-color: rgba(255, 122, 24, .58) !important;
+  box-shadow:
+    0 24px 64px rgba(0, 10, 42, .36),
+    0 0 0 1px rgba(255, 122, 24, .14) inset !important;
+}
+
+details.ng-disclosure[open] > .ng-disclosure-summary {
+  background: rgba(255, 122, 24, .08);
+  border-radius: var(--brand-radius, 22px) var(--brand-radius, 22px) 0 0;
+}
+
+/* Striscia arancio sinistra quando aperta */
+details.ng-disclosure[open]::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #ff7a18, #1f63ff);
+  border-radius: 22px 0 0 22px;
+  pointer-events: none;
+}
+
+details.ng-disclosure {
+  position: relative; /* necessario per ::before */
+}
+
+/* Freccia: rotazione con spring */
+.ng-disclosure > .ng-disclosure-summary .disclosure-action {
+  transition:
+    background .2s,
+    border-color .2s,
+    color .2s;
+}
+
+.ng-disclosure > .ng-disclosure-summary .disclosure-action::after {
+  display: inline-block;
+  transition: transform .28s cubic-bezier(.16, 1, .3, 1);
+}
+
+details.ng-disclosure[open] > .ng-disclosure-summary .disclosure-action {
+  background: rgba(255, 122, 24, .22) !important;
+  border-color: rgba(255, 122, 24, .52) !important;
+  color: #ffb05f !important;
+}
+
+/* --- Body: bordo top sottile per separare dal summary --- */
+.ng-disclosure[open] > .ng-disclosure-body {
+  border-top: 1px solid rgba(255, 122, 24, .18) !important;
+  padding-top: 18px !important;
+}
+
+/* --- Reduced motion: rimuove tutte le animazioni di disclosure --- */
+@media (prefers-reduced-motion: reduce) {
+  details.ng-disclosure[open] > .ng-disclosure-body {
+    animation: none !important;
+    clip-path: none !important;
+  }
+  .ng-disclosure > .ng-disclosure-summary .disclosure-action::after {
+    transition: none !important;
+  }
+}
+

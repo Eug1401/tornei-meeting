@@ -176,7 +176,22 @@
     document.querySelectorAll('[data-match-detail]').forEach(el=>{const m=state.matches.find(x=>x.id===el.dataset.matchDetail);if(m&&(m.homeTeamId===favoriteTeamId||m.awayTeamId===favoriteTeamId))el.classList.add('is-favorite-match');});
   }
   function renderHome(){document.title=UI.siteTitle?UI.siteTitle(state):(state.rules.name||'New Generation');const titleEl=$('#publicTitle');if(titleEl)titleEl.textContent=state.rules.name||'New Generation';const summaryEl=$('#publicSummary');if(summaryEl)summaryEl.innerHTML=UI.rulesSummary(state);const statsEl=$('#publicStats');if(statsEl)statsEl.innerHTML=UI.statsGrid(store.selectors.stats(state));renderLiveHome();renderFavoriteHome();const standingsMenu=$('#publicStandingsMenu');if(standingsMenu)standingsMenu.innerHTML=store.selectors.hasGroupStage(state)?UI.groupStandingsSelector(state,standingsGroup,'publicGroupStandingsFilter'):'';$('#publicStandings').innerHTML=store.selectors.hasGroupStage(state)?UI.groupStandingsTables(state,standingsGroup,{includeLive:true}):UI.standingsTable(store.selectors.calculateStandings(state,undefined,{includeLive:true}),state);$('#publicPlayersMini').innerHTML=UI.playerStatsTable(store.selectors.playerStats(state).filter(p=>p.goals>0).slice(0,10))+(state.rules.isKingsLeague?'<div class="mini-section-title margin-top"><h3>Presidenti marcatori</h3></div>'+UI.presidentStatsTable(store.selectors.presidentScorers(state).slice(0,10)):'');decorateFavoriteUI();}
-  function renderTeams(){ $('#publicTeams').innerHTML=UI.teamGrid(state).replaceAll('data-favorite-placeholder="','data-favorite-team="'); decorateFavoriteUI(); }
+  function renderTeams(){
+    var container=$('#publicTeams');
+    if(!container)return;
+    // Salva quale disclosure era aperto prima del re-render (polling Supabase ogni ~6s)
+    var openId=container.querySelector('details.ng-disclosure[open]')?.dataset?.teamId||'';
+    // Lock: nessuna animazione durante il ripristino silenzioso
+    container.classList.add('ng-teams-restoring');
+    container.innerHTML=UI.teamGrid(state).replaceAll('data-favorite-placeholder="','data-favorite-team="');
+    if(openId){
+      var el=container.querySelector('details.ng-disclosure[data-team-id="'+CSS.escape(openId)+'"]');
+      if(el) el.setAttribute('open','');
+    }
+    // Rimuove il lock dopo un frame: le aperture successive saranno animate
+    requestAnimationFrame(function(){container.classList.remove('ng-teams-restoring');});
+    decorateFavoriteUI();
+  }
   function renderPlayers(){ resetFiltersForNewState(); persistPublicFilters(); renderPlayerFilter(); $('#publicPlayers').innerHTML=UI.playerStatsTable(filteredPlayerStats()); }
   function renderPublicMatchCenter(){const slot=document.getElementById('publicMatchCenter');if(slot)slot.remove();}
   function renderMatches(){const slot=document.getElementById('publicMatchCenter');if(slot)slot.remove();resetFiltersForNewState();persistPublicFilters();renderFilters();$('#publicMatches').innerHTML=UI.matchList(state,filteredMatches(),true);decorateFavoriteUI();}
