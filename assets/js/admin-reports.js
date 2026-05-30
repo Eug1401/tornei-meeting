@@ -88,10 +88,66 @@
    });
    imageCache.set(src,p); return p;
  }
- async function preloadTeamLogos(s){const out={};await Promise.all(s.teams.map(async t=>{out[t.id]=await dataUrlFromImage(t.logo);}));return out;}
+
+ // Rende il logo in un canvas QUADRATO con letterbox (object-fit: contain semantics).
+ // Padding del 7% su ogni lato → logo mai a contatto col bordo del riquadro nel PDF.
+ // Il canvas prodotto è sempre boxSize×boxSize: jsPDF lo disegna come quadrato senza deformazioni.
+ function dataUrlFromImageContained(src, boxSize=400){
+   if(!src) return Promise.resolve(null);
+   const cacheKey='__contained__'+src+'__'+boxSize;
+   if(imageCache.has(cacheKey)) return imageCache.get(cacheKey);
+   const p=new Promise(resolve=>{
+     const doRender=(imgEl)=>{
+       try{
+         const c=document.createElement('canvas');
+         c.width=boxSize; c.height=boxSize;
+         const ctx=c.getContext('2d');
+         ctx.clearRect(0,0,boxSize,boxSize);
+         // Sfondo neutro scuro per immagini con trasparenza
+         ctx.fillStyle='rgba(4,14,44,0.90)';
+         ctx.fillRect(0,0,boxSize,boxSize);
+         const pad=Math.round(boxSize*0.07); // 7% padding
+         const inner=boxSize-pad*2;
+         const nw=imgEl.naturalWidth||imgEl.width||1;
+         const nh=imgEl.naturalHeight||imgEl.height||1;
+         const ar=nw/nh;
+         let dw=ar>=1?inner:inner*ar;
+         let dh=ar>=1?inner/ar:inner;
+         // Centrato nell'area interna
+         const ox=pad+(inner-dw)/2;
+         const oy=pad+(inner-dh)/2;
+         ctx.drawImage(imgEl,ox,oy,dw,dh);
+         resolve(c.toDataURL('image/png'));
+       }catch(e){ resolve(null); }
+     };
+     if(/^data:image\//i.test(src)){
+       const img=new Image(); img.onload=()=>doRender(img); img.onerror=()=>resolve(null); img.src=src;
+     } else {
+       const img=new Image(); img.crossOrigin='anonymous';
+       img.onload=()=>doRender(img); img.onerror=()=>resolve(null); img.src=src;
+     }
+   });
+   imageCache.set(cacheKey,p); return p;
+ }
+ async function preloadTeamLogos(s){
+   const out={};
+   await Promise.all(s.teams.map(async t=>{
+     out[t.id]=await dataUrlFromImageContained(t.logo);
+   }));
+   return out;
+ }
  function teamInitial(name){return String(name||'?').trim().split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()||'NG';}
  function drawPlaceholderLogo(doc,x,y,size,label){setRgb(doc,'setFillColor',PDF_COLORS.soft);setRgb(doc,'setDrawColor',PDF_COLORS.line);doc.roundedRect(x,y,size,size,2.2,2.2,'FD');setRgb(doc,'setTextColor',PDF_COLORS.gold);doc.setFont('helvetica','bold');doc.setFontSize(Math.max(5,size*.45));doc.text(teamInitial(label),x+size/2,y+size*.62,{align:'center'});}
- function drawLogo(doc,src,x,y,size,label){if(src){try{doc.addImage(src,'PNG',x,y,size,size,undefined,'FAST');return;}catch(e){try{doc.addImage(src,'JPEG',x,y,size,size,undefined,'FAST');return;}catch(_){}}}drawPlaceholderLogo(doc,x,y,size,label);}
+ function drawLogo(doc,src,x,y,size,label){
+   // Rettangolo sfondo neutro: distanzia visivamente il logo dalla UI della tabella
+   setRgb(doc,'setFillColor',[8,28,88]);
+   doc.roundedRect(x,y,size,size,size*0.18,size*0.18,'F');
+   if(src){
+     try{doc.addImage(src,'PNG',x,y,size,size,undefined,'FAST');return;}
+     catch(e){try{doc.addImage(src,'JPEG',x,y,size,size,undefined,'FAST');return;}catch(_){}}
+   }
+   drawPlaceholderLogo(doc,x,y,size,label);
+ }
  async function baseDoc(s,title,subtitle,orientation='p'){
    const {jsPDF}=window.jspdf; const doc=new jsPDF({orientation,unit:'mm',format:'a4',compress:true});
    const logo=await dataUrlFromImage(BRAND_LOGO); drawHeader(doc,s,title,subtitle,logo); return {doc,logo};
