@@ -13,14 +13,25 @@
         const img=new Image();
         img.onerror=()=>reject(new Error('Formato immagine non valido.'));
         img.onload=()=>{
-          const max=1200;
-          const scale=Math.min(1,max/Math.max(img.width,img.height));
           const canvas=document.createElement('canvas');
-          canvas.width=Math.round(img.width*scale);
-          canvas.height=Math.round(img.height*scale);
           const ctx=canvas.getContext('2d');
-          ctx.drawImage(img,0,0,canvas.width,canvas.height);
-          resolve(canvas.toDataURL('image/jpeg',0.82));
+          const targets=[
+            {max:1100,q:.80},
+            {max:950,q:.76},
+            {max:800,q:.72},
+            {max:700,q:.68}
+          ];
+          let out='';
+          for(const t of targets){
+            const scale=Math.min(1,t.max/Math.max(img.width,img.height));
+            canvas.width=Math.max(1,Math.round(img.width*scale));
+            canvas.height=Math.max(1,Math.round(img.height*scale));
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            ctx.drawImage(img,0,0,canvas.width,canvas.height);
+            out=canvas.toDataURL('image/jpeg',t.q);
+            if(out.length<900000)break;
+          }
+          resolve(out);
         };
         img.src=reader.result;
       };

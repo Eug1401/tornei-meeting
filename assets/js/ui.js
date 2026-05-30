@@ -147,9 +147,12 @@
     img?.closest('.article-media')?.classList.add('image-fallback');
     img?.replaceWith(holder);
   }
+  function articleImageSrc(article){
+    return String(article?.image||article?.imageUrl||article?.coverImage||article?.cover||article?.photo||article?.thumbnail||'').trim();
+  }
   function articleImageMarkup(article){
     const title=article?.title||'articolo';
-    const src=String(article?.image||'').trim();
+    const src=articleImageSrc(article);
     if(!src)return articlePlaceholder(title);
     return `<img class="article-image" src="${esc(src)}" alt="Immagine articolo ${esc(title)}" data-article-title="${esc(title)}" loading="eager" decoding="async">`;
   }
@@ -178,7 +181,7 @@
     const body=esc(String(article?.body||'').trim()||'Nessun testo inserito.').replace(/\n/g,'<br>');
     const date=esc(fmtArticleDate(article?.updatedAt||article?.createdAt));
     const title=esc(article?.title||'News');
-    const src=String(article?.image||'').trim();
+    const src=articleImageSrc(article);
     const hero=src
       ? `<img class="article-detail-backdrop-img" src="${esc(src)}" alt="" aria-hidden="true" loading="eager" decoding="async"><div class="article-detail-frame">${articleImageMarkup(article||{}).replace('loading="lazy"','loading="eager"')}</div>`
       : `<div class="article-detail-frame">${articlePlaceholder(article?.title||'NG')}</div>`;

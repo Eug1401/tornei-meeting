@@ -702,10 +702,12 @@
     if(!img.dataset.retried){
       img.dataset.retried='1';
       var origSrc=img.getAttribute('src')||'';
-      // Forza reload aggiungendo un parametro cache-bust
-      var sep=origSrc.indexOf('?')>=0?'&':'?';
-      img.src=origSrc+sep+'_retry='+Date.now();
-      return;
+      // Non aggiungere parametri ai data URL: li renderebbe non validi o inutilmente più pesanti.
+      if(origSrc && !origSrc.startsWith('data:')){
+        var sep=origSrc.indexOf('?')>=0?'&':'?';
+        img.src=origSrc+sep+'_retry='+Date.now();
+        return;
+      }
     }
     // Secondo errore: mostra il placeholder
     UI.replaceBrokenArticleImage(img);

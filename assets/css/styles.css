@@ -5495,3 +5495,21 @@ details.ng-disclosure[open] > .ng-disclosure-summary .disclosure-action {
 .article-list .article-card:hover img.article-image {
   transform: none !important;
 }
+
+
+/* FIX foto articoli v2: nella lista la foto non deve sparire né essere tagliata. */
+.article-card .article-media{
+  background: radial-gradient(circle at 50% 42%,rgba(255,122,24,.10),transparent 38%), #061540 !important;
+}
+.article-card img.article-image{
+  object-fit: contain !important;
+  object-position: center center !important;
+  background: transparent !important;
+}
+.article-detail-editorial img.article-image,
+.article-detail-backdrop-img{
+  object-fit: cover !important;
+}
+.article-card .article-placeholder{
+  min-height: inherit !important;
+}

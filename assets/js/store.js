@@ -151,7 +151,7 @@
     const previous=readStoredStateRaw(PUBLIC_KEY);
     const copy=mergeMissingMedia(JSON.parse(JSON.stringify(s)), previous);
     copy.teams=(copy.teams||[]).map(t=>({...t,logo:compactDataUrl(t.logo,350000)}));
-    copy.articles=(copy.articles||[]).slice(0,20).map(a=>({...a,image:compactDataUrl(a.image,180000)}));
+    copy.articles=(copy.articles||[]).slice(0,20).map(a=>({...a,image:compactDataUrl(a.image,3000000)}));
     return copy;
   }
   function withoutHeavyMedia(state){
