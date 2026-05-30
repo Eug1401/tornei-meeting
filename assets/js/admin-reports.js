@@ -88,10 +88,58 @@
    });
    imageCache.set(src,p); return p;
  }
- async function preloadTeamLogos(s){const out={};await Promise.all(s.teams.map(async t=>{out[t.id]=await dataUrlFromImage(t.logo);}));return out;}
+ // Rende il logo su canvas QUADRATO con letterbox + padding.
+ // L'immagine mantiene le proporzioni originali e non tocca mai il bordo.
+ function dataUrlFromImageContained(src, boxSize){
+   boxSize = boxSize || 400;
+   if(!src) return Promise.resolve(null);
+   var cacheKey = "__c__" + src + "__" + boxSize;
+   if(imageCache.has(cacheKey)) return imageCache.get(cacheKey);
+   var p = new Promise(function(resolve){
+     function render(img){
+       try{
+         var c = document.createElement("canvas");
+         c.width = boxSize; c.height = boxSize;
+         var ctx = c.getContext("2d");
+         ctx.clearRect(0,0,boxSize,boxSize);
+         // Padding 8% su ogni lato: logo distante dal bordo del riquadro
+         var pad = Math.round(boxSize * 0.08);
+         var inner = boxSize - pad * 2;
+         var nw = img.naturalWidth || img.width || 1;
+         var nh = img.naturalHeight || img.height || 1;
+         var ar = nw / nh;
+         var dw = ar >= 1 ? inner : inner * ar;
+         var dh = ar >= 1 ? inner / ar : inner;
+         var ox = pad + (inner - dw) / 2;
+         var oy = pad + (inner - dh) / 2;
+         ctx.drawImage(img, ox, oy, dw, dh);
+         resolve(c.toDataURL("image/png"));
+       } catch(e){ resolve(null); }
+     }
+     if(!src){ resolve(null); return; }
+     var img = new Image();
+     img.crossOrigin = "anonymous";
+     img.onload = function(){ render(img); };
+     img.onerror = function(){ resolve(null); };
+     img.src = src;
+   });
+   imageCache.set(cacheKey, p);
+   return p;
+ }
+ async function preloadTeamLogos(s){const out={};await Promise.all(s.teams.map(async t=>{out[t.id]=await dataUrlFromImageContained(t.logo,120);}));return out;}
  function teamInitial(name){return String(name||'?').trim().split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()||'NG';}
  function drawPlaceholderLogo(doc,x,y,size,label){setRgb(doc,'setFillColor',PDF_COLORS.soft);setRgb(doc,'setDrawColor',PDF_COLORS.line);doc.roundedRect(x,y,size,size,2.2,2.2,'FD');setRgb(doc,'setTextColor',PDF_COLORS.gold);doc.setFont('helvetica','bold');doc.setFontSize(Math.max(5,size*.45));doc.text(teamInitial(label),x+size/2,y+size*.62,{align:'center'});}
- function drawLogo(doc,src,x,y,size,label){if(src){try{doc.addImage(src,'PNG',x,y,size,size,undefined,'FAST');return;}catch(e){try{doc.addImage(src,'JPEG',x,y,size,size,undefined,'FAST');return;}catch(_){}}}drawPlaceholderLogo(doc,x,y,size,label);}
+ function drawLogo(doc,src,x,y,size,label){
+   // Sfondo arrotondato: il logo non tocca mai il testo/bordo adiacente
+   var r = Math.max(1.5, size * 0.16);
+   setRgb(doc,"setFillColor",[6,22,68]);
+   doc.roundedRect(x, y, size, size, r, r, "F");
+   if(src){
+     try{ doc.addImage(src,"PNG",x,y,size,size,undefined,"FAST"); return; }catch(e){
+     try{ doc.addImage(src,"JPEG",x,y,size,size,undefined,"FAST"); return; }catch(_){}}
+   }
+   drawPlaceholderLogo(doc,x,y,size,label);
+ }
  async function baseDoc(s,title,subtitle,orientation='p'){
    const {jsPDF}=window.jspdf; const doc=new jsPDF({orientation,unit:'mm',format:'a4',compress:true});
    const logo=await dataUrlFromImage(BRAND_LOGO); drawHeader(doc,s,title,subtitle,logo); return {doc,logo};

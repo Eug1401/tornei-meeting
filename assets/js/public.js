@@ -218,7 +218,45 @@
       img.onerror=()=>resolve(''); img.src=src;
     });
   }
+  // Canvas quadrato letterboxed: proporzioni preservate, logo distante dal bordo.
+  function dataUrlFromImageContained(src, boxSize){
+    boxSize = boxSize || 400;
+    if(!src) return Promise.resolve("");
+    return new Promise(function(resolve){
+      function render(img){
+        try{
+          var c = document.createElement("canvas");
+          c.width = boxSize; c.height = boxSize;
+          var ctx = c.getContext("2d");
+          ctx.clearRect(0, 0, boxSize, boxSize);
+          var pad = Math.round(boxSize * 0.08);
+          var inner = boxSize - pad * 2;
+          var nw = img.naturalWidth || img.width || 1;
+          var nh = img.naturalHeight || img.height || 1;
+          var ar = nw / nh;
+          var dw = ar >= 1 ? inner : inner * ar;
+          var dh = ar >= 1 ? inner / ar : inner;
+          ctx.drawImage(img, pad + (inner - dw)/2, pad + (inner - dh)/2, dw, dh);
+          resolve(c.toDataURL("image/png"));
+        } catch(e){ resolve(""); }
+      }
+      if(String(src).startsWith("data:")){
+        var img = new Image();
+        img.onload = function(){ render(img); };
+        img.onerror = function(){ resolve(""); };
+        img.src = src;
+      } else {
+        var img2 = new Image(); img2.crossOrigin = "anonymous";
+        img2.onload = function(){ render(img2); };
+        img2.onerror = function(){ resolve(""); };
+        img2.src = src;
+      }
+    });
+  }
   function drawPdfLogo(doc,src,x,y,size,fallback='NG'){
+    // Sfondo prima: il logo non tocca mai il testo adiacente
+    setRgb(doc,'setFillColor',[6,22,68]);
+    doc.roundedRect(x,y,size,size,Math.max(1.5,size*.16),Math.max(1.5,size*.16),'F');
     if(src){try{doc.addImage(src,'PNG',x,y,size,size,undefined,'FAST');return;}catch(_){}}
     setRgb(doc,'setFillColor',PDF_COLORS.gold);doc.roundedRect(x,y,size,size,5,5,'F');setRgb(doc,'setTextColor',PDF_COLORS.ink);doc.setFont('helvetica','bold');doc.setFontSize(Math.max(8,size*.28));doc.text(String(fallback||'NG').slice(0,2).toUpperCase(),x+size/2,y+size*.6,{align:'center'});
   }
@@ -237,7 +275,7 @@
     const team=store.getTeam(state,teamId); if(!team) return;
     if(!window.jspdf||!window.jspdf.jsPDF){alert('Librerie PDF non disponibili. Controlla la connessione e riprova.');return;}
     const {jsPDF}=window.jspdf; const doc=new jsPDF({orientation:'p',unit:'mm',format:'a4',compress:true});
-    const brandLogo=await dataUrlFromImage(BRAND_LOGO); const teamLogo=await dataUrlFromImage(team.logo);
+    const brandLogo=await dataUrlFromImageContained(BRAND_LOGO,300); const teamLogo=await dataUrlFromImageContained(team.logo,300);
     const w=doc.internal.pageSize.getWidth();
     setRgb(doc,'setFillColor',PDF_COLORS.bg);doc.rect(0,0,w,48,'F');drawPdfLogo(doc,brandLogo,w/2-13,7,26,state.rules?.name||'NG');
     setRgb(doc,'setTextColor',PDF_COLORS.gold2);doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text(String(state.rules?.name||'New Generation').toUpperCase(),w/2,39,{align:'center'});
@@ -365,7 +403,18 @@
     const homeLogo=await getTeamLogoImage(homeT),awayLogo=await getTeamLogoImage(awayT);
     function drawLogo(img,x,y,name){
       roundRectPath(ctx,x-76,y-76,152,152,30);ctx.fillStyle='rgba(255,255,255,.07)';ctx.fill();ctx.strokeStyle='rgba(255,255,255,.10)';ctx.lineWidth=1.5;ctx.stroke();
-      if(img){ctx.save();roundRectPath(ctx,x-64,y-64,128,128,24);ctx.clip();ctx.drawImage(img,x-64,y-64,128,128);ctx.restore();}
+      if(img){
+        ctx.save();
+        roundRectPath(ctx,x-64,y-64,128,128,24);
+        ctx.clip();
+        // Sfondo neutro + letterbox: proporzioni preservate, logo non tocca il bordo
+        ctx.fillStyle="rgba(6,22,68,.88)"; ctx.fillRect(x-64,y-64,128,128);
+        var pad=10; var inner=128-pad*2;
+        var ar=(img.naturalWidth||img.width||1)/(img.naturalHeight||img.height||1);
+        var dw=ar>=1?inner:inner*ar; var dh=ar>=1?inner/ar:inner;
+        ctx.drawImage(img,(x-64)+pad+(inner-dw)/2,(y-64)+pad+(inner-dh)/2,dw,dh);
+        ctx.restore();
+      }
       else{ctx.fillStyle='#e6c760';ctx.font='900 42px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(name||'?').slice(0,2).toUpperCase(),x,y);ctx.textBaseline='alphabetic';}
     }
     drawLogo(homeLogo,300,375,home);drawLogo(awayLogo,1300,375,away);
