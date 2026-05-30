@@ -5151,3 +5151,161 @@ details.ng-disclosure[open] > .ng-disclosure-summary .disclosure-action {
   }
 }
 
+
+
+/* =================================================================
+   FIX PACK — foto articoli, modale dettaglio, portrait, anti-flicker
+   ================================================================= */
+
+/* ── FIX 1: foto non caricate ─────────────────────────────────────
+   content-visibility:auto su img[loading=lazy] crea deadlock col browser:
+   l'immagine non viene renderizzata → lazy pensa sia off-screen → mai caricata.
+   Override esplicito. ────────────────────────────────────────────── */
+.article-image,
+.article-image[loading="lazy"],
+.article-card img.article-image {
+  content-visibility: visible !important;
+}
+
+/* ── FIX 2: modale articolo — palette blu/arancio ────────────────── */
+.article-modal-content {
+  background:
+    radial-gradient(circle at 8% -5%, rgba(31,99,255,.28), transparent 38%),
+    radial-gradient(circle at 92% 95%, rgba(255,122,24,.14), transparent 34%),
+    linear-gradient(170deg, #051540 0%, #071836 50%, #04102a 100%) !important;
+  border-color: rgba(255,122,24,.36) !important;
+  color: var(--art-text, #f4f9ff) !important;
+}
+
+.article-modal-toolbar {
+  background: rgba(4,18,52,.95) !important;
+  border-bottom-color: rgba(255,122,24,.22) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+.article-modal-toolbar h2 { color: #fff !important; }
+
+/* Hero background */
+.article-detail-editorial .article-detail-hero {
+  background: #041028 !important;
+}
+
+/* Frame immagine */
+.article-detail-frame {
+  border-color: rgba(255,122,24,.22) !important;
+  background: linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.42)) !important;
+}
+.article-detail-frame img.article-image,
+.article-detail-frame .article-image:not(.article-placeholder) {
+  border-color: rgba(255,122,24,.18) !important;
+  background: rgba(4,16,44,.28) !important;
+}
+
+/* Backdrop sfocato: toni blu */
+.article-detail-backdrop-img {
+  filter: blur(26px) saturate(.85) brightness(.42) !important;
+  opacity: .52 !important;
+}
+
+/* Body testo */
+.article-detail-body h2 { color: #ffffff !important; }
+.article-full-text { color: #d4e8ff !important; }
+.article-detail-body .article-meta { color: #ffb05f !important; }
+.article-detail-body .article-meta time { color: #c2d4f0 !important; }
+
+/* Placeholder dentro il dettaglio */
+.article-detail-frame .article-placeholder {
+  background:
+    radial-gradient(circle at 50% 28%, rgba(255,122,24,.28), transparent 42%),
+    linear-gradient(145deg, #041332, #0a2b6e 55%, #1f3a8f) !important;
+  border: 1px dashed rgba(255,122,24,.32) !important;
+}
+
+/* ── FIX 3: modale dettaglio MOBILE (≤820px) ─────────────────────
+   Layout colonna, sfondo blu, UI touch-friendly ──────────────────── */
+@media (max-width: 820px) {
+  .article-modal-content {
+    border-radius: 0 !important;
+    border: 0 !important;
+  }
+  .article-detail-editorial {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .article-detail-editorial .article-detail-hero {
+    width: 100% !important;
+    padding: 12px !important;
+    min-height: 0 !important;
+  }
+  .article-detail-frame {
+    aspect-ratio: 16 / 10 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    border-radius: 20px !important;
+  }
+
+  /* PORTRAIT: se l'immagine è verticale, il frame si adatta */
+  .article-detail-frame.has-portrait {
+    aspect-ratio: 3 / 4 !important;
+  }
+
+  .article-detail-frame img.article-image,
+  .article-detail-frame .article-image:not(.article-placeholder) {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    object-fit: contain !important;
+    border-radius: 16px !important;
+  }
+  .article-detail-frame .article-placeholder {
+    aspect-ratio: 16 / 10 !important;
+    min-height: 0 !important;
+  }
+  .article-detail-body {
+    padding: 16px 16px calc(90px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  .article-detail-body h2 {
+    font-size: clamp(1.7rem, 9vw, 2.8rem) !important;
+    line-height: .98 !important;
+  }
+  .article-full-text {
+    font-size: 1.04rem !important;
+    line-height: 1.72 !important;
+  }
+  .article-detail-backdrop-img {
+    opacity: .38 !important;
+    filter: blur(22px) brightness(.38) !important;
+  }
+  .article-modal-toolbar h2 { display: none !important; }
+}
+
+/* Mobile stretto: frame ancora più contenuto */
+@media (max-width: 430px) {
+  .article-detail-frame { aspect-ratio: 16 / 11 !important; border-radius: 16px !important; }
+  .article-detail-frame.has-portrait { aspect-ratio: 3 / 4 !important; }
+  .article-detail-frame img.article-image { border-radius: 12px !important; }
+}
+
+/* ── FIX 4: anti-flicker globale ─────────────────────────────────
+   Stabilizza le card articolo durante il polling ──────────────────── */
+.article-card,
+.article-card .article-media,
+.article-card .article-image {
+  will-change: auto;
+  backface-visibility: hidden;
+}
+
+/* ── FIX 5: overflow su article-card mai visibile ────────────────── */
+.article-card { contain: layout style; }
+
+/* ── FIX 6: img.team-logo non deve MAI alterare article-image ───── */
+.article-image:not(.team-logo) {
+  padding: 0 !important;
+}
+
+/* ── REDUCED MOTION ──────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .article-card { animation: none !important; }
+}
+
