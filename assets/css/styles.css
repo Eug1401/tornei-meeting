@@ -5465,3 +5465,33 @@ details.ng-disclosure[open] > .ng-disclosure-summary .disclosure-action {
   font-weight: 700 !important;
 }
 
+
+/* =================================================================
+   FIX v109 - Foto articoli visibili anche nelle card/lista
+   -----------------------------------------------------------------
+   Prima le immagini delle card usavano object-fit: cover: con foto
+   verticali o soggetti centrati in basso/alto la miniatura poteva
+   sembrare vuota o tagliata. Nella lista articoli mostriamo ora la
+   foto intera, mantenendo lo sfondo scuro del tema.
+   ================================================================= */
+.article-list .article-media {
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255,122,24,.16), transparent 42%),
+    linear-gradient(135deg, #041332 0%, #071f55 58%, #041332 100%) !important;
+}
+.article-list .article-card img.article-image,
+.article-list .article-card .article-image:not(.article-placeholder) {
+  object-fit: contain !important;
+  object-position: center center !important;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255,122,24,.14), transparent 42%),
+    linear-gradient(135deg, #041332 0%, #071f55 58%, #041332 100%) !important;
+}
+.article-list > .article-card:first-child img.article-image,
+.article-list > .article-card:first-child .article-image:not(.article-placeholder) {
+  object-fit: contain !important;
+  object-position: center center !important;
+}
+.article-list .article-card:hover img.article-image {
+  transform: none !important;
+}
