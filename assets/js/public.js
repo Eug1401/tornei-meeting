@@ -618,12 +618,23 @@
   document.addEventListener('load',e=>{
     const img=e.target?.closest?.('img.article-image');
     if(!img)return;
-    img.closest('.article-media')?.classList.add('image-ready');
+    const media=img.closest('.article-media');
+    media?.classList.add('image-ready');
+    // Rilevamento foto verticale (portrait): aggiunge classe per layout adattivo
+    if(img.naturalWidth && img.naturalHeight){
+      const isPortrait=img.naturalHeight>img.naturalWidth;
+      if(isPortrait){
+        img.classList.add('is-portrait');
+        media?.classList.add('has-portrait');
+        img.closest('.article-card')?.classList.add('has-portrait-media');
+      }
+    }
     const detailFrame=img.closest('.article-detail-frame');
     if(detailFrame && img.naturalWidth && img.naturalHeight){
       detailFrame.style.setProperty('--article-natural-w', img.naturalWidth + 'px');
       detailFrame.style.setProperty('--article-natural-h', img.naturalHeight + 'px');
       detailFrame.classList.add('natural-size-ready');
+      if(img.naturalHeight>img.naturalWidth) detailFrame.classList.add('has-portrait');
     }
   },true);
 
