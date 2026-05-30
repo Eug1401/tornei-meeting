@@ -151,7 +151,7 @@
     const title=article?.title||'articolo';
     const src=String(article?.image||'').trim();
     if(!src)return articlePlaceholder(title);
-    return `<img class="article-image" src="${esc(src)}" alt="Immagine articolo ${esc(title)}" data-article-title="${esc(title)}" loading="lazy" decoding="async" referrerpolicy="no-referrer">`;
+    return `<img class="article-image" src="${esc(src)}" alt="Immagine articolo ${esc(title)}" data-article-title="${esc(title)}" loading="eager" decoding="async" referrerpolicy="no-referrer">`;
   }
   function articleCard(article, admin=false){
     const rawBody=String(article.body||'').trim();
