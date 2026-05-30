@@ -101,7 +101,7 @@
     }
     box.innerHTML=html;modal.classList.add('open');modal.setAttribute('aria-hidden','false');document.body.classList.add('modal-open');setTimeout(()=>modal.querySelector('.filter-option.active,.filter-option')?.focus(),0);
   }
-  function closeMatchFilterSheet(){const modal=$('#matchFilterSheet');if(!modal)return;modal.classList.remove('open');modal.setAttribute('aria-hidden','true');document.body.classList.remove('modal-open');}
+  function closeMatchFilterSheet(){const modal=$('#matchFilterSheet');if(!modal)return;modal.classList.remove('open');modal.setAttribute('aria-hidden','true');document.body.classList.remove('modal-open');scheduleDeferredArticleRender(460);}
   function setMatchFilter(type,value){if(type==='phase'){phaseFilter=value;roundFilter='';}else if(type==='round'){roundFilter=value;}else if(type==='team'){teamFilter=value;}persistPublicFilters();closeMatchFilterSheet();renderMatches();}
   function renderPlayerFilter(){const el=$('#publicPlayerTeamFilter');if(!el)return;if(playerTeamFilter&&!state.teams.some(t=>t.id===playerTeamFilter))playerTeamFilter='';el.innerHTML=teamFilterOptions(playerTeamFilter);}
   function favoriteTeamHomeMarkup(){
@@ -208,40 +208,107 @@
   function renderBracket(){const el=$('#publicBracket');if(el)el.innerHTML=UI.bracketMarkup(state);decorateFavoriteUI();}
   let _lastArticlesFP='';
   let _deferredArticleRender=false;
-  function articleListFingerprint(list){
+  let _articleRenderTimer=0;
+
+  function articleRecordFingerprint(a){
     try{
-      return JSON.stringify((list||[]).map(a=>[
-        a.id||'',a.title||'',a.body||'',a.createdAt||'',a.updatedAt||'',
-        // non serializzo tutta la base64: basta una traccia stabile per capire se cambia
-        (a.image||'').length,String(a.image||'').slice(0,48),String(a.image||'').slice(-48)
-      ]));
+      const img=String(a?.image||'');
+      return JSON.stringify([
+        a?.id||'',a?.title||'',a?.body||'',a?.createdAt||'',a?.updatedAt||'',
+        img.length,img.slice(0,40),img.slice(-40)
+      ]);
     }catch(_){return String(Date.now());}
   }
+  function articleListFingerprint(list){
+    try{return JSON.stringify((list||[]).map(articleRecordFingerprint));}
+    catch(_){return String(Date.now());}
+  }
   function isArticleModalOpen(){return !!$('#articleModal')?.classList.contains('open');}
+  function isAnyOverlayOpen(){
+    return Boolean(
+      $('#articleModal')?.classList.contains('open') ||
+      $('#matchModal')?.classList.contains('open') ||
+      $('#teamModal')?.classList.contains('open') ||
+      $('#matchFilterSheet')?.classList.contains('open') ||
+      document.body.classList.contains('mobile-nav-open')
+    );
+  }
+  function isArticlesPanelActive(){return !!$('#articles')?.classList.contains('active');}
+  function refreshLoadedArticleImages(root){
+    (root||document).querySelectorAll('img.article-image').forEach(img=>{
+      if(!img.complete || !img.naturalWidth || !img.naturalHeight)return;
+      const media=img.closest('.article-media');
+      media?.classList.add('image-ready');
+      if(img.naturalHeight>img.naturalWidth){
+        img.classList.add('is-portrait');
+        media?.classList.add('has-portrait');
+      }
+    });
+  }
+  function patchArticleCardFingerprints(root,list){
+    const cards=Array.from(root.querySelectorAll('[data-article-id]'));
+    cards.forEach(card=>{
+      const article=(list||[]).find(a=>String(a.id)===String(card.dataset.articleId));
+      if(article)card.dataset.articleFp=articleRecordFingerprint(article);
+    });
+  }
+  function renderArticlesDom(el,list){
+    const active=document.activeElement;
+    const activeId=active?.closest?.('[data-article-id]')?.dataset?.articleId||'';
+    const template=document.createElement('template');
+    template.innerHTML=UI.articleList(list,false).trim();
+    patchArticleCardFingerprints(template.content,list);
+    const nextList=template.content.firstElementChild;
+    const currentList=el.querySelector('.article-list');
+
+    if(!currentList || !nextList || currentList.className!==nextList.className){
+      el.replaceChildren(template.content);
+      refreshLoadedArticleImages(el);
+    }else{
+      const currentById=new Map(Array.from(currentList.children).map(node=>[String(node.dataset.articleId||''),node]));
+      const frag=document.createDocumentFragment();
+      Array.from(nextList.children).forEach(nextCard=>{
+        const id=String(nextCard.dataset.articleId||'');
+        const current=currentById.get(id);
+        if(current && current.dataset.articleFp===nextCard.dataset.articleFp){
+          currentById.delete(id);
+          frag.appendChild(current);
+        }else{
+          frag.appendChild(nextCard);
+        }
+      });
+      currentList.replaceChildren(frag);
+      refreshLoadedArticleImages(currentList);
+    }
+    el.dataset.rendered='1';
+    if(activeId){
+      const restored=el.querySelector(`[data-article-id="${CSS.escape(activeId)}"]`);
+      restored?.focus?.({preventScroll:true});
+    }
+  }
+  function scheduleDeferredArticleRender(delay=420){
+    if(!_deferredArticleRender)return;
+    window.clearTimeout(_articleRenderTimer);
+    _articleRenderTimer=window.setTimeout(()=>{
+      if(isAnyOverlayOpen())return scheduleDeferredArticleRender(delay);
+      _deferredArticleRender=false;
+      renderArticles(false);
+    },delay);
+  }
   function renderArticles(force=false){
     const el=$('#publicArticles');
     if(!el)return;
     const list=store.selectors.articles(state);
     const fp=articleListFingerprint(list);
     if(!force && fp===_lastArticlesFP && el.dataset.rendered==='1')return;
-    // Se arriva un refresh realtime mentre il dettaglio articolo è aperto, non ricreo
-    // la lista sotto al modal: era la causa principale dello sfarfallio.
-    if(isArticleModalOpen() && el.dataset.rendered==='1'){
+    // Non tocchiamo la DOM della lista mentre un modal/sheet è aperto. Il re-render
+    // della lista sotto a un overlay è la causa tipica del flicker quando si chiude.
+    if(isAnyOverlayOpen() && el.dataset.rendered==='1'){
       _deferredArticleRender=true;
-      // Non aggiorno _lastArticlesFP qui: il DOM non è stato toccato.
-      // In questo modo, alla chiusura del dettaglio, la lista viene aggiornata
-      // solo se serve davvero e non si forza un re-render inutile.
       return;
     }
-    const active=document.activeElement;
-    const activeId=active?.closest?.('[data-article-id]')?.dataset?.articleId||'';
-    el.innerHTML=UI.articleList(list,false);
-    el.dataset.rendered='1';
+    renderArticlesDom(el,list);
     _lastArticlesFP=fp;
-    if(activeId){
-      const restored=el.querySelector(`[data-article-id="${CSS.escape(activeId)}"]`);
-      restored?.focus?.({preventScroll:true});
-    }
   }
 
   // ---- Sezione Foto squadre rimossa: le immagini restano solo negli articoli ----
@@ -355,7 +422,7 @@
     document.body.appendChild(modal);
     return modal;
   }
-  function closeTeamModal(){const modal=$('#teamModal');if(!modal)return;modal.classList.remove('open');document.body.classList.remove('modal-open');if(lastTeamTrigger&&document.contains(lastTeamTrigger))lastTeamTrigger.focus?.();}
+  function closeTeamModal(){const modal=$('#teamModal');if(!modal)return;modal.classList.remove('open');document.body.classList.remove('modal-open');scheduleDeferredArticleRender(460);if(lastTeamTrigger&&document.contains(lastTeamTrigger))lastTeamTrigger.focus?.();}
   function teamDetailMarkup(team){
     const rec=teamRecord(team.id);
     const playerStats=store.selectors.playerStats(state).filter(p=>p.teamId===team.id);
@@ -558,15 +625,12 @@
     if(!modal)return;
     if(!modal.classList.contains('open'))return;
     modal.classList.remove('open');
-    // Lascio al CSS il tempo di chiudere in modo morbido: niente stacco brusco.
     window.clearTimeout(closeArticleModal._t);
     closeArticleModal._t=window.setTimeout(()=>{
-      if(!modal.classList.contains('open')) document.body.classList.remove('modal-open','article-modal-open');
-      if(_deferredArticleRender){
-        _deferredArticleRender=false;
-        requestAnimationFrame(()=>renderArticles(false));
-      }
-    },240);
+      if(!modal.classList.contains('open')) document.body.classList.remove('article-modal-open');
+      scheduleDeferredArticleRender(460);
+      if(lastArticleTrigger&&document.contains(lastArticleTrigger))lastArticleTrigger.focus?.({preventScroll:true});
+    },260);
   }
   function showArticle(id,trigger=null){
     const article=store.selectors.articles(state).find(x=>x.id===id);
@@ -582,7 +646,7 @@
       body.dataset.articleHtml=nextHtml;
     }
     window.clearTimeout(closeArticleModal._t);
-    document.body.classList.add('modal-open','article-modal-open');
+    document.body.classList.add('article-modal-open');
     requestAnimationFrame(()=>{
       modal.classList.add('open');
       requestAnimationFrame(()=>$('#closeArticleModal')?.focus?.({preventScroll:true}));
@@ -729,9 +793,8 @@
     // Fingerprint globale: se lo state non è cambiato, non toccare il DOM.
     // Evita il flash visivo causato dal polling Supabase ogni ~6 secondi.
     var fp=store.deriveFingerprint(state);
-    fp+="|"+(state.articles||[]).length;
-    fp+="|"+((state.articles||[]).length>0?(state.articles[0].updatedAt||""):"");
-    fp+="|"+(state.teams||[]).map(function(t){return t.logo||"";}).join(",");
+    fp+="|articles:"+articleListFingerprint(state.articles||[]);
+    fp+="|logos:"+(state.teams||[]).map(function(t){return (t.logo||'').length+':'+String(t.logo||'').slice(0,18);}).join(',');
     if(fp===_lastRenderFP){
       decorateFavoriteUI();
       return;
@@ -854,6 +917,7 @@
     _matchCloseTimer=setTimeout(()=>{
       modal.classList.remove('open','public-match-modal','is-closing');
       _matchCloseTimer=null;
+      scheduleDeferredArticleRender(460);
     },140);
   }
   function refreshOpenModals(){

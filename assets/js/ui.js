@@ -161,9 +161,11 @@
     const body=esc(rawBody).replace(/\n/g,'<br>');
     const date=esc(fmtArticleDate(article.updatedAt||article.createdAt));
     const title=esc(article.title||'News');
+    const img=String(article.image||'');
+    const cardFp=esc(JSON.stringify([article.id||'',article.title||'',rawBody,article.createdAt||'',article.updatedAt||'',img.length,img.slice(0,40),img.slice(-40)]));
     const openAttrs=!admin?` role="button" tabindex="0" aria-label="Leggi articolo completo: ${title}" data-article-open="${esc(article.id)}"`:'';
     const readButton=!admin?`<div class="article-actions"><button class="btn small primary article-read-btn" type="button" data-article-open="${esc(article.id)}">Leggi tutto</button></div>`:'';
-    return `<article class="article-card sports-news-card ${admin?'admin-news-card':''}" data-article-id="${esc(article.id)}"${openAttrs}>
+    return `<article class="article-card sports-news-card ${admin?'admin-news-card':''}" data-article-id="${esc(article.id)}" data-article-fp="${cardFp}"${openAttrs}>
       <div class="article-media">
         ${articleImageMarkup(article)}
         <div class="article-media-shade"></div>
