@@ -5789,3 +5789,456 @@ body.article-modal-open{
     transform:none!important;
   }
 }
+
+/* =================================================================
+   v113 - Articoli uniformi: card sportiva compatta per TUTTI gli articoli
+   =================================================================
+   Obiettivo:
+   - nessuna card hero speciale nella lista articoli;
+   - tutte le card come il modello compatto immagine a sinistra / contenuto a destra;
+   - immagini verticali e orizzontali sempre leggibili, senza overlay testuale;
+   - stessa resa lato pubblico e lato admin, mantenendo i pulsanti Modifica/Elimina.
+   ================================================================= */
+.article-list{
+  display:grid!important;
+  gap:16px!important;
+}
+.article-list > .article-card,
+.article-list > .article-card:first-child,
+.article-card.sports-news-card,
+.article-card.admin-news-card{
+  display:grid!important;
+  grid-template-columns:clamp(130px,34vw,300px) minmax(0,1fr)!important;
+  grid-template-areas:"media content"!important;
+  align-items:stretch!important;
+  position:relative!important;
+  min-height:168px!important;
+  height:auto!important;
+  padding:0!important;
+  overflow:hidden!important;
+  border-radius:26px!important;
+  border:1px solid rgba(255,122,24,.30)!important;
+  background:
+    radial-gradient(circle at 100% 0%,rgba(31,99,255,.18),transparent 36%),
+    linear-gradient(135deg,rgba(4,13,38,.98),rgba(3,9,26,.98) 48%,rgba(5,5,5,.96))!important;
+  box-shadow:0 18px 48px rgba(0,5,24,.34), inset 0 1px 0 rgba(255,255,255,.06)!important;
+  contain:layout paint style!important;
+  transform:none!important;
+  animation:none!important;
+}
+.article-list > .article-card:first-child::before{
+  display:none!important;
+  content:none!important;
+}
+.article-list > .article-card .article-media,
+.article-list > .article-card:first-child .article-media,
+.article-card.admin-news-card .article-media{
+  grid-area:media!important;
+  position:relative!important;
+  inset:auto!important;
+  display:grid!important;
+  place-items:center!important;
+  min-height:168px!important;
+  height:100%!important;
+  width:100%!important;
+  overflow:hidden!important;
+  aspect-ratio:auto!important;
+  background:
+    radial-gradient(circle at 50% 35%,rgba(255,122,24,.13),transparent 44%),
+    linear-gradient(145deg,#06153c,#020716)!important;
+}
+.article-list > .article-card .article-media::after,
+.article-list > .article-card:first-child .article-media::after,
+.article-list > .article-card .article-media-shade,
+.article-list > .article-card:first-child .article-media-shade{
+  display:none!important;
+  content:none!important;
+}
+.article-list > .article-card .article-image,
+.article-list > .article-card img.article-image,
+.article-list > .article-card .article-placeholder,
+.article-list > .article-card:first-child .article-image,
+.article-list > .article-card:first-child img.article-image,
+.article-list > .article-card:first-child .article-placeholder{
+  width:100%!important;
+  height:100%!important;
+  min-height:168px!important;
+  max-height:none!important;
+  display:block!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+  border-radius:0!important;
+  background:transparent!important;
+  transform:none!important;
+  transition:none!important;
+}
+.article-list > .article-card .article-placeholder,
+.article-list > .article-card:first-child .article-placeholder{
+  display:grid!important;
+  place-items:center!important;
+  background:
+    radial-gradient(circle at 50% 32%,rgba(255,122,24,.22),transparent 42%),
+    linear-gradient(145deg,#06153c,#0b2870)!important;
+}
+.article-list > .article-card .article-content,
+.article-list > .article-card:first-child .article-content,
+.article-card.admin-news-card .article-content{
+  grid-area:content!important;
+  position:relative!important;
+  inset:auto!important;
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  min-width:0!important;
+  padding:18px 20px!important;
+  gap:9px!important;
+  z-index:1!important;
+  background:
+    linear-gradient(135deg,rgba(0,0,0,.82),rgba(5,11,26,.78))!important;
+}
+.article-list > .article-card .article-content h3,
+.article-list > .article-card:first-child .article-content h3{
+  max-width:26ch!important;
+  margin:0!important;
+  color:#fff!important;
+  font-size:clamp(1.12rem,2.15vw,1.62rem)!important;
+  line-height:1.04!important;
+  letter-spacing:-.035em!important;
+  text-wrap:balance!important;
+  text-shadow:none!important;
+}
+.article-list > .article-card .article-content p,
+.article-list > .article-card:first-child .article-content p{
+  margin:0!important;
+  max-width:56ch!important;
+  color:#dbe6fb!important;
+  font-size:.95rem!important;
+  line-height:1.45!important;
+  display:-webkit-box!important;
+  -webkit-line-clamp:3!important;
+  -webkit-box-orient:vertical!important;
+  overflow:hidden!important;
+}
+.article-list > .article-card .article-meta,
+.article-list > .article-card:first-child .article-meta{
+  display:flex!important;
+  align-items:center!important;
+  gap:10px!important;
+  flex-wrap:wrap!important;
+  color:#cbd7ef!important;
+  font-size:.86rem!important;
+}
+.article-list > .article-card .article-kicker,
+.article-list > .article-card:first-child .article-kicker{
+  background:linear-gradient(135deg,#ff7a18,#ffb05f)!important;
+  color:#07152f!important;
+  border:0!important;
+  box-shadow:0 8px 22px rgba(255,122,24,.18)!important;
+}
+.article-list > .article-card .article-actions,
+.article-list > .article-card:first-child .article-actions,
+.article-card.admin-news-card .article-actions{
+  display:flex!important;
+  gap:10px!important;
+  flex-wrap:wrap!important;
+  margin-top:8px!important;
+}
+.article-list > .article-card .article-read-btn,
+.article-list > .article-card:first-child .article-read-btn{
+  width:auto!important;
+  min-width:150px!important;
+  justify-content:center!important;
+}
+.article-card:hover,
+.article-card:hover .article-image,
+.article-card:hover img.article-image{
+  transform:none!important;
+}
+
+/* Admin: stessa card, ma azioni sempre visibili e comode */
+#adminArticlesList .article-list > .article-card{
+  grid-template-columns:clamp(140px,30vw,280px) minmax(0,1fr)!important;
+}
+#adminArticlesList .article-content p{
+  -webkit-line-clamp:4!important;
+}
+#adminArticlesList .row-actions.article-actions .btn{
+  width:auto!important;
+}
+
+/* Mobile: tutte uguali al secondo esempio, senza hero enorme */
+@media (max-width:700px){
+  .article-list{
+    gap:14px!important;
+  }
+  .article-list > .article-card,
+  .article-list > .article-card:first-child,
+  .article-card.sports-news-card,
+  .article-card.admin-news-card{
+    grid-template-columns:clamp(124px,38vw,170px) minmax(0,1fr)!important;
+    min-height:150px!important;
+    border-radius:22px!important;
+  }
+  .article-list > .article-card .article-media,
+  .article-list > .article-card:first-child .article-media,
+  .article-list > .article-card .article-image,
+  .article-list > .article-card img.article-image,
+  .article-list > .article-card .article-placeholder,
+  .article-list > .article-card:first-child .article-image,
+  .article-list > .article-card:first-child img.article-image,
+  .article-list > .article-card:first-child .article-placeholder{
+    min-height:150px!important;
+    height:100%!important;
+  }
+  .article-list > .article-card .article-content,
+  .article-list > .article-card:first-child .article-content{
+    padding:14px 14px!important;
+    gap:7px!important;
+  }
+  .article-list > .article-card .article-content h3,
+  .article-list > .article-card:first-child .article-content h3{
+    font-size:clamp(1rem,4.3vw,1.28rem)!important;
+    line-height:1.07!important;
+  }
+  .article-list > .article-card .article-content p,
+  .article-list > .article-card:first-child .article-content p{
+    display:none!important;
+  }
+  .article-list > .article-card .article-actions,
+  .article-list > .article-card:first-child .article-actions{
+    display:none!important;
+  }
+  #adminArticlesList .article-list > .article-card,
+  #adminArticlesList .article-list > .article-card:first-child{
+    grid-template-columns:1fr!important;
+  }
+  #adminArticlesList .article-list > .article-card .article-media,
+  #adminArticlesList .article-list > .article-card:first-child .article-media{
+    min-height:210px!important;
+  }
+  #adminArticlesList .article-list > .article-card .article-content p{
+    display:-webkit-box!important;
+    -webkit-line-clamp:3!important;
+  }
+  #adminArticlesList .article-list > .article-card .article-actions{
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+  }
+  #adminArticlesList .row-actions.article-actions .btn{
+    width:100%!important;
+  }
+}
+
+/* Dettaglio articolo: apertura più naturale, stile sportivo ma leggero */
+#articleModal.article-modal{
+  padding:max(14px,env(safe-area-inset-top,0px)) 14px max(14px,env(safe-area-inset-bottom,0px))!important;
+  background:rgba(1,7,22,0)!important;
+  transition:opacity .28s cubic-bezier(.16,1,.3,1), background-color .28s cubic-bezier(.16,1,.3,1), visibility 0s linear .28s!important;
+}
+#articleModal.article-modal.open{
+  background:rgba(1,7,22,.82)!important;
+}
+#articleModal .article-modal-content{
+  transform:translate3d(0,24px,0) scale(.975)!important;
+  transition:opacity .30s cubic-bezier(.16,1,.3,1), transform .30s cubic-bezier(.16,1,.3,1)!important;
+}
+#articleModal.open .article-modal-content{
+  transform:translate3d(0,0,0) scale(1)!important;
+}
+#articleModal .article-detail-editorial{
+  display:grid!important;
+  grid-template-columns:minmax(260px,42%) minmax(0,1fr)!important;
+  min-height:min(620px,calc(92dvh - 90px))!important;
+}
+#articleModal .article-detail-hero{
+  min-height:100%!important;
+  padding:clamp(18px,3vw,34px)!important;
+  display:grid!important;
+  place-items:center!important;
+}
+#articleModal .article-detail-frame{
+  width:100%!important;
+  max-width:560px!important;
+  max-height:calc(88dvh - 150px)!important;
+  aspect-ratio:4/3!important;
+  display:grid!important;
+  place-items:center!important;
+  overflow:hidden!important;
+}
+#articleModal .article-detail-frame.has-portrait{
+  aspect-ratio:3/4!important;
+  max-width:430px!important;
+}
+#articleModal .article-detail-frame img.article-image,
+#articleModal .article-detail-frame .article-image:not(.article-placeholder){
+  width:100%!important;
+  height:100%!important;
+  object-fit:contain!important;
+  object-position:center!important;
+  background:transparent!important;
+}
+#articleModal .article-detail-body{
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+}
+@media (max-width:820px){
+  #articleModal.article-modal{
+    align-items:flex-end!important;
+    padding:0!important;
+  }
+  #articleModal .article-modal-content{
+    height:min(94dvh,960px)!important;
+    max-height:94dvh!important;
+    transform:translate3d(0,42px,0) scale(1)!important;
+  }
+  #articleModal .article-detail-editorial{
+    display:block!important;
+    min-height:auto!important;
+  }
+  #articleModal .article-detail-hero{
+    min-height:auto!important;
+    padding:18px 16px!important;
+  }
+  #articleModal .article-detail-frame{
+    max-height:42dvh!important;
+    aspect-ratio:16/11!important;
+  }
+  #articleModal .article-detail-frame.has-portrait{
+    aspect-ratio:3/4!important;
+    max-height:48dvh!important;
+    max-width:min(74vw,360px)!important;
+  }
+}
+
+
+/* =================================================================
+   v8 — Pattern sportivo blu/arancio per card articoli
+   Obiettivo: togliere il nero pieno e dare profondità senza appesantire.
+   Tutte le card pubbliche/admin restano uniformi e compatibili con foto verticali/orizzontali.
+   ================================================================= */
+:root{
+  --ng-article-blue-900:#061842;
+  --ng-article-blue-800:#082968;
+  --ng-article-blue-700:#0c3f9a;
+  --ng-article-orange:#ff7a18;
+  --ng-article-orange-soft:#ffb15f;
+}
+.article-list > .article-card,
+.article-list > .article-card:first-child,
+.article-card.sports-news-card,
+.article-card.admin-news-card{
+  border-color:rgba(255,122,24,.42)!important;
+  background:
+    radial-gradient(circle at 8% 0%,rgba(255,122,24,.25),transparent 28%),
+    radial-gradient(circle at 98% 100%,rgba(31,99,255,.30),transparent 38%),
+    linear-gradient(135deg,var(--ng-article-blue-900),var(--ng-article-blue-800) 54%,#102b72)!important;
+  box-shadow:0 18px 46px rgba(2,12,45,.36), inset 0 1px 0 rgba(255,255,255,.08)!important;
+}
+.article-list > .article-card::after,
+.article-list > .article-card:first-child::after,
+.article-card.admin-news-card::after{
+  content:""!important;
+  position:absolute!important;
+  inset:0!important;
+  pointer-events:none!important;
+  opacity:.34!important;
+  background:
+    repeating-linear-gradient(135deg,rgba(255,255,255,.055) 0 1px,transparent 1px 16px),
+    linear-gradient(90deg,rgba(255,122,24,.18),transparent 32%,rgba(31,99,255,.12))!important;
+  mix-blend-mode:screen!important;
+  z-index:0!important;
+}
+.article-list > .article-card .article-media,
+.article-list > .article-card:first-child .article-media,
+.article-card.admin-news-card .article-media{
+  z-index:1!important;
+  background:
+    radial-gradient(circle at 22% 18%,rgba(255,122,24,.22),transparent 34%),
+    radial-gradient(circle at 88% 86%,rgba(31,99,255,.25),transparent 42%),
+    linear-gradient(145deg,#08245c,#0a347f 55%,#071a48)!important;
+  border-right:1px solid rgba(255,122,24,.24)!important;
+}
+.article-list > .article-card .article-content,
+.article-list > .article-card:first-child .article-content,
+.article-card.admin-news-card .article-content{
+  z-index:1!important;
+  background:
+    radial-gradient(circle at 100% 0%,rgba(255,122,24,.22),transparent 30%),
+    radial-gradient(circle at 8% 110%,rgba(31,99,255,.22),transparent 36%),
+    repeating-linear-gradient(135deg,rgba(255,255,255,.045) 0 1px,transparent 1px 14px),
+    linear-gradient(135deg,#0a2a69 0%,#0b347f 48%,#09245d 100%)!important;
+  border-left:4px solid rgba(255,122,24,.82)!important;
+}
+.article-list > .article-card .article-content::before,
+.article-list > .article-card:first-child .article-content::before,
+.article-card.admin-news-card .article-content::before{
+  content:""!important;
+  position:absolute!important;
+  inset:0!important;
+  pointer-events:none!important;
+  background:linear-gradient(90deg,rgba(255,122,24,.18),transparent 28%,rgba(31,99,255,.16))!important;
+  opacity:.58!important;
+  z-index:-1!important;
+}
+.article-list > .article-card .article-content h3,
+.article-list > .article-card:first-child .article-content h3{
+  color:#ffffff!important;
+  text-shadow:0 2px 12px rgba(2,10,35,.28)!important;
+}
+.article-list > .article-card .article-content p,
+.article-list > .article-card:first-child .article-content p,
+.article-list > .article-card .article-meta,
+.article-list > .article-card:first-child .article-meta{
+  color:#e7eefc!important;
+}
+.article-list > .article-card .article-kicker,
+.article-list > .article-card:first-child .article-kicker{
+  background:linear-gradient(135deg,var(--ng-article-orange),var(--ng-article-orange-soft))!important;
+  color:#07183c!important;
+  box-shadow:0 10px 24px rgba(255,122,24,.24)!important;
+}
+.article-list > .article-card .article-read-btn,
+.article-list > .article-card:first-child .article-read-btn,
+.article-card.admin-news-card .article-actions .btn.primary{
+  box-shadow:0 12px 28px rgba(255,122,24,.22)!important;
+}
+
+/* Dettaglio: stesso linguaggio visivo blu/arancio, niente nero dominante */
+#articleModal .article-modal-content{
+  background:
+    radial-gradient(circle at 0% 0%,rgba(255,122,24,.28),transparent 34%),
+    radial-gradient(circle at 100% 100%,rgba(31,99,255,.30),transparent 38%),
+    repeating-linear-gradient(135deg,rgba(255,255,255,.038) 0 1px,transparent 1px 18px),
+    linear-gradient(145deg,#071b49 0%,#0b2f78 50%,#071a45 100%)!important;
+  border-color:rgba(255,122,24,.42)!important;
+}
+#articleModal .article-detail-body{
+  background:
+    radial-gradient(circle at 100% 0%,rgba(255,122,24,.20),transparent 30%),
+    linear-gradient(145deg,rgba(8,42,105,.92),rgba(7,28,72,.96))!important;
+}
+#articleModal .article-detail-hero{
+  background:
+    radial-gradient(circle at 20% 15%,rgba(255,122,24,.24),transparent 34%),
+    radial-gradient(circle at 85% 85%,rgba(31,99,255,.22),transparent 42%),
+    linear-gradient(145deg,#08245c,#0a347f 58%,#071943)!important;
+}
+#articleModal .article-detail-frame{
+  background:
+    linear-gradient(145deg,rgba(255,255,255,.07),rgba(255,255,255,.025))!important;
+  border:1px solid rgba(255,122,24,.34)!important;
+  box-shadow:0 18px 48px rgba(2,12,45,.38), inset 0 1px 0 rgba(255,255,255,.10)!important;
+}
+
+@media (max-width:700px){
+  .article-list > .article-card .article-content,
+  .article-list > .article-card:first-child .article-content,
+  .article-card.admin-news-card .article-content{
+    border-left:3px solid rgba(255,122,24,.86)!important;
+    background:
+      radial-gradient(circle at 100% 0%,rgba(255,122,24,.20),transparent 30%),
+      repeating-linear-gradient(135deg,rgba(255,255,255,.04) 0 1px,transparent 1px 13px),
+      linear-gradient(135deg,#092a69 0%,#0b347f 56%,#08245d 100%)!important;
+  }
+}
