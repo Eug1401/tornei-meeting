@@ -4,13 +4,9 @@
   const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
   function initials(name){return String(name||'?').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();}
   function logo(team,big=false){
-    const cls=`team-logo${big?' big':''}`;
-    const fbCls=`team-logo-fallback${big?' big':''}`;
-    if(team?.logo){
-      // onerror: sostituisce l'img con il div fallback standard
-      return `<img class="${cls}" src="${esc(team.logo)}" alt="Logo ${esc(team.name)}" loading="lazy" decoding="async" onerror="this.outerHTML='<div class=&quot;${fbCls}&quot; title=&quot;Logo non disponibile&quot;><span></span></div>'">`;
-    }
-    return `<div class="${fbCls}" title="Logo non disponibile"><span></span></div>`;
+    const cls=`team-logo ${big?'big':''}`;
+    if(team?.logo)return `<img class="${cls}" src="${esc(team.logo)}" alt="Logo ${esc(team.name)}" onerror="this.outerHTML='<div class=&quot;team-logo-fallback ${big?'big':''}&quot;><span></span></div>'">`;
+    return `<div class="team-logo-fallback ${big?'big':''}" title="Logo non disponibile"><span></span></div>`;
   }
   function fmtDate(m){if(m.date&&m.time)return new Intl.DateTimeFormat('it-IT',{dateStyle:'medium',timeStyle:'short'}).format(new Date(`${m.date}T${m.time}`)); if(m.date)return new Intl.DateTimeFormat('it-IT',{dateStyle:'medium'}).format(new Date(`${m.date}T00:00`)); return 'Da definire';}
   function teamOptions(state,selected=''){return `<option value="">Seleziona squadra</option>`+state.teams.map(t=>`<option value="${t.id}" ${t.id===selected?'selected':''}>${esc(t.name)}</option>`).join('');}
