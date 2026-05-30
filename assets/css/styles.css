@@ -5834,7 +5834,7 @@ input::placeholder,textarea::placeholder{ color:#9fb4d8!important;opacity:1; }
 }
 
 /* Icona lente: pseudo-element sul wrapper */
-#globalSearch + * { display: none; } /* rimuove eventuali pseudo-elementi doppi */
+/* nota: nessuna regola sul sibling di globalSearch, per non nascondere i risultati */
 
 /* Aggiunta icona tramite background-image nell'input stesso */
 #globalSearch {
