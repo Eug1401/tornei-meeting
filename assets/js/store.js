@@ -85,7 +85,7 @@
     out.groupConfigs=out.groupConfigs.map((g,i)=>({name:g.name||`Girone ${String.fromCharCode(65+i)}`,size:Math.max(2,Number(g.size)||4),qualifiers:Math.max(0,Number(g.qualifiers)||0)}));
     out.groupCount=out.groupConfigs.length||out.groupCount;
     out.playoffTeams=out.groupConfigs.reduce((sum,g)=>sum+(Number(g.qualifiers)||0),0)||Math.max(2,Number(out.playoffTeams)||4);
-    out.fieldCount=Math.max(1,Number(out.fieldCount)||1);out.matchDuration=Math.max(5,Number(out.matchDuration)||40);out.breakMinutes=Math.max(0,Number(out.breakMinutes)||0);out.oneDayPauseEnabled=Boolean(out.oneDayPauseEnabled);out.oneDayPauseStart=out.oneDayPauseStart||'13:00';out.oneDayPauseDuration=Math.max(0,Number(out.oneDayPauseDuration)||60);
+    out.fieldCount=Math.min(2,Math.max(1,Number(out.fieldCount)||1));out.matchDuration=Math.max(5,Number(out.matchDuration)||40);out.breakMinutes=Math.max(0,Number(out.breakMinutes)||0);out.oneDayPauseEnabled=Boolean(out.oneDayPauseEnabled);out.oneDayPauseStart=out.oneDayPauseStart||'13:00';out.oneDayPauseDuration=Math.max(0,Number(out.oneDayPauseDuration)||60);
     out.playingDays=Array.isArray(out.playingDays)?out.playingDays.map(Number).filter(n=>Number.isInteger(n)&&n>=0&&n<=6):[1,2,3,4,5,6,0];
     out.groupFieldPolicy=['fixed_by_group','rotate_per_team'].includes(out.groupFieldPolicy)?out.groupFieldPolicy:'auto';
     out.standingsCriteriaOrder=normalizeStandingsCriteriaOrder(out.standingsCriteriaOrder);
@@ -472,18 +472,30 @@
   // sceglie quello che mantiene più bilanciato l'uso dei campi delle squadre coinvolte.
   // Best practice round-robin multi-campo: si minimizza il riuso dello stesso campo da
   // parte della stessa squadra, evitando che una squadra giochi sempre sullo stesso campo.
+  // Sceglie il campo che minimizza la concentrazione (rapporto partite su un campo/totale)
+  // per le squadre coinvolte. Tiebreak forte a favore del Campo 1: se le opzioni sono
+  // equivalenti, le squadre vanno sempre sul Campo 1, così che:
+  //   - la prima partita di ogni squadra sia sempre sul Campo 1;
+  //   - se per vincoli di calendario una squadra gioca su un solo campo, sia il Campo 1.
   function pickRotatedField(candidateFields,teams,teamFieldUse){
-    if(candidateFields.length<=1)return candidateFields[0];
+    if(!candidateFields.length)return 1;
+    if(candidateFields.length===1)return candidateFields[0];
     let best=candidateFields[0],bestScore=Infinity;
     for(const field of candidateFields){
-      // costo = quante volte le squadre di questa partita hanno già usato questo campo
-      let used=0,maxUsed=0;
+      // Per ogni campo candidato calcoliamo il rapporto di concentrazione peggiore
+      // tra le squadre: (partite su questo campo dopo l'assegnazione) / (totale partite).
+      let worstRatio=0;
       for(const t of teams){
-        const u=(teamFieldUse[t]&&teamFieldUse[t][field])||0;
-        used+=u; if(u>maxUsed)maxUsed=u;
+        const use=teamFieldUse[t]||{};
+        const afterThis=(use[field]||0)+1;
+        const total=Object.values(use).reduce((a,b)=>a+b,0)+1;
+        const ratio=afterThis/total;
+        if(ratio>worstRatio)worstRatio=ratio;
       }
-      // priorità: minimizza il picco su una singola squadra, poi il totale, poi il campo più basso
-      const score=maxUsed*1000+used*10+field*0.01;
+      // Penalità campo: il Campo 1 vale 0, il Campo 2 vale +0.15.
+      // Questo assicura che, a parità di bilanciamento, si scelga sempre il Campo 1,
+      // implementando la regola "se costretto su un solo campo → Campo 1".
+      const score=worstRatio+(field-1)*0.15;
       if(score<bestScore){bestScore=score;best=field;}
     }
     return best;
@@ -514,7 +526,46 @@
     return [...roundMatches].sort((a,b)=>concentration(b)-concentration(a));
   }
 
-  // Scheduler vincolato:
+  // Dopo la pianificazione, garantisce che nessuna squadra abbia giocato 
+  // SOLO sul Campo 2. Se una squadra non ha mai giocato sul Campo 1 ma ha partite
+  // sul Campo 2, cerca uno slot in cui Campo 1 era libero e sposta lì la partita.
+  // Implementa la regola: "se costretto su un campo solo → deve essere il Campo 1".
+  function enforceField1Fallback(matches){
+    // Conta quante volte ogni squadra ha giocato sul Campo 1
+    const teamF1={};
+    for(const m of matches){
+      const fn=fieldNoFromLabel(m.field);
+      if(!fn)continue;
+      for(const t of matchTeamIds(m)){
+        if(!teamF1[t])teamF1[t]=0;
+        if(fn===1)teamF1[t]++;
+      }
+    }
+    // Costruisci mappa slot→campo occupato (per rilevare conflitti dopo lo swap)
+    const makeKey=(m,f)=>`${m.date||''}|${m.time||'x'}|${f}`;
+    const occupied=new Set(matches.map(m=>makeKey(m,fieldNoFromLabel(m.field))));
+    for(const teamId of Object.keys(teamF1)){
+      if(teamF1[teamId]>0)continue; // già gioca su Campo 1 → OK
+      // Trova la prima partita di questa squadra che è sul Campo 2
+      const match=matches.find(m=>matchTeamIds(m).includes(teamId)&&fieldNoFromLabel(m.field)===2);
+      if(!match)continue;
+      // Il Campo 1 era libero in quello stesso slot?
+      const key1=makeKey(match,1);
+      const key2=makeKey(match,2);
+      if(!occupied.has(key1)){
+        // Sposta questa partita sul Campo 1 (Campo 2 si libera)
+        occupied.delete(key2);
+        match.field='Campo 1';
+        occupied.add(key1);
+        teamF1[teamId]=1;
+        // Aggiorna anche l'altra squadra della partita
+        for(const t of matchTeamIds(match)){
+          if(t!==teamId&&!teamF1[t])teamF1[t]=1;
+        }
+      }
+    }
+  }
+    // Scheduler vincolato:
   // - mai due partite sullo stesso campo nello stesso slot;
   // - mai la stessa squadra in contemporanea;
   // - nei tornei multi-giorno una squadra non gioca più di una partita nello stesso giorno;
@@ -527,7 +578,8 @@
     const step=duration+breakMinutes;
     const groups=matchesByRoundIndex(matches);
 
-    const rotateFields=rules.groupFieldPolicy==='rotate_per_team'&&fields>1&&!groupFieldMap(rules);
+    // Rotazione automatica: attiva sempre quando ci sono 2 campi (non richiede più la policy esplicita).
+    const rotateFields=fields>1&&!groupFieldMap(rules);
     const teamFieldUse={};
 
     if(rules.oneDay){
@@ -575,6 +627,7 @@
       }
       const end=new Date(start.getTime()+Math.max(0,maxSlotUsed)*step*60000+duration*60000);
       const pauseText=pause?` Pausa programmata alle ${pause.startTime} per ${pause.duration} min inserita nel calendario.`:'';
+      if(fields>1)enforceField1Fallback(matches);
       return {ok:true,calculatedEndTime:end.toTimeString().slice(0,5),message:`Calendario generato: ${matches.length} partite in un giorno su ${fields} campi. Fine stimata: ${end.toTimeString().slice(0,5)}.${pauseText} Nessuna squadra gioca in contemporanea e nessun campo è sovrapposto.${groupFieldPolicyMessage(rules)}`};
     }
 
@@ -623,6 +676,7 @@
       }
     }
 
+    if(fields>1)enforceField1Fallback(matches);
     const usedDays=[...new Set(matches.map(m=>m.date).filter(Boolean))].length;
     return {ok:true,message:`Calendario generato su ${usedDays} date di gioco tra ${rules.startDate} e ${rules.endDate} (${weekdayLabels(rules.playingDays)}). Nessuna squadra gioca due volte nello stesso giorno e nessun campo è sovrapposto.${groupFieldPolicyMessage(rules)}`};
   }
@@ -649,7 +703,7 @@
     return {ok:true,message:'Competizioni a eliminazione diretta valide.'};
   }
 
-  function validateGeneration(state){const r=normalizeRules(state.rules);const teams=state.teams.length;const min=minimumTeams(r);if(teams<min)return {ok:false,message:`Servono almeno ${min} squadre per ${FORMAT_LABELS[r.format]}. Inserite: ${teams}.`};if(Number(r.fieldCount||0)<1)return {ok:false,message:'Inserisci almeno 1 campo disponibile.'};if(!r.oneDay&&(!Array.isArray(r.playingDays)||!r.playingDays.length))return {ok:false,message:'Seleziona almeno un giorno della settimana in cui si può giocare.'};if(r.format==='league')return {ok:true,message:'Formato valido: campionato unico senza fasi successive.'};if(r.format==='knockout')return {ok:true,message:'Formato valido: solo tabellone a eliminazione diretta.'};if(r.format==='groups_knockout'){const cfgs=r.groupConfigs||[];if(cfgs.length<2)return {ok:false,message:'Per gironi + eliminazione diretta servono almeno 2 gironi.'};if(r.groupFieldPolicy==='fixed_by_group'&&cfgs.length!==r.fieldCount)return {ok:false,message:`La modalità girone → campo richiede che il numero di gironi (${cfgs.length}) sia uguale al numero di campi (${r.fieldCount}).`};if(r.groupFieldPolicy==='rotate_per_team'&&Number(r.fieldCount)<2)return {ok:false,message:'La rotazione dei campi per squadra richiede almeno 2 campi disponibili.'};const totalSizes=cfgs.reduce((sum,g)=>sum+g.size,0);if(totalSizes!==teams)return {ok:false,message:`La somma delle squadre nei gironi deve essere uguale alle squadre iscritte. Configurate: ${totalSizes}, iscritte: ${teams}.`};for(const g of cfgs){if(g.size<2)return {ok:false,message:`${g.name}: servono almeno 2 squadre.`};if(g.qualifiers<0)return {ok:false,message:`${g.name}: qualificate non valide.`};if(g.qualifiers>g.size)return {ok:false,message:`${g.name}: non puoi qualificare ${g.qualifiers} squadre su ${g.size}.`};}const totalQ=cfgs.reduce((sum,g)=>sum+g.qualifiers,0);if(totalQ<2)return {ok:false,message:'Devono qualificarsi almeno 2 squadre complessive alla fase finale.'};if(totalQ>teams)return {ok:false,message:'Le qualificate alla fase finale non possono superare le squadre iscritte.'};return {ok:true,message:'Formato valido: gironi personalizzati + fase finale a eliminazione con eventuali BYE.'};}if(r.format==='league_knockout'){const cfg=validateCompetitionConfig(r,teams);if(!cfg.ok)return cfg;return {ok:true,message:'Formato valido: campionato unico + competizioni a eliminazione diretta configurabili.'};}return {ok:false,message:'Formato torneo non riconosciuto.'};}
+  function validateGeneration(state){const r=normalizeRules(state.rules);const teams=state.teams.length;const min=minimumTeams(r);if(teams<min)return {ok:false,message:`Servono almeno ${min} squadre per ${FORMAT_LABELS[r.format]}. Inserite: ${teams}.`};if(Number(r.fieldCount||0)<1)return {ok:false,message:'Inserisci almeno 1 campo disponibile.'};if(!r.oneDay&&(!Array.isArray(r.playingDays)||!r.playingDays.length))return {ok:false,message:'Seleziona almeno un giorno della settimana in cui si può giocare.'};if(r.format==='league')return {ok:true,message:'Formato valido: campionato unico senza fasi successive.'};if(r.format==='knockout')return {ok:true,message:'Formato valido: solo tabellone a eliminazione diretta.'};if(r.format==='groups_knockout'){const cfgs=r.groupConfigs||[];if(cfgs.length<2)return {ok:false,message:'Per gironi + eliminazione diretta servono almeno 2 gironi.'};if(r.groupFieldPolicy==='fixed_by_group'&&cfgs.length!==r.fieldCount)return {ok:false,message:`La modalità girone → campo richiede che il numero di gironi (${cfgs.length}) sia uguale al numero di campi (${r.fieldCount}).`};// La rotazione è ora automatica con 2 campi, non richiede policy esplicita.const totalSizes=cfgs.reduce((sum,g)=>sum+g.size,0);if(totalSizes!==teams)return {ok:false,message:`La somma delle squadre nei gironi deve essere uguale alle squadre iscritte. Configurate: ${totalSizes}, iscritte: ${teams}.`};for(const g of cfgs){if(g.size<2)return {ok:false,message:`${g.name}: servono almeno 2 squadre.`};if(g.qualifiers<0)return {ok:false,message:`${g.name}: qualificate non valide.`};if(g.qualifiers>g.size)return {ok:false,message:`${g.name}: non puoi qualificare ${g.qualifiers} squadre su ${g.size}.`};}const totalQ=cfgs.reduce((sum,g)=>sum+g.qualifiers,0);if(totalQ<2)return {ok:false,message:'Devono qualificarsi almeno 2 squadre complessive alla fase finale.'};if(totalQ>teams)return {ok:false,message:'Le qualificate alla fase finale non possono superare le squadre iscritte.'};return {ok:true,message:'Formato valido: gironi personalizzati + fase finale a eliminazione con eventuali BYE.'};}if(r.format==='league_knockout'){const cfg=validateCompetitionConfig(r,teams);if(!cfg.ok)return cfg;return {ok:true,message:'Formato valido: campionato unico + competizioni a eliminazione diretta configurabili.'};}return {ok:false,message:'Formato torneo non riconosciuto.'};}
   function scheduleSignature(state){
     const r=normalizeRules(state.rules);
     const rulesForSchedule={format:r.format,groupConfigs:r.groupConfigs,groupAssignments:r.groupAssignments,playoffTeams:r.playoffTeams,eliminationCompetitions:r.eliminationCompetitions,superCup:r.superCup,isKingsLeague:r.isKingsLeague,oneDay:r.oneDay,fieldCount:r.fieldCount,startDate:r.startDate,endDate:r.endDate,startTime:r.startTime,matchDuration:r.matchDuration,breakMinutes:r.breakMinutes,oneDayPauseEnabled:r.oneDayPauseEnabled,oneDayPauseStart:r.oneDayPauseStart,oneDayPauseDuration:r.oneDayPauseDuration,playingDays:r.playingDays,groupFieldPolicy:r.groupFieldPolicy};

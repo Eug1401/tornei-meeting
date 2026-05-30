@@ -4656,3 +4656,1936 @@ input::placeholder,textarea::placeholder{ color:#9fb4d8!important;opacity:1; }
     backdrop-filter:none!important;
   }
 }
+
+
+/* =====================================================================
+   v200 — ARTICLE UI REDESIGN · Blu/Arancio · Mobile-first
+   Designer: full redesign con supporto foto verticali, hover premium,
+   skeleton loader, mobile bottom-swipe detail, palette 100% blu/arancio.
+   Sostituisce visualmente tutti i precedenti blocchi article.
+   ===================================================================== */
+
+/* --- Palette variabili articoli --- */
+:root {
+  --art-orange:       #ff7a18;
+  --art-orange-glow:  rgba(255,122,24,.22);
+  --art-orange-soft:  #ffb05f;
+  --art-blue:         #1f63ff;
+  --art-blue-deep:    #041332;
+  --art-blue-mid:     #08245a;
+  --art-blue-glow:    rgba(31,99,255,.22);
+  --art-surface:      rgba(6,24,68,.94);
+  --art-surface-2:    rgba(4,15,44,.96);
+  --art-line:         rgba(255,122,24,.26);
+  --art-text:         #f4f9ff;
+  --art-muted:        #c2d4f0;
+  --art-radius-card:  26px;
+  --art-radius-img:   0px;    /* immagini a bordo pieno dentro la card */
+  --art-shadow:       0 24px 72px rgba(0,16,60,.42), 0 8px 20px rgba(0,0,0,.28);
+  --art-shadow-hover: 0 32px 90px rgba(0,16,60,.52), 0 0 0 1.5px rgba(255,122,24,.18) inset;
+}
+
+/* =====================================================================
+   LISTA ARTICOLI
+   ===================================================================== */
+.article-list {
+  display: grid;
+  gap: 18px !important;
+}
+
+/* =====================================================================
+   CARD ARTICOLO (lista pubblica + admin)
+   Layout: immagine sinistra (fisso), content destra.
+   Su mobile: diventa stacked (immagine sopra, content sotto).
+   ===================================================================== */
+.article-card.sports-news-card,
+.article-card {
+  display: grid !important;
+  grid-template-columns: clamp(140px, 36vw, 380px) minmax(0, 1fr) !important;
+  grid-template-areas: "media content" !important;
+  align-items: stretch !important;
+  min-height: 230px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border-radius: var(--art-radius-card) !important;
+  border: 1px solid var(--art-line) !important;
+  background:
+    radial-gradient(circle at 85% -15%, rgba(31,99,255,.28), transparent 42%),
+    radial-gradient(circle at 0% 110%,  rgba(255,122,24,.14), transparent 38%),
+    linear-gradient(160deg, rgba(8,32,78,.98) 0%, rgba(4,16,46,.98) 60%, rgba(6,22,62,.96) 100%) !important;
+  box-shadow: var(--art-shadow) !important;
+  transition: transform .28s cubic-bezier(.16,1,.3,1), box-shadow .28s, border-color .2s !important;
+  cursor: pointer;
+}
+
+.article-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: var(--art-shadow-hover) !important;
+  border-color: rgba(255,122,24,.48) !important;
+}
+
+/* ---- MEDIA (colonna immagine) ---- */
+.article-media {
+  grid-area: media !important;
+  position: relative !important;
+  display: block !important;
+  overflow: hidden !important;
+  min-height: 230px !important;
+  height: 100% !important;
+  background: var(--art-blue-deep) !important;
+  isolation: isolate;
+}
+
+/* overlay gradiente laterale (lato destro della foto -> sfuma nel content) */
+.article-media::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 56px;
+  background: linear-gradient(to right, transparent, rgba(6,24,68,.82));
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* immagine vera */
+.article-image,
+.article-card img.article-image,
+.article-placeholder {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 230px !important;
+  aspect-ratio: auto !important;
+  object-fit: cover !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: var(--art-blue-deep) !important;
+  transition: transform .45s cubic-bezier(.16,1,.3,1), filter .35s !important;
+}
+
+.article-card:hover .article-image,
+.article-card:hover img.article-image {
+  transform: scale(1.055) !important;
+  filter: saturate(1.12) brightness(1.04) !important;
+}
+
+/* supporto FOTO VERTICALE: object-position top per ritratti */
+.article-card img.article-image[data-orient="portrait"],
+.article-card img.article-image.is-portrait {
+  object-position: center top !important;
+}
+
+/* placeholder grafico blu/arancio */
+.article-placeholder {
+  display: grid !important;
+  place-items: center !important;
+  align-content: center !important;
+  background:
+    radial-gradient(circle at 50% 28%, rgba(255,122,24,.38), transparent 42%),
+    linear-gradient(145deg, #041332 0%, #0a2b6e 55%, #1f3a8f 100%) !important;
+  color: #fff !important;
+  gap: 10px !important;
+}
+
+.article-placeholder span {
+  display: grid !important;
+  place-items: center !important;
+  width: 72px !important;
+  height: 72px !important;
+  border-radius: 50% !important;
+  background: rgba(31,99,255,.28) !important;
+  border: 2px solid rgba(255,122,24,.55) !important;
+  font-size: 1.45rem !important;
+  font-weight: 950 !important;
+  letter-spacing: .08em !important;
+  box-shadow: 0 0 0 6px rgba(255,122,24,.10), 0 12px 30px rgba(0,0,0,.4) !important;
+}
+
+.article-placeholder small {
+  font-size: .68rem !important;
+  letter-spacing: .22em !important;
+  text-transform: uppercase !important;
+  color: #ffbd7c !important;
+  opacity: 1 !important;
+  font-weight: 700 !important;
+}
+
+/* --- shade basso immagine --- */
+.article-media-shade {
+  position: absolute !important;
+  inset: auto 0 0 0 !important;
+  height: 55% !important;
+  background: linear-gradient(180deg, transparent, rgba(4,16,48,.72)) !important;
+  pointer-events: none !important;
+  z-index: 1 !important;
+}
+
+/* --- kicker badge (NEWS) sovrapposto sull'immagine --- */
+.article-kicker {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 24px !important;
+  padding: 5px 11px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,122,24,.40) !important;
+  background: linear-gradient(135deg, rgba(255,122,24,.92), rgba(255,160,60,.88)) !important;
+  color: #06132d !important;
+  font-size: .68rem !important;
+  font-weight: 950 !important;
+  letter-spacing: .07em !important;
+  text-transform: uppercase !important;
+  box-shadow: 0 6px 18px rgba(255,122,24,.28) !important;
+}
+
+.media-kicker {
+  position: absolute !important;
+  left: 12px !important;
+  bottom: 12px !important;
+  z-index: 3 !important;
+}
+
+/* ---- CONTENT (colonna testo) ---- */
+.article-content {
+  grid-area: content !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 12px !important;
+  min-width: 0 !important;
+  padding: 22px 24px !important;
+}
+
+/* meta row: kicker Articolo + data */
+.article-meta {
+  display: flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+  flex-wrap: wrap !important;
+  color: var(--art-orange-soft) !important;
+  font-size: .82rem !important;
+  font-weight: 750 !important;
+}
+
+.article-meta time {
+  font-variant-numeric: tabular-nums;
+  color: var(--art-muted);
+  font-weight: 600;
+}
+
+/* Separatore puntino tra kicker e data */
+.article-meta time::before {
+  content: '·';
+  margin-right: 7px;
+  color: rgba(255,122,24,.4);
+}
+
+/* titolo card */
+.article-content h3 {
+  margin: 0 !important;
+  max-width: 20ch !important;
+  font-size: clamp(1.25rem, 2.4vw, 2.05rem) !important;
+  line-height: 1.02 !important;
+  letter-spacing: -.045em !important;
+  text-wrap: balance !important;
+  color: #ffffff !important;
+  text-shadow: 0 2px 12px rgba(0,16,60,.4);
+}
+
+/* preview testo */
+.article-content p {
+  margin: 0 !important;
+  max-width: 58ch !important;
+  color: #cce0f5 !important;
+  line-height: 1.55 !important;
+  font-size: .96rem !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 3 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+}
+
+/* bottone leggi tutto */
+.article-actions {
+  margin-top: 4px !important;
+  display: flex !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+}
+
+.article-read-btn,
+.article-actions .btn.primary {
+  background: linear-gradient(135deg, #ff7a18, #ffb05f 55%, #ff9030) !important;
+  border: 0 !important;
+  color: #06132d !important;
+  font-weight: 900 !important;
+  border-radius: 999px !important;
+  padding: 9px 18px !important;
+  box-shadow: 0 10px 28px rgba(255,122,24,.30) !important;
+  transition: transform .18s, box-shadow .18s, filter .18s !important;
+}
+
+.article-read-btn:hover,
+.article-actions .btn.primary:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 14px 36px rgba(255,122,24,.42) !important;
+  filter: brightness(1.05) !important;
+}
+
+/* =====================================================================
+   MOBILE: layout verticale + supporto foto VERTICALE (portrait)
+   Breakpoint principale: ≤700px → stacked (immagine sopra, content sotto)
+   ===================================================================== */
+@media (max-width: 700px) {
+  .article-list { gap: 14px !important; }
+
+  .article-card.sports-news-card,
+  .article-card {
+    /* layout stacked: foto sopra, testo sotto */
+    grid-template-columns: 1fr !important;
+    grid-template-areas: "media" "content" !important;
+    min-height: 0 !important;
+    border-radius: 22px !important;
+  }
+
+  /* media: aspect ratio ADATTIVO
+     → foto orizzontale: 16/8 (panoramica)
+     → foto verticale: 4/5 (ritratto/poster sportivo)
+     La classe .is-portrait viene aggiunta via JS se l'immagine è portrait */
+  .article-media,
+  .article-card img.article-image,
+  .article-placeholder {
+    min-height: 0 !important;
+    height: auto !important;
+    aspect-ratio: 16 / 8 !important;   /* default: orizzontale */
+  }
+
+  /* Foto verticale: aspect ratio tall su mobile */
+  .article-media:has(img.is-portrait),
+  .article-media.has-portrait {
+    aspect-ratio: 3 / 4 !important;
+  }
+
+  /* Overlay laterale non serve su mobile stacked */
+  .article-media::after { display: none !important; }
+
+  /* content: padding più stretto */
+  .article-content {
+    padding: 15px 16px 18px !important;
+    gap: 9px !important;
+    justify-content: flex-start !important;
+  }
+
+  .article-content h3 {
+    font-size: clamp(1.15rem, 5.5vw, 1.65rem) !important;
+    max-width: 100% !important;
+    line-height: 1.06 !important;
+  }
+
+  .article-content p {
+    -webkit-line-clamp: 3 !important;
+    font-size: .9rem !important;
+    line-height: 1.45 !important;
+  }
+
+  .article-actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    width: 100% !important;
+    gap: 7px !important;
+  }
+
+  .article-actions .btn { width: 100% !important; min-height: 42px !important; }
+
+  .article-meta { font-size: .76rem !important; gap: 7px !important; }
+  .article-kicker { font-size: .62rem !important; padding: 4px 9px !important; min-height: 22px !important; }
+  .media-kicker { left: 10px !important; bottom: 10px !important; }
+}
+
+@media (max-width: 380px) {
+  .article-card.sports-news-card,
+  .article-card { border-radius: 18px !important; }
+  .article-content { padding: 12px !important; }
+  .article-content p { -webkit-line-clamp: 2 !important; }
+}
+
+/* =====================================================================
+   MODALE DETTAGLIO ARTICOLO — redesign blu/arancio
+   ===================================================================== */
+
+/* backdrop */
+.article-modal {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 9999 !important;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(12px, 3vw, 28px);
+  background: rgba(0, 10, 36, .78);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.article-modal.open { display: flex !important; }
+
+/* contenuto modale */
+.article-modal-content {
+  width: min(1100px, 100%) !important;
+  max-height: min(92vh, 880px) !important;
+  overflow: auto !important;
+  border-radius: 28px !important;
+  border: 1px solid rgba(255,122,24,.36) !important;
+  background:
+    radial-gradient(circle at 8% -5%, rgba(31,99,255,.28), transparent 38%),
+    radial-gradient(circle at 92% 95%, rgba(255,122,24,.14), transparent 34%),
+    linear-gradient(170deg, #051540 0%, #071836 50%, #04102a 100%) !important;
+  box-shadow: 0 40px 120px rgba(0,10,40,.65), inset 0 1px 0 rgba(255,255,255,.08) !important;
+  color: var(--art-text);
+  padding: 0 !important;
+}
+
+/* toolbar sticky */
+.article-modal-toolbar {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 3 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 14px !important;
+  padding: 15px 20px !important;
+  border-bottom: 1px solid rgba(255,122,24,.22) !important;
+  background: rgba(4, 18, 52, .95) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+.article-modal-toolbar h2 {
+  margin: 4px 0 0 !important;
+  font-size: clamp(.95rem, 1.8vw, 1.35rem) !important;
+  letter-spacing: -.03em !important;
+  max-width: 55ch !important;
+  color: #ffffff !important;
+}
+
+.article-modal-close,
+.article-modal-toolbar .btn.danger {
+  background: rgba(255,60,80,.18) !important;
+  border: 1px solid rgba(255,60,80,.38) !important;
+  color: #ffd0d8 !important;
+  border-radius: 999px !important;
+  min-height: 38px !important;
+}
+
+/* layout editoriale: foto sinistra, testo destra */
+.article-detail.article-detail-editorial {
+  display: grid !important;
+  grid-template-columns: minmax(300px, .88fr) minmax(0, 1.12fr) !important;
+  min-height: 420px !important;
+}
+
+/* colonna immagine */
+.article-detail-editorial .article-detail-hero {
+  position: relative !important;
+  isolation: isolate !important;
+  overflow: hidden !important;
+  display: grid !important;
+  place-items: center !important;
+  min-height: 420px !important;
+  padding: clamp(12px, 2vw, 22px) !important;
+  background: #041028 !important;
+}
+
+/* backdrop sfocato */
+.article-detail-backdrop-img {
+  position: absolute !important;
+  inset: -28px !important;
+  width: calc(100% + 56px) !important;
+  height: calc(100% + 56px) !important;
+  object-fit: cover !important;
+  filter: blur(28px) saturate(.85) brightness(.50) !important;
+  transform: scale(1.04) !important;
+  opacity: .58 !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+}
+
+/* frame immagine nitida */
+.article-detail-frame {
+  position: relative !important;
+  z-index: 2 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 300px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: clamp(8px, 1.5vw, 16px) !important;
+  border-radius: 22px !important;
+  border: 1px solid rgba(255,226,143,.18) !important;
+  background: linear-gradient(180deg, rgba(0,0,0,.24), rgba(0,0,0,.52)) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 24px 70px rgba(0,0,0,.40) !important;
+}
+
+/* immagine dentro il frame: non ingrandita oltre la sorgente */
+.article-detail-frame img.article-image,
+.article-detail-frame .article-image:not(.article-placeholder) {
+  display: block !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: min(100%, var(--article-natural-w, 100%)) !important;
+  max-height: min(68vh, var(--article-natural-h, 68vh)) !important;
+  object-fit: contain !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(255,122,24,.18) !important;
+  background: rgba(4,16,44,.28) !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,.52) !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+/* supporto foto VERTICALE nel dettaglio */
+.article-detail-frame img.article-image.is-portrait {
+  max-height: min(72vh, var(--article-natural-h, 72vh)) !important;
+  max-width: min(85%, var(--article-natural-w, 85%)) !important;
+}
+
+.article-detail-frame .article-placeholder {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 300px !important;
+  border-radius: 16px !important;
+}
+
+.article-detail-editorial .article-media-shade { display: none !important; }
+.article-detail-editorial .media-kicker {
+  z-index: 3 !important;
+  left: clamp(14px, 2.5vw, 28px) !important;
+  top:  clamp(14px, 2.5vw, 28px) !important;
+  bottom: auto !important;
+}
+
+/* corpo testo */
+.article-detail-body {
+  padding: clamp(20px, 3.5vw, 42px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+}
+
+.article-detail-body h2 {
+  margin: 0 !important;
+  color: #ffffff !important;
+  font-size: clamp(1.8rem, 3.8vw, 3.8rem) !important;
+  line-height: .97 !important;
+  letter-spacing: -.06em !important;
+  text-wrap: balance !important;
+  text-shadow: 0 2px 16px rgba(0,10,40,.38);
+}
+
+.article-full-text {
+  color: #d4e8ff !important;
+  font-size: clamp(.98rem, 1.2vw, 1.12rem) !important;
+  line-height: 1.74 !important;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.article-full-text br {
+  content: "";
+  display: block;
+  margin: .42em 0;
+}
+
+/* =====================================================================
+   MODALE DETTAGLIO — TABLET (≤760px)
+   ===================================================================== */
+@media (max-width: 760px) {
+  .article-modal {
+    align-items: stretch !important;
+    padding: 0 !important;
+  }
+  .article-modal-content {
+    width: 100% !important;
+    height: 100dvh !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+    border: 0 !important;
+  }
+  .article-modal-toolbar {
+    padding: 14px 16px calc(12px + env(safe-area-inset-top, 0px)) !important;
+    align-items: flex-start !important;
+  }
+  .article-modal-toolbar .btn { min-height: 40px !important; white-space: nowrap !important; }
+
+  /* layout editoriale: side-by-side compatto */
+  .article-detail.article-detail-editorial {
+    grid-template-columns: 42vw minmax(0, 1fr) !important;
+    min-height: 0 !important;
+  }
+  .article-detail-editorial .article-detail-hero {
+    min-height: 200px !important;
+    padding: 8px !important;
+  }
+  .article-detail-frame {
+    min-height: 168px !important;
+    border-radius: 16px !important;
+    padding: 6px !important;
+  }
+  .article-detail-frame img.article-image,
+  .article-detail-frame .article-image:not(.article-placeholder) {
+    max-height: 34vh !important;
+    border-radius: 12px !important;
+  }
+  .article-detail-frame .article-placeholder { min-height: 168px !important; }
+  .article-detail-backdrop-img {
+    filter: blur(18px) saturate(.88) brightness(.48) !important;
+    opacity: .62 !important;
+  }
+  .article-detail-editorial .media-kicker {
+    left: 10px !important;
+    top: 10px !important;
+  }
+  .article-detail-body {
+    padding: 15px 15px 28px !important;
+    gap: 10px !important;
+  }
+  .article-detail-body h2 {
+    font-size: clamp(1.2rem, 7vw, 2rem) !important;
+    line-height: 1.02 !important;
+  }
+  .article-full-text {
+    font-size: .97rem !important;
+    line-height: 1.60 !important;
+  }
+}
+
+/* =====================================================================
+   MODALE DETTAGLIO — MOBILE FULL (≤520px)
+   Foto sopra, testo sotto in stile story/app
+   ===================================================================== */
+@media (max-width: 520px) {
+  .article-detail.article-detail-editorial {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+  }
+  .article-detail-editorial .article-detail-hero {
+    width: 100% !important;
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    padding: 12px !important;
+  }
+  .article-detail-frame {
+    width: 100% !important;
+    min-height: 0 !important;
+    aspect-ratio: 16 / 10 !important;
+    height: auto !important;
+    border-radius: 18px !important;
+    padding: 7px !important;
+  }
+
+  /* foto verticale su mobile dettaglio: portrait ratio */
+  .article-detail-frame.has-portrait {
+    aspect-ratio: 3 / 4 !important;
+  }
+
+  .article-detail-frame img.article-image,
+  .article-detail-frame .article-image:not(.article-placeholder) {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    object-fit: contain !important;
+    border-radius: 14px !important;
+  }
+  .article-detail-frame .article-placeholder {
+    width: 100% !important;
+    min-height: 200px !important;
+    aspect-ratio: 16 / 10 !important;
+  }
+  .article-detail-body {
+    padding: 14px 14px calc(90px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  .article-detail-body h2 {
+    font-size: clamp(1.6rem, 9vw, 2.6rem) !important;
+    line-height: .99 !important;
+  }
+  .article-full-text {
+    font-size: 1.04rem !important;
+    line-height: 1.72 !important;
+  }
+  .article-detail-backdrop-img {
+    opacity: .44 !important;
+    filter: blur(22px) brightness(.44) !important;
+  }
+  .article-modal-toolbar { position: sticky !important; top: 0 !important; }
+  .article-modal-toolbar h2 { display: none !important; }
+}
+
+/* =====================================================================
+   SKELETON LOADER per gli articoli (durante il caricamento)
+   ===================================================================== */
+.article-card.is-loading {
+  pointer-events: none !important;
+  cursor: default !important;
+}
+.article-card.is-loading .article-media {
+  background: linear-gradient(90deg,
+    rgba(31,99,255,.08) 25%,
+    rgba(255,122,24,.10) 50%,
+    rgba(31,99,255,.08) 75%) !important;
+  background-size: 200% 100% !important;
+  animation: artSkeleton 1.5s ease-in-out infinite !important;
+}
+.article-card.is-loading .article-content h3,
+.article-card.is-loading .article-content p {
+  background: rgba(31,99,255,.12) !important;
+  color: transparent !important;
+  border-radius: 6px !important;
+  animation: artSkeleton 1.5s ease-in-out infinite !important;
+}
+@keyframes artSkeleton {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* =====================================================================
+   IMAGE PREVIEW (admin: anteprima piccola in form)
+   ===================================================================== */
+.image-preview {
+  border: 1px dashed rgba(255,122,24,.34) !important;
+  border-radius: 18px !important;
+  background: rgba(31,99,255,.06) !important;
+  padding: 12px !important;
+}
+.article-image.small {
+  width: 156px !important;
+  height: 104px !important;
+  min-height: 104px !important;
+  aspect-ratio: 3/2 !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(255,122,24,.32) !important;
+  object-fit: cover !important;
+}
+.image-preview .article-placeholder.small,
+.article-placeholder.small {
+  width: 156px !important;
+  height: 104px !important;
+  min-height: 104px !important;
+  aspect-ratio: 3/2 !important;
+  border-radius: 14px !important;
+}
+
+/* =====================================================================
+   FOCUS ACCESSIBLE per click da tastiera sulla card
+   ===================================================================== */
+.article-card[role="button"]:focus-visible {
+  outline: none !important;
+  box-shadow:
+    0 0 0 3px rgba(255,122,24,.56),
+    var(--art-shadow) !important;
+}
+
+/* =====================================================================
+   RIDUZIONE MOTION
+   ===================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .article-card,
+  .article-card img.article-image,
+  .article-read-btn {
+    transition: none !important;
+    animation: none !important;
+  }
+  .article-card:hover img.article-image {
+    transform: none !important;
+    filter: none !important;
+  }
+  .article-card:hover {
+    transform: none !important;
+  }
+}
+
+
+
+/* =====================================================================
+   v300 — GRAND REDESIGN · Blu/Arancio · Design inventivo
+   Copre: articolo hero, live strip, classifica top-3, match cards,
+   search bar, tabs mobile, header pill, stat grid, sezioni vuote,
+   bottom nav, animazioni staggered, fixture, badge punteggio.
+   Carica per ultimo, wins sempre sulla cascade.
+   ===================================================================== */
+
+/* ─────────────────────────────────────────────────────────
+   0. FONT UPGRADE — Barlow Condensed per i numeri grandi
+   ───────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&display=swap');
+
+:root {
+  --ng-barlowc: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+}
+
+/* ─────────────────────────────────────────────────────────
+   1. ARTICOLI — Hero card (primo nell'elenco)
+   ───────────────────────────────────────────────────────── */
+
+/* Il primo articolo è un hero: full-width, immagine in background,
+   testo sovrapposto in basso. Stile magazine sportivo. */
+.article-list > .article-card:first-child,
+.article-list > .sports-news-card:first-child {
+  grid-template-columns: 1fr !important;
+  grid-template-areas: "media" !important;
+  min-height: clamp(300px, 42vw, 520px) !important;
+  position: relative !important;
+}
+
+/* L'immagine del hero riempie tutto */
+.article-list > .article-card:first-child .article-media {
+  min-height: clamp(300px, 42vw, 520px) !important;
+  height: 100% !important;
+  position: absolute !important;
+  inset: 0 !important;
+}
+
+.article-list > .article-card:first-child .article-media::after {
+  display: none !important; /* rimuove il fade laterale */
+}
+
+/* Shade bottom più drammatico per il hero */
+.article-list > .article-card:first-child .article-media-shade {
+  height: 72% !important;
+  background: linear-gradient(
+    180deg,
+    transparent 10%,
+    rgba(4,16,54,.55) 50%,
+    rgba(4,16,54,.97) 100%
+  ) !important;
+}
+
+/* Content del hero: posizionato in basso sopra l'immagine */
+.article-list > .article-card:first-child .article-content {
+  grid-area: unset !important;
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  padding: clamp(20px,4vw,44px) clamp(20px,4vw,44px) clamp(22px,4vw,44px) !important;
+  justify-content: flex-end !important;
+  z-index: 2 !important;
+  background: none !important;
+}
+
+.article-list > .article-card:first-child .article-content h3 {
+  font-size: clamp(1.7rem, 4.5vw, 3.4rem) !important;
+  max-width: 22ch !important;
+  line-height: .96 !important;
+  text-shadow: 0 4px 24px rgba(0,10,40,.55) !important;
+  color: #ffffff !important;
+}
+
+.article-list > .article-card:first-child .article-content p {
+  max-width: 58ch !important;
+  color: rgba(220,236,255,.92) !important;
+  font-size: clamp(.94rem, 1.5vw, 1.08rem) !important;
+  -webkit-line-clamp: 2 !important;
+}
+
+.article-list > .article-card:first-child .article-actions {
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  display: flex !important;
+  grid-template-columns: unset !important;
+  width: auto !important;
+}
+
+/* Badge hero speciale: più grande e brillante */
+.article-list > .article-card:first-child .media-kicker {
+  left: clamp(18px,3vw,38px) !important;
+  bottom: auto !important;
+  top: clamp(18px,3vw,38px) !important;
+  font-size: .78rem !important;
+  padding: 7px 14px !important;
+  min-height: 30px !important;
+  box-shadow: 0 8px 24px rgba(255,122,24,.38) !important;
+}
+
+/* Striscia orizzontale arancio top-left del hero (decorativa) */
+.article-list > .article-card:first-child::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 5px; height: 100%;
+  background: linear-gradient(180deg, #ff7a18, #1f63ff);
+  z-index: 3;
+  border-radius: var(--art-radius-card) 0 0 var(--art-radius-card);
+}
+
+/* Mobile: hero più basso su piccoli schermi */
+@media (max-width: 700px) {
+  .article-list > .article-card:first-child,
+  .article-list > .article-card:first-child .article-media {
+    min-height: clamp(240px, 70vw, 380px) !important;
+  }
+  .article-list > .article-card:first-child .article-content h3 {
+    font-size: clamp(1.35rem, 7vw, 2.2rem) !important;
+  }
+  .article-list > .article-card:first-child::before { width: 4px; }
+}
+
+/* ─────────────────────────────────────────────────────────
+   2. ARTICOLI — Staggered entrance animation
+   ───────────────────────────────────────────────────────── */
+.article-list > .article-card {
+  animation: artFlyIn .5s cubic-bezier(.16,1,.3,1) both;
+}
+.article-list > .article-card:nth-child(1) { animation-delay: 0ms; }
+.article-list > .article-card:nth-child(2) { animation-delay: 70ms; }
+.article-list > .article-card:nth-child(3) { animation-delay: 130ms; }
+.article-list > .article-card:nth-child(4) { animation-delay: 185ms; }
+.article-list > .article-card:nth-child(5) { animation-delay: 230ms; }
+.article-list > .article-card:nth-child(n+6) { animation-delay: 270ms; }
+
+@keyframes artFlyIn {
+  from { opacity: 0; transform: translateY(18px) scale(.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Pill "HERO" / numero articolo sul lato destro degli articoli secondari */
+.article-list > .article-card:not(:first-child) {
+  counter-increment: art-counter;
+}
+.article-list { counter-reset: art-counter; }
+
+/* ─────────────────────────────────────────────────────────
+   3. LIVE STRIP — Redesign elettrico
+   ───────────────────────────────────────────────────────── */
+.live-strip-home {
+  background:
+    radial-gradient(ellipse at 15% 50%, rgba(255,122,24,.18), transparent 50%),
+    linear-gradient(135deg, rgba(6,22,68,.96), rgba(4,14,44,.98)) !important;
+  border: 1px solid rgba(255,122,24,.50) !important;
+  border-radius: 26px !important;
+  box-shadow:
+    0 0 0 1px rgba(255,122,24,.08) inset,
+    0 24px 72px rgba(0,10,40,.42),
+    0 0 60px -20px rgba(255,122,24,.22) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+/* bordo animato arancio in cima */
+.live-strip-home::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    #ff7a18 30%,
+    #1f63ff 60%,
+    transparent 100%);
+  animation: liveBarFlow 3s linear infinite;
+}
+
+@keyframes liveBarFlow {
+  0%   { background-position: -100% 0; transform: translateX(-100%); }
+  100% { background-position: 200% 0; transform: translateX(200%); }
+}
+
+.live-strip-head h2 {
+  color: #ff9e3d !important;
+  font-family: var(--ng-barlowc) !important;
+  font-size: 1.25rem !important;
+  letter-spacing: .02em !important;
+  text-transform: uppercase !important;
+}
+
+.live-strip-dot {
+  width: 12px; height: 12px;
+  background: #ff4444 !important;
+  box-shadow: 0 0 0 0 rgba(255,68,68,.6) !important;
+  animation: livePulse 1.4s ease-out infinite !important;
+}
+
+@keyframes livePulse {
+  0%   { box-shadow: 0 0 0 0 rgba(255,68,68,.7); }
+  70%  { box-shadow: 0 0 0 9px rgba(255,68,68,.0); }
+  100% { box-shadow: 0 0 0 0 rgba(255,68,68,.0); }
+}
+
+/* Card live singola: glassmorphism arancio */
+.live-strip-card {
+  background: rgba(8,32,80,.72) !important;
+  border: 1px solid rgba(255,122,24,.38) !important;
+  border-radius: 20px !important;
+  backdrop-filter: blur(10px);
+  box-shadow:
+    0 12px 36px rgba(0,10,40,.32),
+    inset 0 1px 0 rgba(255,255,255,.07) !important;
+  transition: transform .22s cubic-bezier(.16,1,.3,1), border-color .2s, box-shadow .2s !important;
+}
+
+.live-strip-card:hover, .live-strip-card:focus {
+  transform: translateY(-3px) !important;
+  border-color: rgba(255,122,24,.72) !important;
+  box-shadow: 0 20px 50px rgba(255,122,24,.18), 0 0 0 1px rgba(255,122,24,.12) inset !important;
+}
+
+/* Punteggio live: grande e in barlow */
+.live-strip-score {
+  font-family: var(--ng-barlowc) !important;
+  font-size: 2.4rem !important;
+  font-weight: 900 !important;
+  color: #ff9e3d !important;
+  text-shadow: 0 0 20px rgba(255,122,24,.45) !important;
+  letter-spacing: -.01em !important;
+  padding: 4px 12px;
+  background: rgba(255,122,24,.1);
+  border-radius: 12px;
+  border: 1px solid rgba(255,122,24,.2);
+  animation: scorePulse 2.4s ease-in-out infinite;
+}
+
+@keyframes scorePulse {
+  0%, 100% { text-shadow: 0 0 12px rgba(255,122,24,.3); }
+  50%       { text-shadow: 0 0 28px rgba(255,122,24,.7), 0 0 50px rgba(255,122,24,.25); }
+}
+
+.live-strip-team strong {
+  font-size: .88rem !important;
+  color: #e8f0ff !important;
+  font-weight: 800 !important;
+}
+
+/* ─────────────────────────────────────────────────────────
+   4. CLASSIFICA — Top-3 medaglie + row redesign
+   ───────────────────────────────────────────────────────── */
+
+/* Prima posizione: oro arancio */
+.standings-table tbody tr:nth-child(1) td {
+  background: linear-gradient(90deg, rgba(255,122,24,.14), transparent 70%) !important;
+  border-bottom-color: rgba(255,122,24,.18) !important;
+}
+.standings-table tbody tr:nth-child(1) .rank {
+  background: linear-gradient(135deg, #ff7a18, #ffb05f) !important;
+  color: #06132d !important;
+  box-shadow: 0 6px 18px rgba(255,122,24,.45) !important;
+  font-size: 1rem !important;
+}
+.standings-table tbody tr:nth-child(1) .rank::before { content: '' }
+.standings-table tbody tr:nth-child(1) td:nth-child(2) strong {
+  color: #ffb05f !important;
+}
+
+/* Seconda posizione: argento blu */
+.standings-table tbody tr:nth-child(2) td {
+  background: linear-gradient(90deg, rgba(31,99,255,.10), transparent 70%) !important;
+}
+.standings-table tbody tr:nth-child(2) .rank {
+  background: linear-gradient(135deg, #5d8fff, #a8c4ff) !important;
+  color: #06132d !important;
+  box-shadow: 0 5px 14px rgba(31,99,255,.35) !important;
+}
+
+/* Terza posizione: bronzo caldo */
+.standings-table tbody tr:nth-child(3) td {
+  background: linear-gradient(90deg, rgba(180,100,30,.08), transparent 70%) !important;
+}
+.standings-table tbody tr:nth-child(3) .rank {
+  background: linear-gradient(135deg, #e07020, #c85c14) !important;
+  color: #fff !important;
+  box-shadow: 0 5px 12px rgba(200,92,20,.30) !important;
+}
+
+/* Hover row classifica */
+.standings-table tbody tr:not(.is-live-row):hover {
+  background: rgba(255,122,24,.07) !important;
+  transform: translateX(2px);
+  transition: transform .15s, background .12s;
+}
+
+/* Riga live: bordo sinistro pulsante */
+.standings-table tr.is-live-row {
+  animation: liveRowGlowNew 2.8s ease-in-out infinite !important;
+}
+@keyframes liveRowGlowNew {
+  0%,100% { box-shadow: inset 4px 0 0 #ff7a18; }
+  50%      { box-shadow: inset 5px 0 0 #ffb05f, inset 0 0 32px -8px rgba(255,122,24,.22); }
+}
+
+/* Header colonne classifica: più compatto e leggibile */
+.standings-table th {
+  font-family: var(--ng-barlowc) !important;
+  font-size: .82rem !important;
+  letter-spacing: .12em !important;
+  text-transform: uppercase !important;
+  color: #7aa0d8 !important;
+  padding: 10px 12px !important;
+  background: rgba(31,99,255,.16) !important;
+}
+
+/* ─────────────────────────────────────────────────────────
+   5. MATCH CARDS — Score center redesign
+   ───────────────────────────────────────────────────────── */
+
+/* Score center: numeri Barlow condensati */
+.fixture-center strong,
+.public-score-center span {
+  font-family: var(--ng-barlowc) !important;
+  font-weight: 900 !important;
+  letter-spacing: .02em !important;
+}
+
+.fixture-center {
+  background: linear-gradient(135deg, rgba(255,122,24,.18), rgba(31,99,255,.14)) !important;
+  border-color: rgba(255,122,24,.32) !important;
+  box-shadow: 0 0 0 1px rgba(255,122,24,.08) inset, 0 8px 22px rgba(255,122,24,.12) !important;
+}
+
+.fixture-center strong {
+  font-size: 1.25rem !important;
+  color: #ffffff !important;
+}
+
+/* Fixture card: hover lift */
+.public-fixture-card {
+  transition: transform .22s cubic-bezier(.16,1,.3,1), border-color .2s, box-shadow .22s !important;
+}
+
+.public-fixture-card:hover {
+  transform: translateY(-3px) !important;
+  border-color: rgba(255,122,24,.38) !important;
+  box-shadow:
+    0 20px 52px rgba(0,10,40,.38),
+    0 0 0 1px rgba(255,122,24,.10) inset !important;
+}
+
+/* Scoreline background gradient per partite giocate */
+.fixture-scoreline {
+  background: linear-gradient(135deg, rgba(4,16,54,.68), rgba(8,36,96,.56)) !important;
+  border-color: rgba(255,122,24,.14) !important;
+}
+
+/* Status badge: colori potenziati */
+.score-badge,
+.match-status-badge {
+  font-family: var(--ng-barlowc) !important;
+  font-size: .82rem !important;
+  letter-spacing: .06em !important;
+  text-transform: uppercase !important;
+}
+
+.match-status-badge.is-live {
+  background: linear-gradient(135deg, rgba(220,38,38,.85), rgba(255,80,50,.75)) !important;
+  border: 1px solid rgba(255,80,60,.6) !important;
+  color: #fff !important;
+  animation: liveBadgePulse 2s ease-in-out infinite !important;
+}
+
+@keyframes liveBadgePulse {
+  0%,100% { box-shadow: 0 4px 14px rgba(220,38,38,.35); }
+  50%      { box-shadow: 0 4px 22px rgba(220,38,38,.62); }
+}
+
+/* Meta row della fixture: pillole più stilose */
+.fixture-meta-row span {
+  background: rgba(31,99,255,.10) !important;
+  border-color: rgba(31,99,255,.20) !important;
+  color: #b8cfff !important;
+  font-size: .82rem !important;
+  font-weight: 700 !important;
+  transition: background .15s, border-color .15s !important;
+}
+
+.fixture-meta-row span:hover {
+  background: rgba(31,99,255,.18) !important;
+  border-color: rgba(31,99,255,.35) !important;
+}
+
+/* ─────────────────────────────────────────────────────────
+   6. SEARCH BAR — Glassmorphism con icona
+   ───────────────────────────────────────────────────────── */
+
+/* Wrapper relativo per l'icona */
+#globalSearch {
+  padding-left: 44px !important;
+  background:
+    rgba(4,16,54,.82) !important;
+  border: 1.5px solid rgba(255,122,24,.28) !important;
+  border-radius: 18px !important;
+  font-size: 1.05rem !important;
+  height: 52px !important;
+  box-shadow: 0 8px 28px rgba(0,10,40,.22), inset 0 1px 0 rgba(255,255,255,.06) !important;
+  transition: border-color .2s, box-shadow .25s, background .2s !important;
+  backdrop-filter: blur(8px);
+}
+
+#globalSearch:focus {
+  border-color: rgba(255,122,24,.72) !important;
+  box-shadow:
+    0 0 0 4px rgba(255,122,24,.15),
+    0 12px 38px rgba(0,10,40,.28),
+    inset 0 1px 0 rgba(255,255,255,.08) !important;
+  background: rgba(4,22,72,.92) !important;
+}
+
+/* Icona lente: pseudo-element sul wrapper */
+/* nota: nessuna regola sul sibling di globalSearch, per non nascondere i risultati */
+
+/* Aggiunta icona tramite background-image nell'input stesso */
+#globalSearch {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ff7a18' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m21 21-4-4'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: 14px center !important;
+  background-size: 20px 20px !important;
+}
+
+/* Placeholder più leggibile */
+#globalSearch::placeholder {
+  color: rgba(150,185,240,.55) !important;
+  font-style: italic;
+}
+
+/* ─────────────────────────────────────────────────────────
+   7. TABS — Pill design con glow attivo
+   ───────────────────────────────────────────────────────── */
+
+/* Tabs container: fondo più profondo */
+.tabs {
+  background: rgba(4,16,54,.72) !important;
+  border: 1px solid rgba(255,122,24,.22) !important;
+  backdrop-filter: blur(12px) !important;
+  box-shadow: 0 8px 28px rgba(0,10,40,.25), inset 0 1px 0 rgba(255,255,255,.06) !important;
+}
+
+/* Tab inattivo */
+.tab-btn {
+  color: rgba(190,215,255,.72) !important;
+  font-weight: 800 !important;
+  font-size: .88rem !important;
+  letter-spacing: .01em !important;
+  border-radius: 16px !important;
+  transition: color .18s, background .18s !important;
+}
+
+.tab-btn:hover:not(.active) {
+  color: #fff !important;
+  background: rgba(255,122,24,.10) !important;
+}
+
+/* Tab attivo: glow arancio-blu */
+.tab-btn.active {
+  background: linear-gradient(135deg, #ff7a18 0%, #ff9e3d 45%, #1f63ff 100%) !important;
+  color: #fff !important;
+  font-weight: 900 !important;
+  box-shadow:
+    0 8px 24px rgba(255,122,24,.28),
+    0 4px 12px rgba(31,99,255,.18),
+    inset 0 1px 0 rgba(255,255,255,.22) !important;
+}
+
+/* ─────────────────────────────────────────────────────────
+   8. MOBILE BOTTOM NAV — Frosted glass premium
+   ───────────────────────────────────────────────────────── */
+@media (max-width: 720px) {
+  .mobile-bottom-nav {
+    background: rgba(4,14,46,.88) !important;
+    border: 1px solid rgba(255,122,24,.28) !important;
+    border-radius: 26px !important;
+    box-shadow:
+      0 24px 70px rgba(0,6,30,.58),
+      0 0 0 1px rgba(255,255,255,.06) inset,
+      inset 0 1px 0 rgba(255,122,24,.12) !important;
+    backdrop-filter: blur(24px) saturate(1.4) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(1.4) !important;
+  }
+
+  .mobile-nav-item {
+    color: rgba(160,195,255,.65) !important;
+    border-radius: 20px !important;
+    font-size: .68rem !important;
+    font-weight: 850 !important;
+    transition: color .18s, background .18s, transform .15s !important;
+    letter-spacing: .01em !important;
+  }
+
+  .mobile-nav-item:active {
+    transform: scale(.91) !important;
+  }
+
+  .mobile-nav-icon {
+    background: rgba(255,255,255,.06) !important;
+    color: rgba(180,210,255,.75) !important;
+    border-radius: 50% !important;
+    width: 30px !important; height: 30px !important;
+    transition: background .18s, color .18s, box-shadow .18s !important;
+  }
+
+  /* Stato attivo: glow arancio-blu */
+  .mobile-nav-item.active {
+    color: #fff !important;
+    background: linear-gradient(145deg, rgba(255,122,24,.22), rgba(31,99,255,.14)) !important;
+    box-shadow: 0 6px 18px rgba(255,122,24,.20) !important;
+  }
+
+  .mobile-nav-item.active .mobile-nav-icon {
+    background: linear-gradient(135deg, #ff7a18, #ff9e3d) !important;
+    color: #06132d !important;
+    box-shadow: 0 6px 18px rgba(255,122,24,.40) !important;
+  }
+
+  /* Sheet di navigazione */
+  .mobile-nav-panel {
+    background: linear-gradient(180deg, rgba(6,20,64,.98), rgba(4,14,44,.98)) !important;
+    border: 1px solid rgba(255,122,24,.28) !important;
+    border-radius: 28px !important;
+    box-shadow:
+      0 28px 80px rgba(0,6,30,.62),
+      inset 0 1px 0 rgba(255,122,24,.12) !important;
+  }
+
+  .mobile-sheet-handle {
+    background: rgba(255,122,24,.40) !important;
+  }
+
+  .mobile-sheet-item {
+    background: rgba(8,32,96,.72) !important;
+    border-color: rgba(255,122,24,.16) !important;
+    border-radius: 20px !important;
+    transition: background .18s, border-color .18s, transform .15s !important;
+  }
+
+  .mobile-sheet-item:active {
+    transform: scale(.93) !important;
+    background: rgba(255,122,24,.16) !important;
+  }
+
+  .mobile-sheet-item span {
+    color: #ff9e3d !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   9. HEADER — More dramatic con border glow
+   ───────────────────────────────────────────────────────── */
+header, .site-header {
+  box-shadow:
+    0 24px 76px rgba(0,10,46,.45),
+    0 0 0 1px rgba(255,255,255,.06) inset,
+    inset 0 -1px 0 rgba(255,122,24,.18) !important;
+}
+
+/* Pill "Aggiornamento automatico" */
+.pill.pill-live {
+  background: linear-gradient(135deg, rgba(255,122,24,.20), rgba(255,80,20,.08)) !important;
+  border: 1px solid rgba(255,122,24,.50) !important;
+  color: #ff9e3d !important;
+  font-weight: 850 !important;
+  font-size: .8rem !important;
+  letter-spacing: .03em !important;
+  box-shadow: 0 4px 14px rgba(255,122,24,.18), inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+
+.pill-live-dot {
+  width: 8px !important; height: 8px !important;
+  background: #ff3333 !important;
+  box-shadow: 0 0 0 3px rgba(255,51,51,.22), 0 0 10px rgba(255,51,51,.6) !important;
+  animation: liveDotPulse 1.5s ease-in-out infinite !important;
+}
+
+@keyframes liveDotPulse {
+  0%,100% { transform: scale(1); box-shadow: 0 0 0 2px rgba(255,51,51,.2), 0 0 8px rgba(255,51,51,.5); }
+  50%     { transform: scale(1.3); box-shadow: 0 0 0 4px rgba(255,51,51,.1), 0 0 16px rgba(255,51,51,.7); }
+}
+
+/* ─────────────────────────────────────────────────────────
+   10. STAT GRID — Glassmorphism con glow
+   ───────────────────────────────────────────────────────── */
+.stat {
+  background: linear-gradient(160deg,
+    rgba(8,36,100,.88) 0%,
+    rgba(4,20,64,.82) 100%) !important;
+  border: 1px solid rgba(255,122,24,.20) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 12px 36px rgba(0,10,40,.28), inset 0 1px 0 rgba(255,255,255,.07) !important;
+  transition: transform .22s, border-color .2s, box-shadow .22s !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #ff7a18, #1f63ff);
+  opacity: 0;
+  transition: opacity .22s;
+}
+
+.stat:hover {
+  transform: translateY(-3px) !important;
+  border-color: rgba(255,122,24,.40) !important;
+  box-shadow: 0 18px 48px rgba(0,10,40,.38), inset 0 1px 0 rgba(255,255,255,.10) !important;
+}
+
+.stat:hover::before { opacity: 1; }
+
+.stat strong {
+  font-family: var(--ng-barlowc) !important;
+  font-size: 1.85rem !important;
+  font-weight: 900 !important;
+  color: #ffbd7c !important;
+  letter-spacing: -.01em !important;
+  line-height: 1 !important;
+}
+
+.stat span {
+  font-size: .76rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: .09em !important;
+  color: #8aa8d8 !important;
+  font-weight: 750 !important;
+}
+
+/* ─────────────────────────────────────────────────────────
+   11. EMPTY STATES — Illustrazione blu/arancio
+   ───────────────────────────────────────────────────────── */
+.empty, [class*="empty-state"] {
+  background: linear-gradient(160deg, rgba(8,32,96,.72), rgba(4,16,52,.65)) !important;
+  border: 1px dashed rgba(255,122,24,.28) !important;
+  border-radius: 20px !important;
+  color: #8aa8d8 !important;
+  padding: 24px !important;
+  text-align: center !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05) !important;
+}
+
+/* ─────────────────────────────────────────────────────────
+   12. SECTION TITLES — Accent line arancio
+   ───────────────────────────────────────────────────────── */
+.section-title h2,
+.section-title h3 {
+  position: relative;
+  padding-bottom: 8px !important;
+}
+
+.section-title h2::after,
+.section-title h3::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0;
+  width: 36px; height: 3px;
+  background: linear-gradient(90deg, #ff7a18, #1f63ff);
+  border-radius: 999px;
+}
+
+/* ─────────────────────────────────────────────────────────
+   13. CARDS — Consistent glass surface upgrade
+   ───────────────────────────────────────────────────────── */
+.card {
+  background: linear-gradient(175deg,
+    rgba(8,36,100,.94) 0%,
+    rgba(5,22,68,.92) 100%) !important;
+  border: 1px solid rgba(255,122,24,.18) !important;
+  box-shadow:
+    0 22px 68px rgba(0,10,42,.36),
+    inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+
+/* ─────────────────────────────────────────────────────────
+   14. FILTER CHIPS — Touch target upgrade
+   ───────────────────────────────────────────────────────── */
+.filter-chip-btn {
+  background: linear-gradient(160deg,
+    rgba(8,32,96,.88),
+    rgba(4,18,60,.82)) !important;
+  border: 1px solid rgba(255,122,24,.22) !important;
+  border-radius: 18px !important;
+  transition: transform .18s, border-color .18s, box-shadow .18s !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06) !important;
+}
+
+.filter-chip-btn:active {
+  transform: scale(.95) !important;
+}
+
+.filter-chip-btn.active {
+  background: linear-gradient(135deg,
+    rgba(255,122,24,.22),
+    rgba(31,99,255,.12)) !important;
+  border-color: rgba(255,122,24,.58) !important;
+  box-shadow:
+    0 10px 30px rgba(255,122,24,.16),
+    inset 0 1px 0 rgba(255,255,255,.10) !important;
+}
+
+.filter-chip-btn span {
+  color: #7aa0d8 !important;
+}
+
+.filter-chip-btn.active span {
+  color: #ff9e3d !important;
+}
+
+/* ─────────────────────────────────────────────────────────
+   15. MATCH PRESETS — Active state blu/arancio
+   ───────────────────────────────────────────────────────── */
+.match-preset {
+  background: linear-gradient(160deg,
+    rgba(8,32,96,.82),
+    rgba(4,16,54,.75)) !important;
+  border-color: rgba(31,99,255,.18) !important;
+  transition: transform .18s cubic-bezier(.16,1,.3,1), border-color .18s, background .18s !important;
+}
+
+.match-preset:hover {
+  transform: translateY(-2px) !important;
+  border-color: rgba(255,122,24,.52) !important;
+}
+
+.match-preset.active {
+  background: linear-gradient(135deg,
+    rgba(255,122,24,.20),
+    rgba(31,99,255,.12)) !important;
+  border-color: rgba(255,122,24,.62) !important;
+  box-shadow: 0 10px 28px rgba(255,122,24,.14) !important;
+}
+
+.match-preset span {
+  background: rgba(255,122,24,.16) !important;
+  color: #ff9e3d !important;
+}
+
+/* ─────────────────────────────────────────────────────────
+   16. TEAM LOGOS — Glow on hover
+   ───────────────────────────────────────────────────────── */
+.team-logo, .team-logo-fallback {
+  transition: box-shadow .22s, transform .18s !important;
+}
+
+.team-logo:hover, .team-logo-fallback:hover {
+  transform: scale(1.06) !important;
+  box-shadow:
+    0 8px 24px rgba(255,122,24,.35),
+    0 0 0 2px rgba(255,122,24,.22) !important;
+}
+
+/* ─────────────────────────────────────────────────────────
+   17. RANK BADGE — Numeri grandi Barlow
+   ───────────────────────────────────────────────────────── */
+.rank {
+  font-family: var(--ng-barlowc) !important;
+  font-size: 1rem !important;
+  font-weight: 900 !important;
+}
+
+/* ─────────────────────────────────────────────────────────
+   18. BUTTONS — Press state + consistent blu/arancio
+   ───────────────────────────────────────────────────────── */
+.btn {
+  transition: transform .16s cubic-bezier(.16,1,.3,1), box-shadow .18s, filter .18s, border-color .18s !important;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px) !important;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(.95) translateY(0) !important;
+  filter: brightness(.95) !important;
+}
+
+.btn.primary {
+  background: linear-gradient(135deg, #ff7a18, #ffb05f 52%, #1f63ff 100%) !important;
+  color: #fff !important;
+  border: 0 !important;
+  font-weight: 900 !important;
+  box-shadow: 0 10px 28px rgba(255,122,24,.28), 0 6px 16px rgba(31,99,255,.16) !important;
+}
+
+.btn.primary:hover:not(:disabled) {
+  box-shadow: 0 14px 36px rgba(255,122,24,.38), 0 8px 20px rgba(31,99,255,.22) !important;
+  filter: brightness(1.05) !important;
+}
+
+/* ─────────────────────────────────────────────────────────
+   19. PILLOLE / TAG — Blu/arancio coerenti
+   ───────────────────────────────────────────────────────── */
+.pill {
+  background: rgba(31,99,255,.14) !important;
+  border-color: rgba(31,99,255,.30) !important;
+  color: #b8d2ff !important;
+  font-weight: 800 !important;
+}
+
+.player-chip {
+  background: rgba(255,122,24,.12) !important;
+  border-color: rgba(255,122,24,.28) !important;
+  color: #ffbd7c !important;
+}
+
+/* ─────────────────────────────────────────────────────────
+   20. SCROLL BAR — Custom blu/arancio
+   ───────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: rgba(4,14,46,.6); border-radius: 999px; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #ff7a18, #1f63ff);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover { background: #ff9e3d; }
+
+/* ─────────────────────────────────────────────────────────
+   21. HIGHLIGHT TEXT SELECTION
+   ───────────────────────────────────────────────────────── */
+::selection {
+  background: rgba(255,122,24,.35) !important;
+  color: #fff !important;
+}
+
+/* ─────────────────────────────────────────────────────────
+   22. ARTICLE SECTION CARD — Sfondo speciale
+   ───────────────────────────────────────────────────────── */
+#articles .card.pad {
+  background: linear-gradient(175deg,
+    rgba(6,22,72,.96) 0%,
+    rgba(4,14,50,.94) 55%,
+    rgba(8,30,88,.92) 100%) !important;
+  border-color: rgba(255,122,24,.24) !important;
+  padding: 24px !important;
+}
+
+/* ─────────────────────────────────────────────────────────
+   23. TABELLA MARCATORI — Cells blu/arancio
+   ───────────────────────────────────────────────────────── */
+.table-wrap table th {
+  background: rgba(31,99,255,.18) !important;
+  color: #8ab4e8 !important;
+  font-family: var(--ng-barlowc) !important;
+  letter-spacing: .10em !important;
+  text-transform: uppercase !important;
+  font-size: .78rem !important;
+}
+
+.table-wrap table td {
+  border-bottom-color: rgba(31,99,255,.10) !important;
+  transition: background .12s !important;
+}
+
+.table-wrap table tr:hover td {
+  background: rgba(255,122,24,.05) !important;
+}
+
+/* ─────────────────────────────────────────────────────────
+   24. MATCH DETAIL MODALE — Hero più drammatico
+   ───────────────────────────────────────────────────────── */
+.public-match-hero {
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(31,99,255,.35), transparent 46%),
+    radial-gradient(ellipse at 80% 100%, rgba(255,122,24,.18), transparent 40%),
+    linear-gradient(160deg, #0c2f73 0%, #071d4f 50%, #04102d 100%) !important;
+  border: 1px solid rgba(255,122,24,.28) !important;
+  border-radius: 24px !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.public-match-hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #1f63ff, #ff7a18, #1f63ff);
+  animation: heroBarSweep 4s linear infinite;
+}
+
+@keyframes heroBarSweep {
+  0%   { background-position: -200% 0; transform: scaleX(.4) translateX(-100%); }
+  100% { background-position: 200% 0;  transform: scaleX(.4) translateX(300%); }
+}
+
+/* ─────────────────────────────────────────────────────────
+   25. FAVORITE TEAM CARD — Accent arancio
+   ───────────────────────────────────────────────────────── */
+.favorite-team-home {
+  border-color: rgba(255,122,24,.38) !important;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(255,122,24,.18), transparent 44%),
+    linear-gradient(160deg, rgba(8,36,100,.94), rgba(4,20,64,.92)) !important;
+}
+
+.favorite-team-hero {
+  border: none !important;
+  background: transparent !important;
+}
+
+/* ─────────────────────────────────────────────────────────
+   26. DISCLOSURE (SQUADRE EXPANDABLE) — Glow arancio
+   ───────────────────────────────────────────────────────── */
+.ng-disclosure {
+  transition: border-color .2s, box-shadow .2s !important;
+}
+
+.ng-disclosure[open] {
+  border-color: rgba(255,122,24,.55) !important;
+  box-shadow:
+    0 20px 56px rgba(0,10,42,.32),
+    0 0 0 1px rgba(255,122,24,.12) inset !important;
+}
+
+.disclosure-action {
+  background: rgba(255,122,24,.14) !important;
+  border-color: rgba(255,122,24,.38) !important;
+  color: #ff9e3d !important;
+  transition: background .18s, border-color .18s, transform .16s !important;
+}
+
+.ng-disclosure[open] .disclosure-action {
+  background: rgba(255,122,24,.22) !important;
+}
+
+/* ─────────────────────────────────────────────────────────
+   27. MOBILE: articoli — media a full-bleed con overlay
+   miglioramento ulteriore per portrait e schermo piccolo
+   ───────────────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  /* Articoli dalla 2a in poi: side-by-side compatto */
+  .article-list > .article-card:not(:first-child) {
+    grid-template-columns: clamp(110px, 34vw, 160px) minmax(0,1fr) !important;
+    min-height: 128px !important;
+    border-radius: 20px !important;
+  }
+
+  .article-list > .article-card:not(:first-child) .article-media {
+    min-height: 128px !important;
+  }
+
+  .article-list > .article-card:not(:first-child) .article-image,
+  .article-list > .article-card:not(:first-child) img.article-image,
+  .article-list > .article-card:not(:first-child) .article-placeholder {
+    min-height: 128px !important;
+  }
+
+  .article-list > .article-card:not(:first-child) .article-content {
+    padding: 12px 14px 14px !important;
+    gap: 7px !important;
+  }
+
+  .article-list > .article-card:not(:first-child) .article-content h3 {
+    font-size: clamp(.98rem, 4.5vw, 1.25rem) !important;
+    -webkit-line-clamp: 2;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .article-list > .article-card:not(:first-child) .article-content p {
+    display: none !important; /* nasconde excerpt sulle card piccole */
+  }
+
+  .article-list > .article-card:not(:first-child) .article-meta {
+    font-size: .72rem !important;
+  }
+
+  .article-list > .article-card:not(:first-child) .article-actions {
+    display: none !important; /* bottone nascosto: click sull'intera card */
+  }
+
+  /* Hero card mobile: testo in overlay */
+  .article-list > .article-card:first-child .article-content p {
+    -webkit-line-clamp: 2 !important;
+  }
+
+  /* Bottom nav: non sovrappone il bottone Leggi tutto */
+  .public-page .article-actions .btn {
+    font-size: .88rem !important;
+    padding: 8px 16px !important;
+    min-height: 38px !important;
+  }
+}
+
+/* Su schermi molto piccoli (380px) le card secondarie ancora più compatte */
+@media (max-width: 380px) {
+  .article-list > .article-card:not(:first-child) {
+    grid-template-columns: 100px minmax(0,1fr) !important;
+    min-height: 110px !important;
+  }
+  .article-list > .article-card:not(:first-child) .article-media,
+  .article-list > .article-card:not(:first-child) .article-image,
+  .article-list > .article-card:not(:first-child) img.article-image {
+    min-height: 110px !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   28. REDUCED MOTION
+   ───────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .live-strip-home::before,
+  .live-strip-score,
+  .live-strip-dot,
+  .pill-live-dot,
+  .match-status-badge.is-live,
+  .public-match-hero::after,
+  .article-list > .article-card {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+
+
+/* =====================================================================
+   v301 — TEAM DISCLOSURE: transizione smooth + fix auto-close
+   Spiega il meccanismo:
+   • ng-teams-restoring: classe temporanea aggiunta durante il re-render
+     silenzioso; blocca l'animazione di apertura per evitare il flash.
+   • Apertura esplicita dall'utente: animazione slide+fade da top.
+   • Chiusura: brevissimo fade-out via CSS (details[open] non supporta
+     transition nativa, usiamo animation sul body con fill-mode).
+   ===================================================================== */
+
+/* --- Entrance animation: corpo della disclosure si apre dall'alto --- */
+details.ng-disclosure[open] > .ng-disclosure-body {
+  animation: ngDisclosureSlideIn .32s cubic-bezier(.16, 1, .3, 1) both;
+}
+
+@keyframes ngDisclosureSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scaleY(.96);
+    clip-path: inset(0 0 100% 0 round 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+    clip-path: inset(0 0 0% 0 round 0px);
+  }
+}
+
+/* Durante il ripristino silenzioso (re-render da polling): nessuna animazione */
+.ng-teams-restoring details.ng-disclosure > .ng-disclosure-body {
+  animation: none !important;
+  clip-path: none !important;
+}
+
+/* --- Summary: transizione colori al hover e all'apertura --- */
+.ng-disclosure > .ng-disclosure-summary {
+  transition:
+    background .2s ease,
+    border-radius .2s ease;
+}
+
+.ng-disclosure > .ng-disclosure-summary:hover {
+  background: rgba(255, 122, 24, .07);
+}
+
+/* Quando aperta: header disclosure più intenso, bordo arancio netto */
+details.ng-disclosure[open] {
+  border-color: rgba(255, 122, 24, .58) !important;
+  box-shadow:
+    0 24px 64px rgba(0, 10, 42, .36),
+    0 0 0 1px rgba(255, 122, 24, .14) inset !important;
+}
+
+details.ng-disclosure[open] > .ng-disclosure-summary {
+  background: rgba(255, 122, 24, .08);
+  border-radius: var(--brand-radius, 22px) var(--brand-radius, 22px) 0 0;
+}
+
+/* Striscia arancio sinistra quando aperta */
+details.ng-disclosure[open]::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #ff7a18, #1f63ff);
+  border-radius: 22px 0 0 22px;
+  pointer-events: none;
+}
+
+details.ng-disclosure {
+  position: relative; /* necessario per ::before */
+}
+
+/* Freccia: rotazione con spring */
+.ng-disclosure > .ng-disclosure-summary .disclosure-action {
+  transition:
+    background .2s,
+    border-color .2s,
+    color .2s;
+}
+
+.ng-disclosure > .ng-disclosure-summary .disclosure-action::after {
+  display: inline-block;
+  transition: transform .28s cubic-bezier(.16, 1, .3, 1);
+}
+
+details.ng-disclosure[open] > .ng-disclosure-summary .disclosure-action {
+  background: rgba(255, 122, 24, .22) !important;
+  border-color: rgba(255, 122, 24, .52) !important;
+  color: #ffb05f !important;
+}
+
+/* --- Body: bordo top sottile per separare dal summary --- */
+.ng-disclosure[open] > .ng-disclosure-body {
+  border-top: 1px solid rgba(255, 122, 24, .18) !important;
+  padding-top: 18px !important;
+}
+
+/* --- Reduced motion: rimuove tutte le animazioni di disclosure --- */
+@media (prefers-reduced-motion: reduce) {
+  details.ng-disclosure[open] > .ng-disclosure-body {
+    animation: none !important;
+    clip-path: none !important;
+  }
+  .ng-disclosure > .ng-disclosure-summary .disclosure-action::after {
+    transition: none !important;
+  }
+}
+
+
+
+
+
+/* ===================================================================
+   v400 — LOGO SYSTEM: proporzioni corrette, padding, zero deformazioni
+   =================================================================== */
+
+img.team-logo {
+  object-fit: contain !important;
+  padding: 3px !important;
+  background: rgba(4,14,44,.88) !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
+  display: block !important;
+  transition: box-shadow .22s ease, transform .18s ease !important;
+}
+
+img.team-logo.big { padding: 5px !important; }
+
+.team-inline img.team-logo,
+.bracket-team img.team-logo,
+.live-strip-team img.team-logo,
+.ng-live-notif-team img.team-logo,
+.filter-option-media img.team-logo,
+.team-pick-btn img.team-logo { padding: 2px !important; }
+
+.public-score-team img.team-logo,
+.fixture-team img.team-logo,
+.public-match-modal img.team-logo { padding: 3px !important; }
+
+.pro-team-logo img.team-logo { padding: 6px !important; }
+
+.team-logo-fallback { overflow: hidden !important; flex-shrink: 0 !important; }
+
+td img.team-logo { vertical-align: middle; flex-shrink: 0 !important; }
+
+.pdf-brand-row img { object-fit: contain; max-width: 100%; max-height: 100%; }
+
