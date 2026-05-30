@@ -6595,3 +6595,498 @@ body.article-modal-open{
     transform:none!important;
   }
 }
+
+/* =================================================================
+   v120 - Articoli Pro Sport UI: card uniformi + reader anti-lampeggio
+   =================================================================
+   Obiettivo: nessun flash alla chiusura del dettaglio.
+   Strategia: il dettaglio articolo è una vera schermata sportiva opaca
+   off-canvas, animata solo con transform. Niente fade trasparente sopra
+   la lista, niente blur/backdrop-filter, niente re-render della lista in
+   background.
+   ================================================================= */
+:root{
+  --ng-article-card-h-pro: 168px;
+  --ng-article-thumb-w-pro: clamp(150px, 26vw, 255px);
+  --ng-article-card-radius-pro: 24px;
+}
+
+/* Contenitore sezione articoli: stabile, isolato, senza animazioni ereditate */
+#articles.tab-panel.active,
+#publicArticles,
+#publicArticles .article-list,
+#adminArticlesList,
+#adminArticlesList .article-list{
+  animation:none!important;
+  scroll-behavior:auto!important;
+}
+#publicArticles,
+#adminArticlesList{
+  isolation:isolate!important;
+  contain:layout style!important;
+}
+#publicArticles .article-list,
+#adminArticlesList .article-list{
+  display:grid!important;
+  gap:14px!important;
+  align-items:stretch!important;
+}
+
+/* Tutte le card uguali: niente hero speciale, immagine uniforme a sinistra */
+#publicArticles .article-list > .article-card,
+#publicArticles .article-list > .article-card:first-child,
+#searchResults .article-card,
+#adminArticlesList .article-list > .article-card,
+#adminArticlesList .article-list > .article-card:first-child{
+  display:grid!important;
+  grid-template-columns:var(--ng-article-thumb-w-pro) minmax(0,1fr)!important;
+  grid-template-areas:"media content"!important;
+  align-items:stretch!important;
+  position:relative!important;
+  inset:auto!important;
+  min-height:var(--ng-article-card-h-pro)!important;
+  height:var(--ng-article-card-h-pro)!important;
+  max-height:var(--ng-article-card-h-pro)!important;
+  padding:0!important;
+  overflow:hidden!important;
+  border-radius:var(--ng-article-card-radius-pro)!important;
+  border:1px solid rgba(255,122,24,.36)!important;
+  background:
+    linear-gradient(135deg,rgba(255,122,24,.28) 0 1px,transparent 1px),
+    radial-gradient(circle at 0% 0%,rgba(255,122,24,.20),transparent 34%),
+    radial-gradient(circle at 100% 100%,rgba(31,99,255,.22),transparent 42%),
+    linear-gradient(145deg,#071f55 0%,#092b6f 48%,#061844 100%)!important;
+  background-size:20px 20px,100% 100%,100% 100%,100% 100%!important;
+  box-shadow:0 18px 42px rgba(0,8,36,.22), inset 0 1px 0 rgba(255,255,255,.08)!important;
+  transform:none!important;
+  transition:none!important;
+  animation:none!important;
+  contain:layout paint style!important;
+}
+
+/* Admin può avere più altezza per i pulsanti, ma l'immagine resta identica */
+#adminArticlesList .list > .article-card,
+#adminArticlesList .article-card.admin-news-card,
+#adminArticlesList .article-list > .article-card.admin-news-card{
+  height:auto!important;
+  min-height:var(--ng-article-card-h-pro)!important;
+  max-height:none!important;
+}
+
+#publicArticles .article-media,
+#publicArticles .article-list > .article-card:first-child .article-media,
+#searchResults .article-media,
+#adminArticlesList .article-media,
+#adminArticlesList .article-list > .article-card:first-child .article-media{
+  grid-area:media!important;
+  position:relative!important;
+  inset:auto!important;
+  display:grid!important;
+  place-items:center!important;
+  width:var(--ng-article-thumb-w-pro)!important;
+  min-width:var(--ng-article-thumb-w-pro)!important;
+  height:var(--ng-article-card-h-pro)!important;
+  min-height:var(--ng-article-card-h-pro)!important;
+  max-height:var(--ng-article-card-h-pro)!important;
+  overflow:hidden!important;
+  aspect-ratio:auto!important;
+  background:
+    linear-gradient(145deg,rgba(255,122,24,.16) 0 1px,transparent 1px),
+    radial-gradient(circle at 50% 35%,rgba(255,122,24,.18),transparent 44%),
+    linear-gradient(145deg,#061844 0%,#0a327e 60%,#071f55 100%)!important;
+  background-size:18px 18px,100% 100%,100% 100%!important;
+  border-right:1px solid rgba(255,122,24,.34)!important;
+  box-shadow:inset -1px 0 0 rgba(255,255,255,.06)!important;
+}
+#publicArticles .article-media::after,
+#publicArticles .article-media-shade,
+#searchResults .article-media::after,
+#searchResults .article-media-shade,
+#adminArticlesList .article-media::after,
+#adminArticlesList .article-media-shade{
+  display:none!important;
+  content:none!important;
+}
+#publicArticles .article-image,
+#publicArticles img.article-image,
+#publicArticles .article-placeholder,
+#searchResults .article-image,
+#searchResults img.article-image,
+#searchResults .article-placeholder,
+#adminArticlesList .article-image,
+#adminArticlesList img.article-image,
+#adminArticlesList .article-placeholder{
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  min-height:0!important;
+  max-height:100%!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  transform:none!important;
+  transition:none!important;
+  animation:none!important;
+}
+#publicArticles .article-placeholder,
+#searchResults .article-placeholder,
+#adminArticlesList .article-placeholder{
+  display:grid!important;
+  place-items:center!important;
+  color:#ffe1c2!important;
+  background:
+    radial-gradient(circle at 50% 35%,rgba(255,122,24,.30),transparent 42%),
+    linear-gradient(145deg,#08245f,#0a327e)!important;
+}
+
+#publicArticles .article-content,
+#publicArticles .article-list > .article-card:first-child .article-content,
+#searchResults .article-content,
+#adminArticlesList .article-content,
+#adminArticlesList .article-list > .article-card:first-child .article-content{
+  grid-area:content!important;
+  position:relative!important;
+  inset:auto!important;
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  min-width:0!important;
+  min-height:100%!important;
+  padding:15px 18px!important;
+  gap:8px!important;
+  z-index:1!important;
+  background:
+    linear-gradient(120deg,rgba(255,122,24,.16) 0 1px,transparent 1px),
+    radial-gradient(circle at 0% 0%,rgba(255,122,24,.23),transparent 34%),
+    radial-gradient(circle at 100% 100%,rgba(31,99,255,.24),transparent 42%),
+    linear-gradient(145deg,#092966 0%,#0a3a8f 52%,#071f57 100%)!important;
+  background-size:22px 22px,100% 100%,100% 100%,100% 100%!important;
+  box-shadow:inset 5px 0 0 rgba(255,122,24,.72), inset 1px 0 0 rgba(255,255,255,.06)!important;
+}
+#publicArticles .article-content h3,
+#publicArticles .article-list > .article-card:first-child .article-content h3,
+#searchResults .article-content h3,
+#adminArticlesList .article-content h3{
+  margin:0!important;
+  max-width:30ch!important;
+  color:#fffaf1!important;
+  font-size:clamp(1.04rem,2vw,1.45rem)!important;
+  line-height:1.07!important;
+  letter-spacing:-.035em!important;
+  text-shadow:0 2px 14px rgba(0,9,36,.26)!important;
+}
+#publicArticles .article-content p,
+#publicArticles .article-list > .article-card:first-child .article-content p,
+#searchResults .article-content p,
+#adminArticlesList .article-content p{
+  margin:0!important;
+  max-width:62ch!important;
+  color:#e5efff!important;
+  font-size:.92rem!important;
+  line-height:1.38!important;
+  display:-webkit-box!important;
+  -webkit-line-clamp:2!important;
+  -webkit-box-orient:vertical!important;
+  overflow:hidden!important;
+}
+#adminArticlesList .article-content p{-webkit-line-clamp:3!important;}
+#publicArticles .article-meta,
+#publicArticles .article-list > .article-card:first-child .article-meta,
+#searchResults .article-meta,
+#adminArticlesList .article-meta{
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  flex-wrap:wrap!important;
+  color:#ffd0a0!important;
+  font-size:.78rem!important;
+  font-weight:850!important;
+}
+#publicArticles .article-kicker,
+#searchResults .article-kicker,
+#adminArticlesList .article-kicker{
+  background:linear-gradient(135deg,#ff7a18,#ffb05f)!important;
+  color:#061742!important;
+  box-shadow:0 8px 20px rgba(255,122,24,.22)!important;
+}
+#publicArticles .article-actions,
+#publicArticles .article-list > .article-card:first-child .article-actions,
+#searchResults .article-actions,
+#adminArticlesList .article-actions{
+  display:flex!important;
+  gap:8px!important;
+  flex-wrap:wrap!important;
+  margin-top:5px!important;
+}
+#publicArticles .article-read-btn,
+#publicArticles .article-list > .article-card:first-child .article-read-btn,
+#searchResults .article-read-btn{
+  width:auto!important;
+  min-width:128px!important;
+  min-height:34px!important;
+  padding:8px 12px!important;
+}
+#adminArticlesList .row-actions.article-actions .btn{
+  width:auto!important;
+  min-width:104px!important;
+}
+#publicArticles .article-card:hover,
+#publicArticles .article-card:hover .article-image,
+#publicArticles .article-card:hover img.article-image,
+#searchResults .article-card:hover,
+#adminArticlesList .article-card:hover,
+#adminArticlesList .article-card:hover .article-image,
+#adminArticlesList .article-card:hover img.article-image{
+  transform:none!important;
+  transition:none!important;
+}
+
+/* Schermata dettaglio opaca: niente alpha fade, niente blur. Solo transform. */
+body.article-modal-open{
+  overflow:auto!important;
+  padding-right:0!important;
+}
+#articleModal.article-modal{
+  display:flex!important;
+  position:fixed!important;
+  inset:0!important;
+  z-index:9999!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:clamp(10px,2vw,22px)!important;
+  overflow:hidden!important;
+  overscroll-behavior:contain!important;
+  opacity:1!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+  transform:translate3d(0,100%,0)!important;
+  background:
+    linear-gradient(135deg,rgba(255,122,24,.16) 0 1px,transparent 1px),
+    radial-gradient(circle at 0% 0%,rgba(255,122,24,.28),transparent 34%),
+    radial-gradient(circle at 100% 0%,rgba(31,99,255,.28),transparent 38%),
+    linear-gradient(160deg,#041132 0%,#08245f 52%,#05153c 100%)!important;
+  background-size:26px 26px,100% 100%,100% 100%,100% 100%!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  transition:transform .34s cubic-bezier(.16,1,.3,1), visibility 0s linear .34s!important;
+  will-change:transform!important;
+}
+#articleModal.article-modal.open{
+  visibility:visible!important;
+  pointer-events:auto!important;
+  transform:translate3d(0,0,0)!important;
+  transition-delay:0s!important;
+}
+#articleModal.article-modal.closing{
+  visibility:visible!important;
+  pointer-events:none!important;
+  transform:translate3d(0,100%,0)!important;
+  transition-delay:0s!important;
+}
+#articleModal .article-modal-content{
+  width:min(1180px,100%)!important;
+  max-height:min(92dvh,920px)!important;
+  overflow:auto!important;
+  overscroll-behavior:contain!important;
+  opacity:1!important;
+  transform:none!important;
+  transition:none!important;
+  will-change:auto!important;
+  contain:layout paint style!important;
+  border-radius:30px!important;
+  border:1px solid rgba(255,122,24,.42)!important;
+  color:#fff!important;
+  background:
+    radial-gradient(circle at 12% 0%,rgba(255,122,24,.18),transparent 30%),
+    radial-gradient(circle at 90% 0%,rgba(31,99,255,.26),transparent 32%),
+    linear-gradient(145deg,#061845 0%,#08265f 42%,#051132 100%)!important;
+  box-shadow:0 32px 100px rgba(0,5,24,.58), inset 0 1px 0 rgba(255,255,255,.08)!important;
+}
+#articleModal .article-modal-toolbar{
+  min-height:72px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:14px!important;
+  position:sticky!important;
+  top:0!important;
+  z-index:4!important;
+  padding:15px 18px!important;
+  background:linear-gradient(180deg,rgba(5,18,52,.98),rgba(5,18,52,.92))!important;
+  border-bottom:1px solid rgba(255,122,24,.24)!important;
+  backdrop-filter:none!important;
+}
+#articleModal .article-detail-editorial{
+  display:grid!important;
+  grid-template-columns:minmax(260px,42%) minmax(0,1fr)!important;
+  min-height:560px!important;
+  background:
+    linear-gradient(90deg,rgba(255,122,24,.09) 0 1px,transparent 1px),
+    linear-gradient(180deg,rgba(255,255,255,.03),transparent 34%)!important;
+  background-size:42px 100%,100% 100%!important;
+}
+#articleModal .article-detail-hero{
+  position:relative!important;
+  min-height:520px!important;
+  display:grid!important;
+  place-items:center!important;
+  padding:clamp(18px,3vw,34px)!important;
+  background:
+    radial-gradient(circle at 50% 38%,rgba(255,122,24,.18),transparent 42%),
+    linear-gradient(145deg,#071f55,#041132)!important;
+  border-right:1px solid rgba(255,122,24,.24)!important;
+}
+#articleModal .article-detail-frame{
+  width:100%!important;
+  max-width:480px!important;
+  height:min(56vh,520px)!important;
+  min-height:320px!important;
+  display:grid!important;
+  place-items:center!important;
+  overflow:hidden!important;
+  border-radius:26px!important;
+  border:1px solid rgba(255,122,24,.34)!important;
+  background:
+    linear-gradient(135deg,rgba(255,122,24,.13) 0 1px,transparent 1px),
+    linear-gradient(180deg,rgba(8,28,80,.70),rgba(4,14,44,.82))!important;
+  background-size:18px 18px,100% 100%!important;
+  box-shadow:0 20px 60px rgba(0,8,36,.42), inset 0 1px 0 rgba(255,255,255,.08)!important;
+}
+#articleModal .article-detail-frame img.article-image,
+#articleModal .article-detail-frame .article-image:not(.article-placeholder){
+  width:100%!important;
+  height:100%!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+  border-radius:18px!important;
+  box-shadow:none!important;
+  background:transparent!important;
+}
+#articleModal .article-detail-backdrop-img,
+#articleModal .article-detail-hero .article-media-shade{
+  display:none!important;
+}
+#articleModal .article-detail-body{
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  padding:clamp(26px,4.5vw,58px)!important;
+}
+#articleModal .article-detail-body h2{
+  color:#fff!important;
+  font-size:clamp(2rem,4.6vw,4.6rem)!important;
+  line-height:.95!important;
+  letter-spacing:-.07em!important;
+  text-wrap:balance!important;
+  text-shadow:0 2px 22px rgba(0,7,32,.40)!important;
+}
+#articleModal .article-full-text{
+  color:#e2ecff!important;
+  font-size:clamp(1rem,1.25vw,1.14rem)!important;
+  line-height:1.78!important;
+  max-width:72ch!important;
+}
+#articleModal .article-modal-close,
+#articleModal .article-modal-toolbar .btn.danger{
+  width:auto!important;
+  min-width:94px!important;
+  background:linear-gradient(135deg,rgba(255,122,24,.28),rgba(255,60,80,.20))!important;
+  border:1px solid rgba(255,122,24,.44)!important;
+  color:#fff1e2!important;
+  box-shadow:0 10px 28px rgba(0,5,24,.24)!important;
+  transition:transform .16s ease, background .16s ease, border-color .16s ease!important;
+}
+#articleModal .article-modal-close:hover,
+#articleModal .article-modal-toolbar .btn.danger:hover{
+  transform:translateY(-1px)!important;
+  background:linear-gradient(135deg,rgba(255,122,24,.40),rgba(255,60,80,.28))!important;
+  border-color:rgba(255,122,24,.66)!important;
+}
+
+@media (max-width:760px){
+  :root{
+    --ng-article-card-h-pro: 148px;
+    --ng-article-thumb-w-pro: clamp(124px,40vw,172px);
+    --ng-article-card-radius-pro: 22px;
+  }
+  #publicArticles .article-list,
+  #adminArticlesList .article-list{gap:12px!important;}
+  #publicArticles .article-content,
+  #publicArticles .article-list > .article-card:first-child .article-content,
+  #searchResults .article-content,
+  #adminArticlesList .article-content{
+    padding:12px 13px!important;
+    gap:6px!important;
+  }
+  #publicArticles .article-content h3,
+  #publicArticles .article-list > .article-card:first-child .article-content h3,
+  #searchResults .article-content h3,
+  #adminArticlesList .article-content h3{
+    font-size:clamp(.98rem,4.2vw,1.20rem)!important;
+    line-height:1.08!important;
+  }
+  #publicArticles .article-content p,
+  #publicArticles .article-list > .article-card:first-child .article-content p,
+  #searchResults .article-content p{display:none!important;}
+  #publicArticles .article-actions,
+  #publicArticles .article-list > .article-card:first-child .article-actions,
+  #searchResults .article-actions{display:none!important;}
+  #adminArticlesList .article-actions{display:flex!important;}
+  #adminArticlesList .row-actions.article-actions .btn{min-width:0!important;flex:1 1 92px!important;}
+
+  #articleModal.article-modal{
+    align-items:stretch!important;
+    justify-content:stretch!important;
+    padding:0!important;
+  }
+  #articleModal .article-modal-content{
+    width:100%!important;
+    height:100dvh!important;
+    max-height:100dvh!important;
+    border-radius:0!important;
+    border:0!important;
+  }
+  #articleModal .article-modal-toolbar{
+    padding:calc(12px + env(safe-area-inset-top,0px)) 13px 12px!important;
+  }
+  #articleModal .article-modal-toolbar h2{display:none!important;}
+  #articleModal .article-detail-editorial{
+    display:block!important;
+    min-height:0!important;
+  }
+  #articleModal .article-detail-hero{
+    min-height:0!important;
+    height:44dvh!important;
+    padding:14px!important;
+    border-right:0!important;
+    border-bottom:1px solid rgba(255,122,24,.24)!important;
+  }
+  #articleModal .article-detail-frame{
+    max-width:100%!important;
+    height:100%!important;
+    min-height:0!important;
+    border-radius:22px!important;
+  }
+  #articleModal .article-detail-body{
+    padding:22px 18px calc(34px + env(safe-area-inset-bottom,0px))!important;
+    justify-content:flex-start!important;
+  }
+  #articleModal .article-detail-body h2{
+    font-size:clamp(1.75rem,9vw,3rem)!important;
+  }
+}
+@media (prefers-reduced-motion:reduce){
+  #articleModal.article-modal,
+  #articleModal .article-modal-content,
+  #publicArticles .article-card,
+  #adminArticlesList .article-card{
+    transition:none!important;
+    animation:none!important;
+    transform:none!important;
+  }
+  #articleModal.article-modal{visibility:hidden!important;}
+  #articleModal.article-modal.open{visibility:visible!important;}
+}
