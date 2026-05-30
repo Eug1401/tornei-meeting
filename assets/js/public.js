@@ -226,7 +226,51 @@
       img.onerror=()=>resolve(''); img.src=src;
     });
   }
+  // Rende il logo in un canvas QUADRATO con letterbox (contain semantics + padding 7%).
+  // La funzione base dataUrlFromImage preserva le dimensioni originali per il brand logo;
+  // questa produce invece un quadrato usabile direttamente in jsPDF senza deformazioni.
+  async function dataUrlFromImageContained(src, boxSize=400){
+    if(!src) return '';
+    if(String(src).startsWith('data:image/')){
+      // Già data URL: rende comunque su canvas quadrato letterboxed
+      return new Promise(resolve=>{
+        const img=new Image();
+        img.onload=()=>{
+          try{
+            const c=document.createElement('canvas'); c.width=boxSize; c.height=boxSize;
+            const ctx=c.getContext('2d');
+            ctx.clearRect(0,0,boxSize,boxSize);
+            ctx.fillStyle='rgba(4,14,44,0.90)'; ctx.fillRect(0,0,boxSize,boxSize);
+            const pad=Math.round(boxSize*0.07); const inner=boxSize-pad*2;
+            const ar=(img.naturalWidth||img.width||1)/(img.naturalHeight||img.height||1);
+            const dw=ar>=1?inner:inner*ar; const dh=ar>=1?inner/ar:inner;
+            ctx.drawImage(img,pad+(inner-dw)/2,pad+(inner-dh)/2,dw,dh);
+            resolve(c.toDataURL('image/png'));
+          }catch(_){resolve('');}
+        };
+        img.onerror=()=>resolve(''); img.src=src;
+      });
+    }
+    return new Promise(resolve=>{
+      const img=new Image(); img.crossOrigin='anonymous';
+      img.onload=()=>{
+        try{
+          const c=document.createElement('canvas'); c.width=boxSize; c.height=boxSize;
+          const ctx=c.getContext('2d');
+          ctx.clearRect(0,0,boxSize,boxSize);
+          ctx.fillStyle='rgba(4,14,44,0.90)'; ctx.fillRect(0,0,boxSize,boxSize);
+          const pad=Math.round(boxSize*0.07); const inner=boxSize-pad*2;
+          const ar=(img.naturalWidth||img.width||1)/(img.naturalHeight||img.height||1);
+          const dw=ar>=1?inner:inner*ar; const dh=ar>=1?inner/ar:inner;
+          ctx.drawImage(img,pad+(inner-dw)/2,pad+(inner-dh)/2,dw,dh);
+          resolve(c.toDataURL('image/png'));
+        }catch(_){resolve('');}
+      };
+      img.onerror=()=>resolve(''); img.src=src;
+    });
+  }
   function drawPdfLogo(doc,src,x,y,size,fallback='NG'){
+    // src è già un canvas quadrato letterboxed → disegno diretto senza deformazioni
     if(src){try{doc.addImage(src,'PNG',x,y,size,size,undefined,'FAST');return;}catch(_){}}
     setRgb(doc,'setFillColor',PDF_COLORS.gold);doc.roundedRect(x,y,size,size,5,5,'F');setRgb(doc,'setTextColor',PDF_COLORS.ink);doc.setFont('helvetica','bold');doc.setFontSize(Math.max(8,size*.28));doc.text(String(fallback||'NG').slice(0,2).toUpperCase(),x+size/2,y+size*.6,{align:'center'});
   }
@@ -245,7 +289,7 @@
     const team=store.getTeam(state,teamId); if(!team) return;
     if(!window.jspdf||!window.jspdf.jsPDF){alert('Librerie PDF non disponibili. Controlla la connessione e riprova.');return;}
     const {jsPDF}=window.jspdf; const doc=new jsPDF({orientation:'p',unit:'mm',format:'a4',compress:true});
-    const brandLogo=await dataUrlFromImage(BRAND_LOGO); const teamLogo=await dataUrlFromImage(team.logo);
+    const brandLogo=await dataUrlFromImageContained(BRAND_LOGO); const teamLogo=await dataUrlFromImageContained(team.logo);
     const w=doc.internal.pageSize.getWidth();
     setRgb(doc,'setFillColor',PDF_COLORS.bg);doc.rect(0,0,w,48,'F');drawPdfLogo(doc,brandLogo,w/2-13,7,26,state.rules?.name||'NG');
     setRgb(doc,'setTextColor',PDF_COLORS.gold2);doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text(String(state.rules?.name||'New Generation').toUpperCase(),w/2,39,{align:'center'});
@@ -373,7 +417,18 @@
     const homeLogo=await getTeamLogoImage(homeT),awayLogo=await getTeamLogoImage(awayT);
     function drawLogo(img,x,y,name){
       roundRectPath(ctx,x-76,y-76,152,152,30);ctx.fillStyle='rgba(255,255,255,.07)';ctx.fill();ctx.strokeStyle='rgba(255,255,255,.10)';ctx.lineWidth=1.5;ctx.stroke();
-      if(img){ctx.save();roundRectPath(ctx,x-64,y-64,128,128,24);ctx.clip();ctx.drawImage(img,x-64,y-64,128,128);ctx.restore();}
+      if(img){
+        ctx.save();
+        roundRectPath(ctx,x-64,y-64,128,128,24); ctx.clip();
+        // Sfondo neutro
+        ctx.fillStyle='rgba(4,14,44,.88)'; ctx.fillRect(x-64,y-64,128,128);
+        // Letterbox: proporzioni originali, padding 8px
+        const pad=8; const inner=128-pad*2;
+        const ar=(img.naturalWidth||img.width||1)/(img.naturalHeight||img.height||1);
+        const dw=ar>=1?inner:inner*ar; const dh=ar>=1?inner/ar:inner;
+        ctx.drawImage(img,(x-64)+pad+(inner-dw)/2,(y-64)+pad+(inner-dh)/2,dw,dh);
+        ctx.restore();
+      }
       else{ctx.fillStyle='#e6c760';ctx.font='900 42px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(name||'?').slice(0,2).toUpperCase(),x,y);ctx.textBaseline='alphabetic';}
     }
     drawLogo(homeLogo,300,375,home);drawLogo(awayLogo,1300,375,away);

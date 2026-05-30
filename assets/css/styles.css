@@ -6549,3 +6549,172 @@ details.ng-disclosure[open] > .ng-disclosure-summary .disclosure-action {
   }
 }
 
+
+
+/* ===================================================================
+   v400 — LOGO SYSTEM: proporzioni corrette, padding, zero deformazioni
+   Principio:
+   • object-fit: contain → l'immagine non viene mai ritagliata né deformata
+   • padding → distanza minima tra immagine e bordo del logo-box
+   • background neutro → riempie gli spazi vuoti per immagini non quadrate
+   • flex-shrink: 0 → il logo non si schiaccia mai in layouts stretti
+   • overflow: hidden → l'immagine non sfora MAI dal bordo arrotondato
+   Le dimensioni (width/height/border-radius) continuano a venire dalle
+   regole preesistenti per ogni contesto; qui definiamo solo il comportamento
+   dell'immagine all'interno di quello spazio.
+   =================================================================== */
+
+/* ── BASE: img.team-logo in qualsiasi contesto ────────────────────── */
+img.team-logo {
+  object-fit: contain !important;   /* mai ritaglio, proporzioni sempre rispettate */
+  padding: 3px !important;          /* 3px di aria tra immagine e bordo */
+  background: rgba(4, 14, 44, .88) !important; /* sfondo neutro blu scuro per trasparenze */
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
+  display: block !important;
+}
+
+/* Versione grande (scheda squadra, modal) */
+img.team-logo.big {
+  padding: 5px !important;
+}
+
+/* ── Contesti specifici: padding calibrato per la dimensione del box ── */
+
+/* Inline (classifica, liste): box piccolo 28-32px → padding minore */
+.team-inline img.team-logo,
+.bracket-team img.team-logo {
+  padding: 2px !important;
+}
+
+/* Score partita: box medio 50-72px → padding standard */
+.public-score-team img.team-logo,
+.fixture-team img.team-logo,
+.public-match-modal img.team-logo {
+  padding: 3px !important;
+}
+
+/* Live strip: box 32px */
+.live-strip-team img.team-logo {
+  padding: 2px !important;
+}
+
+/* Notifiche live: box 28px */
+.ng-live-notif-team img.team-logo {
+  padding: 2px !important;
+}
+
+/* Filter option: box 34-40px */
+.filter-option-media img.team-logo {
+  padding: 2px !important;
+}
+
+/* Team pick buttons in admin */
+.team-pick-btn img.team-logo,
+.team-pick-btn .team-logo {
+  padding: 2px !important;
+}
+
+/* Fallback div: stesso overflow + flex-shrink */
+.team-logo-fallback {
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
+}
+
+/* ── Anti-sfarfallio: stabilizza il layout durante caricamento ──────── */
+
+/* Riserva lo spazio prima che l'immagine carichi → niente layout shift */
+img.team-logo {
+
+img.team-logo[src] {
+  image-rendering: auto;
+  image-rendering: -webkit-optimize-contrast; /* Safari: nitidezza su piccoli loghi */
+}
+
+/* ── Fixture card: niente overflow del logo fuori dalla card ──────── */
+.fixture-team,
+.public-score-team,
+.live-strip-team,
+.team-inline {
+  overflow: visible;  /* la clip è sul logo stesso, non sul parent */
+  align-items: center;
+}
+
+/* Standout: loghi nelle tabelle non vanno a capo con il testo */
+td .team-inline,
+td .team-logo,
+td img.team-logo {
+  vertical-align: middle;
+  flex-shrink: 0 !important;
+}
+
+/* ── Pro-team hero (modal dettaglio squadra): logo grande centrato ── */
+.pro-team-logo img.team-logo {
+  padding: 6px !important;
+}
+
+/* ── Recap PDF card testata: logo marchio nel print.html ──────────── */
+.pdf-brand-row img {
+  object-fit: contain;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* ── Niente transizioni sui loghi: evitano sfarfallii durante render ─ */
+img.team-logo {
+  transition: box-shadow .22s ease, transform .18s ease !important;
+  /* Esclude opacity e visibility per evitare flash durante caricamento */
+}
+
+/* ── Backdrop per loghi con PNG trasparente su sfondo chiaro ───────── */
+/* Assicura che il padding/background sia visibile anche nei temi chiari */
+@media (prefers-color-scheme: light) {
+  img.team-logo {
+    background: rgba(4, 14, 44, .92) !important;
+  }
+}
+
+
+
+/* ===================================================================
+   v400 — LOGO SYSTEM: proporzioni corrette, padding, zero deformazioni
+   Principio:
+   • object-fit: contain → immagine mai ritagliata né deformata
+   • padding → distanza tra immagine e bordo del logo-box
+   • background neutro → riempie spazi vuoti per immagini non quadrate
+   • flex-shrink: 0 → logo non si schiaccia in layouts stretti
+   =================================================================== */
+
+img.team-logo {
+  object-fit: contain !important;
+  padding: 3px !important;
+  background: rgba(4,14,44,.88) !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
+  display: block !important;
+  transition: box-shadow .22s ease, transform .18s ease !important;
+}
+
+img.team-logo.big { padding: 5px !important; }
+
+.team-inline img.team-logo,
+.bracket-team img.team-logo,
+.live-strip-team img.team-logo,
+.ng-live-notif-team img.team-logo,
+.filter-option-media img.team-logo,
+.team-pick-btn img.team-logo { padding: 2px !important; }
+
+.public-score-team img.team-logo,
+.fixture-team img.team-logo { padding: 3px !important; }
+
+.pro-team-logo img.team-logo { padding: 6px !important; }
+
+.team-logo-fallback { overflow: hidden !important; flex-shrink: 0 !important; }
+
+.fixture-team, .public-score-team,
+.live-strip-team, .team-inline { align-items: center; }
+
+td img.team-logo { vertical-align: middle; flex-shrink: 0 !important; }
+
