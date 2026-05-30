@@ -134,7 +134,7 @@
   }
   function articlePlaceholder(title='NG'){
     const label=initials(title||'NG')||'NG';
-    return `<div class="article-image article-placeholder" role="img" aria-label="Immagine articolo non disponibile"><span>${esc(label)}</span><small>NEWS</small></div>`;
+    return `<div class="article-image article-placeholder" role="img" aria-label="Immagine articolo non disponibile"><span>${esc(label)}</span></div>`;
   }
   function replaceBrokenArticleImage(img){
     const holder=document.createElement('div');
@@ -143,7 +143,7 @@
     holder.setAttribute('aria-label','Immagine articolo non disponibile');
     const title=(img?.dataset?.articleTitle||img?.alt||'NG').replace(/^Immagine articolo\s*/i,'').trim();
     const label=initials(title||'NG')||'NG';
-    holder.innerHTML=`<span>${esc(label)}</span><small>NEWS</small>`;
+    holder.innerHTML=`<span>${esc(label)}</span>`;
     img?.closest('.article-media')?.classList.add('image-fallback');
     img?.replaceWith(holder);
   }
@@ -167,7 +167,6 @@
       <div class="article-media">
         ${articleImageMarkup(article)}
         <div class="article-media-shade"></div>
-        <span class="article-kicker media-kicker">NEWS</span>
       </div>
       <div class="article-content">
         <div class="article-meta"><span class="article-kicker">Articolo</span>${date?`<time datetime="${esc(article.updatedAt||article.createdAt||'')}">${date}</time>`:''}</div>
@@ -189,7 +188,6 @@
       <div class="article-detail-hero">
         ${hero}
         <div class="article-media-shade"></div>
-        <span class="article-kicker media-kicker">NEWS</span>
       </div>
       <div class="article-detail-body">
         <div class="article-meta"><span class="article-kicker">Articolo</span>${date?`<time datetime="${esc(article?.updatedAt||article?.createdAt||'')}">${date}</time>`:''}</div>

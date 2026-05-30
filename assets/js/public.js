@@ -549,7 +549,7 @@
     modal.setAttribute('role','dialog');
     modal.setAttribute('aria-modal','true');
     modal.setAttribute('aria-labelledby','articleModalTitle');
-    modal.innerHTML=`<div class="modal-content article-modal-content"><div class="article-modal-toolbar"><div><span class="article-kicker">News completa</span><h2 id="articleModalTitle">Articolo</h2></div><button class="btn danger article-modal-close" id="closeArticleModal" type="button">Chiudi</button></div><div id="articleModalBody"></div></div>`;
+    modal.innerHTML=`<div class="modal-content article-modal-content"><div class="article-modal-toolbar"><div><strong class="article-modal-label">Dettaglio articolo</strong><h2 id="articleModalTitle">Articolo</h2></div><button class="btn danger article-modal-close" id="closeArticleModal" type="button">Chiudi</button></div><div id="articleModalBody"></div></div>`;
     document.body.appendChild(modal);
     return modal;
   }
@@ -558,15 +558,15 @@
     if(!modal)return;
     if(!modal.classList.contains('open'))return;
     modal.classList.remove('open');
-    document.body.classList.remove('modal-open','article-modal-open');
-    // Evito focus/scroll immediati sulla card: su alcuni browser causavano un repaint
-    // visibile della lista subito dopo la chiusura del dettaglio.
-    // Eseguo eventuali refresh rimandati dopo la chiusura visiva e senza force=true:
-    // se lo stato non è cambiato, la lista non viene ricreata.
-    if(_deferredArticleRender){
-      _deferredArticleRender=false;
-      setTimeout(()=>requestAnimationFrame(()=>renderArticles(false)),180);
-    }
+    // Lascio al CSS il tempo di chiudere in modo morbido: niente stacco brusco.
+    window.clearTimeout(closeArticleModal._t);
+    closeArticleModal._t=window.setTimeout(()=>{
+      if(!modal.classList.contains('open')) document.body.classList.remove('modal-open','article-modal-open');
+      if(_deferredArticleRender){
+        _deferredArticleRender=false;
+        requestAnimationFrame(()=>renderArticles(false));
+      }
+    },240);
   }
   function showArticle(id,trigger=null){
     const article=store.selectors.articles(state).find(x=>x.id===id);
@@ -581,9 +581,12 @@
       body.dataset.articleId=String(id);
       body.dataset.articleHtml=nextHtml;
     }
-    modal.classList.add('open');
+    window.clearTimeout(closeArticleModal._t);
     document.body.classList.add('modal-open','article-modal-open');
-    requestAnimationFrame(()=>$('#closeArticleModal')?.focus?.({preventScroll:true}));
+    requestAnimationFrame(()=>{
+      modal.classList.add('open');
+      requestAnimationFrame(()=>$('#closeArticleModal')?.focus?.({preventScroll:true}));
+    });
   }
   function resetFiltersForNewState(){
     if(phaseFilter && !store.selectors.phases(state).includes(phaseFilter)) phaseFilter='';
