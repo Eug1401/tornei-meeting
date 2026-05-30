@@ -175,7 +175,11 @@
     document.querySelectorAll(`[data-team-detail="${CSS.escape(favoriteTeamId)}"], [data-team-id="${CSS.escape(favoriteTeamId)}"]`).forEach(el=>el.classList.add('is-favorite-team'));
     document.querySelectorAll('[data-match-detail]').forEach(el=>{const m=state.matches.find(x=>x.id===el.dataset.matchDetail);if(m&&(m.homeTeamId===favoriteTeamId||m.awayTeamId===favoriteTeamId))el.classList.add('is-favorite-match');});
   }
-  function renderHome(){document.title=UI.siteTitle?UI.siteTitle(state):(state.rules.name||'New Generation');const titleEl=$('#publicTitle');if(titleEl)titleEl.textContent=state.rules.name||'New Generation';const summaryEl=$('#publicSummary');if(summaryEl)summaryEl.innerHTML=UI.rulesSummary(state);const statsEl=$('#publicStats');if(statsEl)statsEl.innerHTML=UI.statsGrid(store.selectors.stats(state));renderLiveHome();renderFavoriteHome();const standingsMenu=$('#publicStandingsMenu');if(standingsMenu)standingsMenu.innerHTML=store.selectors.hasGroupStage(state)?UI.groupStandingsSelector(state,standingsGroup,'publicGroupStandingsFilter'):'';$('#publicStandings').innerHTML=store.selectors.hasGroupStage(state)?UI.groupStandingsTables(state,standingsGroup,{includeLive:true}):UI.standingsTable(store.selectors.calculateStandings(state,undefined,{includeLive:true}),state);$('#publicPlayersMini').innerHTML=UI.playerStatsTable(store.selectors.playerStats(state).filter(p=>p.goals>0).slice(0,10))+(state.rules.isKingsLeague?'<div class="mini-section-title margin-top"><h3>Presidenti marcatori</h3></div>'+UI.presidentStatsTable(store.selectors.presidentScorers(state).slice(0,10)):'');decorateFavoriteUI();}
+  var _lastHomeFP="";
+  function renderHome(){
+    var hfp=store.deriveFingerprint(state)+"|"+standingsGroup;
+    if(hfp===_lastHomeFP){decorateFavoriteUI();return;}
+    _lastHomeFP=hfp;document.title=UI.siteTitle?UI.siteTitle(state):(state.rules.name||'New Generation');const titleEl=$('#publicTitle');if(titleEl)titleEl.textContent=state.rules.name||'New Generation';const summaryEl=$('#publicSummary');if(summaryEl)summaryEl.innerHTML=UI.rulesSummary(state);const statsEl=$('#publicStats');if(statsEl)statsEl.innerHTML=UI.statsGrid(store.selectors.stats(state));renderLiveHome();renderFavoriteHome();const standingsMenu=$('#publicStandingsMenu');if(standingsMenu)standingsMenu.innerHTML=store.selectors.hasGroupStage(state)?UI.groupStandingsSelector(state,standingsGroup,'publicGroupStandingsFilter'):'';$('#publicStandings').innerHTML=store.selectors.hasGroupStage(state)?UI.groupStandingsTables(state,standingsGroup,{includeLive:true}):UI.standingsTable(store.selectors.calculateStandings(state,undefined,{includeLive:true}),state);$('#publicPlayersMini').innerHTML=UI.playerStatsTable(store.selectors.playerStats(state).filter(p=>p.goals>0).slice(0,10))+(state.rules.isKingsLeague?'<div class="mini-section-title margin-top"><h3>Presidenti marcatori</h3></div>'+UI.presidentStatsTable(store.selectors.presidentScorers(state).slice(0,10)):'');decorateFavoriteUI();}
   var _lastTeamsFingerprint="";
   function renderTeams(){
     var container=$("#publicTeams");
@@ -647,13 +651,23 @@
     }
   }
 
+  var _lastRenderFP="";
   function render(opts={}){
-    // skipAlign=true quando lo state arriva già normalizzato (es. da Supabase via publishPublicState)
     if(!opts.skipAlign) store.alignState(state);
     try{UI.applySiteTheme(state);}catch(e){}
     sanitizeFavoriteTeam();
-    // Differisco il save() su localStorage al prossimo idle (no block del thread).
     deferredSave();
+    // Fingerprint globale: se lo state non è cambiato, non toccare il DOM.
+    // Evita il flash visivo causato dal polling Supabase ogni ~6 secondi.
+    var fp=store.deriveFingerprint(state);
+    fp+="|"+(state.articles||[]).length;
+    fp+="|"+((state.articles||[]).length>0?(state.articles[0].updatedAt||""):"");
+    fp+="|"+(state.teams||[]).map(function(t){return t.logo||"";}).join(",");
+    if(fp===_lastRenderFP){
+      decorateFavoriteUI();
+      return;
+    }
+    _lastRenderFP=fp;
     resetFiltersForNewState();
     persistPublicFilters();
     renderHome();renderTeams();renderPlayers();renderMatches();renderBracket();renderArticles();renderPhotos();renderSearch();
