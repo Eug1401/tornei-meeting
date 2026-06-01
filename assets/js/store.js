@@ -42,6 +42,31 @@
     return 'scheduled';
   }
   function isPresidentId(state,id){return Boolean(id&&state?.teams?.some(t=>t.president?.id===id));}
+  function ownGoalValue(teamId){return `own_goal:${teamId||''}`;}
+  function isOwnGoalValue(value){return String(value||'').startsWith('own_goal:');}
+  function isOwnGoalEvent(g){return Boolean(g&&(g.type==='ownGoal'||g.ownGoal===true||isOwnGoalValue(g.playerId)));}
+  function ownGoalTeamId(state,m,g){
+    if(!isOwnGoalEvent(g))return '';
+    const raw=String(g.teamId||g.ownGoalTeamId||'').trim() || String(g.playerId||'').replace(/^own_goal:/,'').trim();
+    if(raw&&(raw===m?.homeTeamId||raw===m?.awayTeamId))return raw;
+    return '';
+  }
+  function goalScoringTeamId(state,m,g){
+    const own=ownGoalTeamId(state,m,g);
+    if(own)return own===m.homeTeamId?m.awayTeamId:(own===m.awayTeamId?m.homeTeamId:'');
+    return playerTeamId(state,g?.playerId);
+  }
+  function goalEventTeamId(state,m,g){return ownGoalTeamId(state,m,g)||playerTeamId(state,g?.playerId);}
+  function goalLabel(state,m,g){
+    const own=ownGoalTeamId(state,m,g);
+    if(own)return `Autogol (${teamName(state,own)})`;
+    return playerName(state,g?.playerId);
+  }
+  function normalizeGoalEvent(g){
+    const isOwn=isOwnGoalEvent(g);
+    const teamId=isOwn?String(g.teamId||g.ownGoalTeamId||String(g.playerId||'').replace(/^own_goal:/,'')).trim():'';
+    return {id:g.id||uid('goal'),playerId:isOwn?ownGoalValue(teamId):(g.playerId||''),type:isOwn?'ownGoal':'goal',teamId:isOwn?teamId:'',weight:isOwn?1:(Number(g.weight)===2?2:1)};
+  }
   const defaultCompetitions=()=>[
     {id:'comp_oro',name:'Playoff Oro',startRank:1,teams:4}
   ];
@@ -91,7 +116,7 @@
     out.standingsCriteriaOrder=normalizeStandingsCriteriaOrder(out.standingsCriteriaOrder);
     return out;
   }
-  function normalizeState(data){const s={...emptyState(),...(data||{})};s.rules=normalizeRules(s.rules);s.site=normalizeSite(s.site);s.calendarSignature=typeof s.calendarSignature==='string'?s.calendarSignature:'';s.teams=Array.isArray(s.teams)?s.teams:[];s.matches=Array.isArray(s.matches)?s.matches:[];s.teams.forEach(t=>{t.id=t.id||uid('team');t.name=t.name||'Squadra';t.logo=t.logo||'';t.players=Array.isArray(t.players)?t.players:[];t.president=(t.president&&typeof t.president==='object')?t.president:{name:t.presidentName||''};t.president.id=t.president.id||uid('president');t.president.name=String(t.president.name||'').trim();t.coach=(t.coach&&typeof t.coach==='object')?t.coach:{name:t.coachName||''};t.coach.name=String(t.coach.name||'').trim();t.players.forEach(p=>{p.id=p.id||uid('player');p.name=p.name||'Calciatore';p.birthYear=normalizeBirthYear(p.birthYear||p.year||p.annoNascita);p.number=normalizeJerseyNumber(p.number);delete p.role;});});s.matches.forEach((m,i)=>{m.id=m.id||uid('match');m.phase=m.phase||'league';m.round=m.round||`Giornata ${i+1}`;m.roundIndex=Number(m.roundIndex)||0;m.groupName=m.groupName||'';m.bracketRound=m.bracketRound||'';m.bracketName=m.bracketName||'';m.bracketRoundIndex=Number(m.bracketRoundIndex)||0;m.bracketMatchIndex=Number(m.bracketMatchIndex)||0;m.sourceHome=m.sourceHome||'';m.sourceAway=m.sourceAway||'';m.homeTeamId=m.homeTeamId||'';m.awayTeamId=m.awayTeamId||'';m.homeLabel=m.homeLabel||'';m.awayLabel=m.awayLabel||'';m.date=m.date||'';m.time=m.time||'';m.datetime=m.datetime||'';m.field=m.field||'';m.referee=m.referee||'';m.status=normalizeMatchStatus(m.status);m.penalties=normalizePenalties(m.penalties);m.goals=Array.isArray(m.goals)?m.goals.map(g=>({id:g.id||uid('goal'),playerId:g.playerId||'',weight:Number(g.weight)===2?2:1})):[];m.cards=Array.isArray(m.cards)?m.cards.map(c=>({id:c.id||uid('card'),playerId:c.playerId||'',type:c.type==='red'?'red':'yellow'})):[];});s.articles=Array.isArray(s.articles)?s.articles:[];s.articles=s.articles.map(a=>{const img=a.image||a.imageUrl||a.coverImage||a.photo||a.thumbnail||'';return {id:a.id||uid('article'),title:a.title||'Articolo senza titolo',body:a.body||'',image:img,createdAt:a.createdAt||new Date().toISOString(),updatedAt:a.updatedAt||a.createdAt||new Date().toISOString()};}).sort((a,b)=>new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt));return alignState(s,{silent:true});}
+  function normalizeState(data){const s={...emptyState(),...(data||{})};s.rules=normalizeRules(s.rules);s.site=normalizeSite(s.site);s.calendarSignature=typeof s.calendarSignature==='string'?s.calendarSignature:'';s.teams=Array.isArray(s.teams)?s.teams:[];s.matches=Array.isArray(s.matches)?s.matches:[];s.teams.forEach(t=>{t.id=t.id||uid('team');t.name=t.name||'Squadra';t.logo=t.logo||'';t.players=Array.isArray(t.players)?t.players:[];t.president=(t.president&&typeof t.president==='object')?t.president:{name:t.presidentName||''};t.president.id=t.president.id||uid('president');t.president.name=String(t.president.name||'').trim();t.coach=(t.coach&&typeof t.coach==='object')?t.coach:{name:t.coachName||''};t.coach.name=String(t.coach.name||'').trim();t.players.forEach(p=>{p.id=p.id||uid('player');p.name=p.name||'Calciatore';p.birthYear=normalizeBirthYear(p.birthYear||p.year||p.annoNascita);p.number=normalizeJerseyNumber(p.number);delete p.role;});});s.matches.forEach((m,i)=>{m.id=m.id||uid('match');m.phase=m.phase||'league';m.round=m.round||`Giornata ${i+1}`;m.roundIndex=Number(m.roundIndex)||0;m.groupName=m.groupName||'';m.bracketRound=m.bracketRound||'';m.bracketName=m.bracketName||'';m.bracketRoundIndex=Number(m.bracketRoundIndex)||0;m.bracketMatchIndex=Number(m.bracketMatchIndex)||0;m.sourceHome=m.sourceHome||'';m.sourceAway=m.sourceAway||'';m.homeTeamId=m.homeTeamId||'';m.awayTeamId=m.awayTeamId||'';m.homeLabel=m.homeLabel||'';m.awayLabel=m.awayLabel||'';m.date=m.date||'';m.time=m.time||'';m.datetime=m.datetime||'';m.field=m.field||'';m.referee=m.referee||'';m.status=normalizeMatchStatus(m.status);m.penalties=normalizePenalties(m.penalties);m.goals=Array.isArray(m.goals)?m.goals.map(g=>normalizeGoalEvent(g)):[];m.cards=Array.isArray(m.cards)?m.cards.map(c=>({id:c.id||uid('card'),playerId:c.playerId||'',type:c.type==='red'?'red':'yellow'})):[];});s.articles=Array.isArray(s.articles)?s.articles:[];s.articles=s.articles.map(a=>{const img=a.image||a.imageUrl||a.coverImage||a.photo||a.thumbnail||'';return {id:a.id||uid('article'),title:a.title||'Articolo senza titolo',body:a.body||'',image:img,createdAt:a.createdAt||new Date().toISOString(),updatedAt:a.updatedAt||a.createdAt||new Date().toISOString()};}).sort((a,b)=>new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt));return alignState(s,{silent:true});}
   function legacyStorageKeys(){
     try{return Object.keys(localStorage).filter(k=>/^new-generation-(admin|public)-state-v\d+$/.test(k)||/^nexora-(admin|public)-state/.test(k));}
     catch(e){return [];}
@@ -241,9 +266,9 @@
   function teamName(state,id,fallback='Da definire'){return getTeam(state,id)?.name||fallback;}
   function playerName(state,id){const p=getParticipant(state,id);return p?(p.type==='president'?`Pres. ${p.name}`:p.name):'Persona rimossa';}
   function isDoubleGoalEvent(g){return Number(g?.weight)===2;}
-  function actualGoalCount(state,m,teamId){return (m.goals||[]).filter(g=>playerTeamId(state,g.playerId)===teamId).length;}
-  function eventScoreWeight(state,g){return isPresidentId(state,g?.playerId)?1:((state?.rules?.isKingsLeague&&isDoubleGoalEvent(g))?2:1);}
-  function matchGoals(state,m){let home=0,away=0;(m.goals||[]).forEach(g=>{const tid=playerTeamId(state,g.playerId);const w=eventScoreWeight(state,g);if(tid===m.homeTeamId)home+=w;if(tid===m.awayTeamId)away+=w;});return {home,away};}
+  function actualGoalCount(state,m,teamId){return (m.goals||[]).filter(g=>goalScoringTeamId(state,m,g)===teamId).length;}
+  function eventScoreWeight(state,g){return isOwnGoalEvent(g)?1:(isPresidentId(state,g?.playerId)?1:((state?.rules?.isKingsLeague&&isDoubleGoalEvent(g))?2:1));}
+  function matchGoals(state,m){let home=0,away=0;(m.goals||[]).forEach(g=>{const tid=goalScoringTeamId(state,m,g);const w=eventScoreWeight(state,g);if(tid===m.homeTeamId)home+=w;if(tid===m.awayTeamId)away+=w;});return {home,away};}
   function isLive(state,m){return m?.status==='live';}
   function hasGoals(state,m){const sc=matchGoals(state,m);return sc.home+sc.away>0;}
   function hasScore(state,m){
@@ -313,9 +338,20 @@
     for(let i=0;i<total;i++){const d=addDays(start,i);if(allowed.has(weekdayOf(d)))out.push(d);}
     return out;
   }
-  function requiredPlayingDaysForMatches(matches,rules){
+  function requiredSlotsForRound(roundMatches,rules){
     const fields=Math.max(1,Number(rules.fieldCount)||1);
-    return matchesByRoundIndex(matches).reduce((sum,[,roundMatches])=>sum+Math.ceil(roundMatches.length/fields),0);
+    const base=Math.ceil(roundMatches.length/fields);
+    // Stima prudente: con garanzia Campo 1, le partite di girone che devono
+    // assegnare il Campo 1 possono occupare slot/giorni separati anche se ci sono
+    // altri campi liberi. Meglio stimare largo che promettere un calendario troppo corto.
+    if(groupField1GuaranteeActive(rules)){
+      const groupCount=roundMatches.filter(m=>m.phase==='group').length;
+      if(groupCount)return Math.max(base,groupCount);
+    }
+    return base;
+  }
+  function requiredPlayingDaysForMatches(matches,rules){
+    return matchesByRoundIndex(matches).reduce((sum,[,roundMatches])=>sum+requiredSlotsForRound(roundMatches,rules),0);
   }
   function suggestEndDateForMatches(matches,rules){
     rules=normalizeRules(rules);
@@ -325,7 +361,7 @@
       const duration=Math.max(5,Number(rules.matchDuration)||40);
       const breakMinutes=Math.max(0,Number(rules.breakMinutes)||0);
       const step=duration+breakMinutes;
-      const requiredSlots=matchesByRoundIndex(matches).reduce((sum,[,roundMatches])=>sum+Math.ceil(roundMatches.length/fields),0);
+      const requiredSlots=matchesByRoundIndex(matches).reduce((sum,[,roundMatches])=>sum+requiredSlotsForRound(roundMatches,rules),0);
       const start=new Date(`${rules.startDate}T${rules.startTime}`);
       const pause=oneDayPauseWindow(rules);
       let scheduledSlots=0, slot=0, lastSlot=0;
@@ -417,9 +453,27 @@
     return out;
   }
   function leagueEntrants(count,startRank=0,label='Classificata'){return Array.from({length:count},(_,i)=>({label:`${startRank+i+1}ª ${label}`,source:`league:${startRank+i+1}`,seed:i+1}));}
-  function groupSlot(group,pos){return {label:`${pos}ª Girone ${group}`,source:`group:Girone ${group}:${pos}`};}
+  function groupSlot(group,pos){return {label:`${pos}ª ${group}`,source:`group:${group}:${pos}`};}
   function groupQualifierSlotsFromConfigs(groupConfigs){
     const groups=normalizeRules({groupConfigs}).groupConfigs;
+    if(groups.length===2){
+      const a=groups[0], b=groups[1];
+      const qa=Number(a.qualifiers)||0, qb=Number(b.qualifiers)||0;
+      if(qa===qb&&qa===2){
+        return [groupSlot(a.name,1),groupSlot(b.name,2),groupSlot(b.name,1),groupSlot(a.name,2)];
+      }
+      if(qa===qb&&qa===4){
+        // Quarto di finale sportivo per due gironi: le prime classificate stanno in
+        // metà opposte del tabellone, quindi possono incontrarsi solo in finale.
+        // QF: A1-B4, B2-A3 | B1-A4, A2-B3
+        return [
+          groupSlot(a.name,1),groupSlot(b.name,4),
+          groupSlot(b.name,2),groupSlot(a.name,3),
+          groupSlot(b.name,1),groupSlot(a.name,4),
+          groupSlot(a.name,2),groupSlot(b.name,3)
+        ];
+      }
+    }
     const all=[];
     const maxQ=Math.max(0,...groups.map(g=>Number(g.qualifiers)||0));
     for(let pos=1;pos<=maxQ;pos++){
@@ -459,12 +513,29 @@
     return Object.fromEntries(groups.map((g,i)=>[g.name,i+1]));
   }
   function allowedFieldsForMatch(match,rules){
+    // Requisito fondamentale: nella fase a gironi ogni squadra deve giocare
+    // almeno una volta sul Campo 1. Per questo, se il torneo è a gironi e ci
+    // sono più campi, le partite del girone possono usare tutti i campi anche
+    // quando l'admin aveva scelto la mappatura girone → campo.
+    if(groupField1GuaranteeActive(rules)&&match.phase==='group')return fieldNumbers(rules);
     const fixed=groupFieldMap(rules);
     if(fixed&&match.phase==='group'&&match.groupName&&fixed[match.groupName])return [fixed[match.groupName]];
-    return Array.from({length:Math.max(1,Number(rules.fieldCount)||1)},(_,i)=>i+1);
+    return fieldNumbers(rules);
+  }
+  function groupField1GuaranteeActive(rules){
+    rules=normalizeRules(rules);
+    return rules.format==='groups_knockout'&&Number(rules.fieldCount)>1;
+  }
+  function fieldNumbers(rules){
+    const count=Math.max(1,Number(rules.fieldCount)||1);
+    return Array.from({length:count},(_,i)=>i+1);
   }
   function groupFieldPolicyMessage(rules){
     const fixed=groupFieldMap(rules);
+    if(groupField1GuaranteeActive(rules)){
+      const extra=fixed?' La priorità Campo 1 supera la mappatura girone → campo quando serve.':'';
+      return ' Garanzia Campo 1 attiva: ogni squadra della fase a gironi viene programmata almeno una volta sul Campo 1.'+extra;
+    }
     if(fixed)return ' Mappatura campi attiva: '+Object.entries(fixed).map(([g,f])=>`${g} → Campo ${f}`).join(' · ')+'.';
     if(rules&&rules.groupFieldPolicy==='rotate_per_team'&&Number(rules.fieldCount)>1)
       return ' Rotazione campi attiva: le partite di ogni squadra vengono distribuite tra i campi disponibili, così nessuna squadra gioca sempre sullo stesso campo.';
@@ -525,57 +596,62 @@
   // - nei tornei in un giorno la stessa squadra può giocare anche slot consecutivi, ma mai nello stesso slot.
   // Le fasi/roundIndex vengono pianificate in ordine, così un turno KO non viene calendarizzato prima del turno precedente.
 
-  function enforceField1Fallback(matches){
-    // Conta partite su Campo 1 per ogni squadra
-    var teamF1={}, teamTotal={};
-    for(var i=0;i<matches.length;i++){
-      var m=matches[i]; var fn=fieldNoFromLabel(m.field); if(!fn)continue;
-      var ids=matchTeamIds(m);
-      for(var j=0;j<ids.length;j++){
-        var t=ids[j]; teamF1[t]=(teamF1[t]||0)+(fn===1?1:0); teamTotal[t]=(teamTotal[t]||0)+1;
-      }
+  function needsGroupField1(match,teamFieldUse,rules){
+    if(!groupField1GuaranteeActive(rules)||match.phase!=='group')return false;
+    return matchTeamIds(match).some(t=>!((teamFieldUse[t]||{})[1]));
+  }
+  function groupField1Audit(matches,rules){
+    if(!groupField1GuaranteeActive(rules))return {ok:true,total:0,missing:[]};
+    const all=new Set(), covered=new Set();
+    (matches||[]).forEach(m=>{
+      if(m.phase!=='group')return;
+      const ids=matchTeamIds(m);
+      ids.forEach(t=>all.add(t));
+      if(fieldNoFromLabel(m.field)===1)ids.forEach(t=>covered.add(t));
+    });
+    const missing=[...all].filter(t=>!covered.has(t));
+    return {ok:missing.length===0,total:all.size,covered:covered.size,missing};
+  }
+  function groupSlotKey(match,rules){
+    return rules.oneDay?`${match.date||''}|${match.time||''}`:`${match.date||''}|GIORNO`;
+  }
+  function swapFields(a,b){const tmp=a.field;a.field=b.field;b.field=tmp;}
+  function enforceField1Fallback(matches,rules){
+    // Backup post-scheduler: se dopo la generazione una squadra del girone non
+    // ha ancora Campo 1, prova a scambiare il campo con una partita dello stesso
+    // slot senza creare sovrapposizioni. La scelta primaria avviene già durante
+    // lo scheduling; questa funzione serve a correggere casi limite e vecchi dati.
+    if(!groupField1GuaranteeActive(rules))return {ok:true,total:0,missing:[]};
+    let audit=groupField1Audit(matches,rules);
+    if(audit.ok)return audit;
+    const bySlot=new Map();
+    (matches||[]).forEach(m=>{const k=groupSlotKey(m,rules);if(!bySlot.has(k))bySlot.set(k,[]);bySlot.get(k).push(m);});
+    function counts(){
+      const c={};
+      (matches||[]).forEach(m=>{if(m.phase==='group'&&fieldNoFromLabel(m.field)===1)matchTeamIds(m).forEach(t=>c[t]=(c[t]||0)+1);});
+      return c;
     }
-    // Per ogni squadra con 0 partite su Campo 1:
-    for(var tid in teamF1){
-      if(teamF1[tid]>0)continue;
-      // Strategia A: trova uno slot dove Campo 1 e' libero
-      var found=false;
-      for(var i2=0;i2<matches.length&&!found;i2++){
-        var mx=matches[i2];
-        if(fieldNoFromLabel(mx.field)!==2||!matchTeamIds(mx).includes(tid))continue;
-        // Cerca se Campo 1 nello stesso slot e' libero
-        var slotBusy=false;
-        for(var k=0;k<matches.length;k++){
-          if(matches[k]!==mx&&matches[k].date===mx.date&&matches[k].time===mx.time&&fieldNoFromLabel(matches[k].field)===1){slotBusy=true;break;}
-        }
-        if(!slotBusy){ mx.field="Campo 1"; teamF1[tid]++; for(var j2=0;j2<matchTeamIds(mx).length;j2++){var tt=matchTeamIds(mx)[j2];teamF1[tt]=(teamF1[tt]||0)+1;} found=true; }
-      }
-      if(found)continue;
-      // Strategia B: SWAP con una squadra che ha 2+ partite su Campo 1
-      for(var i3=0;i3<matches.length&&!found;i3++){
-        var myCampo2=matches[i3];
-        if(fieldNoFromLabel(myCampo2.field)!==2||!matchTeamIds(myCampo2).includes(tid))continue;
-        // Trova la partita su Campo 1 nello stesso slot
-        for(var k2=0;k2<matches.length;k2++){
-          var otherCampo1=matches[k2];
-          if(otherCampo1===myCampo2)continue;
-          if(otherCampo1.date!==myCampo2.date||otherCampo1.time!==myCampo2.time)continue;
-          if(fieldNoFromLabel(otherCampo1.field)!==1)continue;
-          // Verifica che tutte le squadre su Campo 1 abbiano 2+ partite Campo 1
-          var otherIds=matchTeamIds(otherCampo1);
-          var canSwap=true;
-          for(var j3=0;j3<otherIds.length;j3++){if((teamF1[otherIds[j3]]||0)<2){canSwap=false;break;}}
-          if(canSwap){
-            // Scambia i campi
-            myCampo2.field="Campo 1"; otherCampo1.field="Campo 2";
-            teamF1[tid]++;
-            for(var j4=0;j4<matchTeamIds(myCampo2).length;j4++){teamF1[matchTeamIds(myCampo2)[j4]]++;}
-            for(var j5=0;j5<otherIds.length;j5++){teamF1[otherIds[j5]]--;}
-            found=true; break;
+    let guard=0;
+    while(!audit.ok&&guard++<50){
+      let changed=false;
+      const c=counts();
+      for(const tid of audit.missing){
+        const candidates=(matches||[]).filter(m=>m.phase==='group'&&matchTeamIds(m).includes(tid)&&fieldNoFromLabel(m.field)!==1);
+        for(const m of candidates){
+          const slot=bySlot.get(groupSlotKey(m,rules))||[];
+          const onOne=slot.find(x=>x!==m&&fieldNoFromLabel(x.field)===1);
+          if(!onOne){m.field='Campo 1';changed=true;break;}
+          const losing=matchTeamIds(onOne);
+          if(losing.every(t=>(c[t]||0)>1)){
+            swapFields(m,onOne);changed=true;break;
           }
         }
+        if(changed)break;
       }
+      audit=groupField1Audit(matches,rules);
+      if(!changed)break;
     }
+    return audit;
   }
 
   function scheduleMatches(matches,rules){
@@ -611,11 +687,18 @@
             if(teams.some(t=>slotTeams[slot].has(t)))continue;
             const time=timeLabel(dt);
             // Campi candidati: tutti quelli ammessi e liberi in questo slot.
-            const freeFields=allowedFieldsForMatch(match,rules).filter(field=>!slotFieldBusy.has(dateTimeKey(rules.startDate,time,field)));
+            let freeFields=allowedFieldsForMatch(match,rules).filter(field=>!slotFieldBusy.has(dateTimeKey(rules.startDate,time,field)));
+            if(needsGroupField1(match,teamFieldUse,rules)){
+              // Se una delle due squadre non ha ancora giocato sul Campo 1, questa
+              // partita aspetta il primo slot in cui il Campo 1 è libero. Così il
+              // requisito non dipende da correzioni successive o da fortuna.
+              if(!freeFields.includes(1))continue;
+              freeFields=[1];
+            }
             if(!freeFields.length)continue;
             // Con rotazione attiva scegliamo il campo che bilancia l'uso per squadra,
             // altrimenti il primo libero (comportamento storico).
-            const field=rotateFields?pickRotatedField(freeFields,teams,teamFieldUse):freeFields[0];
+            const field=freeFields.length===1?freeFields[0]:(rotateFields?pickRotatedField(freeFields,teams,teamFieldUse):freeFields[0]);
             match.date=rules.startDate;
             match.time=time;
             match.datetime=`${match.date}T${match.time}`;
@@ -633,8 +716,10 @@
       }
       const end=new Date(start.getTime()+Math.max(0,maxSlotUsed)*step*60000+duration*60000);
       const pauseText=pause?` Pausa programmata alle ${pause.startTime} per ${pause.duration} min inserita nel calendario.`:'';
-      if(fields>1)enforceField1Fallback(matches);
-      return {ok:true,calculatedEndTime:end.toTimeString().slice(0,5),message:`Calendario generato: ${matches.length} partite in un giorno su ${fields} campi. Fine stimata: ${end.toTimeString().slice(0,5)}.${pauseText} Nessuna squadra gioca in contemporanea e nessun campo è sovrapposto.${groupFieldPolicyMessage(rules)}`};
+      const f1=fields>1?enforceField1Fallback(matches,rules):{ok:true,total:0,missing:[]};
+      if(!f1.ok)return {ok:false,message:`Calendario impossibile: non riesco a garantire almeno una partita sul Campo 1 per tutte le squadre dei gironi. Mancanti: ${f1.missing.length}. Aumenta la durata del torneo o consenti più slot di gioco.`};
+      const f1Text=f1.total?` Garanzia Campo 1 verificata per ${f1.covered}/${f1.total} squadre dei gironi.`:'';
+      return {ok:true,calculatedEndTime:end.toTimeString().slice(0,5),message:`Calendario generato: ${matches.length} partite in un giorno su ${fields} campi. Fine stimata: ${end.toTimeString().slice(0,5)}.${pauseText} Nessuna squadra gioca in contemporanea e nessun campo è sovrapposto.${groupFieldPolicyMessage(rules)}${f1Text}`};
     }
 
     if(!rules.startDate||!rules.endDate)return {ok:false,message:'Per tornei su più giorni indica data inizio e data fine.'};
@@ -656,9 +741,13 @@
           // Nei tornei lunghi una squadra non deve disputare due partite nello stesso giorno.
           if(teams.some(t=>dayTeams[day].has(t)))continue;
           // Campi candidati: ammessi e liberi in questa data.
-          const freeFields=allowedFieldsForMatch(match,rules).filter(field=>!dayFieldBusy[day].has(field));
+          let freeFields=allowedFieldsForMatch(match,rules).filter(field=>!dayFieldBusy[day].has(field));
+          if(needsGroupField1(match,teamFieldUse,rules)){
+            if(!freeFields.includes(1))continue;
+            freeFields=[1];
+          }
           if(!freeFields.length)continue;
-          const field=rotateFields?pickRotatedField(freeFields,teams,teamFieldUse):freeFields[0];
+          const field=freeFields.length===1?freeFields[0]:(rotateFields?pickRotatedField(freeFields,teams,teamFieldUse):freeFields[0]);
           match.date=allowedDates[day];
           match.time='';
           match.datetime='';
@@ -682,9 +771,11 @@
       }
     }
 
-    if(fields>1)enforceField1Fallback(matches);
+    const f1=fields>1?enforceField1Fallback(matches,rules):{ok:true,total:0,missing:[]};
+    if(!f1.ok)return {ok:false,message:`Calendario impossibile: non riesco a garantire almeno una partita sul Campo 1 per tutte le squadre dei gironi. Mancanti: ${f1.missing.length}. Estendi il periodo o aggiungi date giocabili.`};
     const usedDays=[...new Set(matches.map(m=>m.date).filter(Boolean))].length;
-    return {ok:true,message:`Calendario generato su ${usedDays} date di gioco tra ${rules.startDate} e ${rules.endDate} (${weekdayLabels(rules.playingDays)}). Nessuna squadra gioca due volte nello stesso giorno e nessun campo è sovrapposto.${groupFieldPolicyMessage(rules)}`};
+    const f1Text=f1.total?` Garanzia Campo 1 verificata per ${f1.covered}/${f1.total} squadre dei gironi.`:'';
+    return {ok:true,message:`Calendario generato su ${usedDays} date di gioco tra ${rules.startDate} e ${rules.endDate} (${weekdayLabels(rules.playingDays)}). Nessuna squadra gioca due volte nello stesso giorno e nessun campo è sovrapposto.${groupFieldPolicyMessage(rules)}${f1Text}`};
   }
 
   function validateCompetitionConfig(r, teamCount=null){
@@ -712,7 +803,7 @@
   function validateGeneration(state){const r=normalizeRules(state.rules);const teams=state.teams.length;const min=minimumTeams(r);if(teams<min)return {ok:false,message:`Servono almeno ${min} squadre per ${FORMAT_LABELS[r.format]}. Inserite: ${teams}.`};if(Number(r.fieldCount||0)<1)return {ok:false,message:'Inserisci almeno 1 campo disponibile.'};if(!r.oneDay&&(!Array.isArray(r.playingDays)||!r.playingDays.length))return {ok:false,message:'Seleziona almeno un giorno della settimana in cui si può giocare.'};if(r.format==='league')return {ok:true,message:'Formato valido: campionato unico senza fasi successive.'};if(r.format==='knockout')return {ok:true,message:'Formato valido: solo tabellone a eliminazione diretta.'};if(r.format==='groups_knockout'){const cfgs=r.groupConfigs||[];if(cfgs.length<2)return {ok:false,message:'Per gironi + eliminazione diretta servono almeno 2 gironi.'};if(r.groupFieldPolicy==='fixed_by_group'&&cfgs.length!==r.fieldCount)return {ok:false,message:`La modalità girone → campo richiede che il numero di gironi (${cfgs.length}) sia uguale al numero di campi (${r.fieldCount}).`};const totalSizes=cfgs.reduce((sum,g)=>sum+g.size,0);if(totalSizes!==teams)return {ok:false,message:`La somma delle squadre nei gironi deve essere uguale alle squadre iscritte. Configurate: ${totalSizes}, iscritte: ${teams}.`};for(const g of cfgs){if(g.size<2)return {ok:false,message:`${g.name}: servono almeno 2 squadre.`};if(g.qualifiers<0)return {ok:false,message:`${g.name}: qualificate non valide.`};if(g.qualifiers>g.size)return {ok:false,message:`${g.name}: non puoi qualificare ${g.qualifiers} squadre su ${g.size}.`};}const totalQ=cfgs.reduce((sum,g)=>sum+g.qualifiers,0);if(totalQ<2)return {ok:false,message:'Devono qualificarsi almeno 2 squadre complessive alla fase finale.'};if(totalQ>teams)return {ok:false,message:'Le qualificate alla fase finale non possono superare le squadre iscritte.'};return {ok:true,message:'Formato valido: gironi personalizzati + fase finale a eliminazione con eventuali BYE.'};}if(r.format==='league_knockout'){const cfg=validateCompetitionConfig(r,teams);if(!cfg.ok)return cfg;return {ok:true,message:'Formato valido: campionato unico + competizioni a eliminazione diretta configurabili.'};}return {ok:false,message:'Formato torneo non riconosciuto.'};}
   function scheduleSignature(state){
     const r=normalizeRules(state.rules);
-    const rulesForSchedule={format:r.format,groupConfigs:r.groupConfigs,groupAssignments:r.groupAssignments,playoffTeams:r.playoffTeams,eliminationCompetitions:r.eliminationCompetitions,superCup:r.superCup,isKingsLeague:r.isKingsLeague,oneDay:r.oneDay,fieldCount:r.fieldCount,startDate:r.startDate,endDate:r.endDate,startTime:r.startTime,matchDuration:r.matchDuration,breakMinutes:r.breakMinutes,oneDayPauseEnabled:r.oneDayPauseEnabled,oneDayPauseStart:r.oneDayPauseStart,oneDayPauseDuration:r.oneDayPauseDuration,playingDays:r.playingDays,groupFieldPolicy:r.groupFieldPolicy};
+    const rulesForSchedule={schema:'v122-field1-bracket-pdf',format:r.format,groupConfigs:r.groupConfigs,groupAssignments:r.groupAssignments,playoffTeams:r.playoffTeams,eliminationCompetitions:r.eliminationCompetitions,superCup:r.superCup,isKingsLeague:r.isKingsLeague,oneDay:r.oneDay,fieldCount:r.fieldCount,startDate:r.startDate,endDate:r.endDate,startTime:r.startTime,matchDuration:r.matchDuration,breakMinutes:r.breakMinutes,oneDayPauseEnabled:r.oneDayPauseEnabled,oneDayPauseStart:r.oneDayPauseStart,oneDayPauseDuration:r.oneDayPauseDuration,playingDays:r.playingDays,groupFieldPolicy:r.groupFieldPolicy};
     const teams=(state.teams||[]).map(t=>({id:t.id}));
     return JSON.stringify({rules:rulesForSchedule,teams});
   }
@@ -799,7 +890,14 @@
       if(m.awayTeamId&&!teamIds.has(m.awayTeamId)){m.awayTeamId='';fixedMatches++;}
       const beforeG=m.goals.length;
       const beforeC=m.cards.length;
-      m.goals=m.goals.filter(g=>g.playerId&&goalParticipantIds.has(g.playerId)&&playerBelongsToMatch(state,m,g.playerId)).map(g=>(presidentIds.has(g.playerId)||!state.rules.isKingsLeague)?{...g,weight:1}:g);
+      m.goals=m.goals.map(g=>normalizeGoalEvent(g)).filter(g=>{
+        if(isOwnGoalEvent(g)){
+          const tid=ownGoalTeamId(state,m,g);
+          if(!tid)return false;
+          g.teamId=tid;g.playerId=ownGoalValue(tid);g.weight=1;return true;
+        }
+        return g.playerId&&goalParticipantIds.has(g.playerId)&&playerBelongsToMatch(state,m,g.playerId);
+      }).map(g=>(isOwnGoalEvent(g)||presidentIds.has(g.playerId)||!state.rules.isKingsLeague)?{...g,weight:1}:g);
       m.cards=m.cards.filter(c=>c.playerId&&playerIds.has(c.playerId)&&!presidentIds.has(c.playerId)&&playerBelongsToMatch(state,m,c.playerId)&&(c.type==='yellow'||c.type==='red'));
       removedEvents+=beforeG-m.goals.length+beforeC-m.cards.length;
       fixedEvents+=beforeG-m.goals.length+beforeC-m.cards.length;
@@ -884,6 +982,10 @@
       if((m.status==='played'||m.status==='live'||m.goals.length||m.cards.length)&&(!m.homeTeamId||!m.awayTeamId))issues.push({severity:'error',area:'Referti',message:`${matchLabel(m)}: referto presente ma mancano una o entrambe le squadre reali.`});
       if((m.goals.length||m.cards.length)&&m.status!=='played'&&m.status!=='live')issues.push({severity:'warn',area:'Referti',message:`${m.round}: eventi presenti ma partita non marcata come giocata.`});
       (m.goals||[]).forEach(g=>{
+        if(isOwnGoalEvent(g)){
+          if(!ownGoalTeamId(state,m,g))issues.push({severity:'error',area:'Marcatori',message:`${m.round}: autogol non collegato a una squadra in campo.`});
+          return;
+        }
         if(!participantIds.has(g.playerId))issues.push({severity:'error',area:'Marcatori',message:`${m.round}: gol assegnato a una persona inesistente.`});
         else if(!playerBelongsToMatch(state,m,g.playerId))issues.push({severity:'error',area:'Marcatori',message:`${m.round}: ${playerName(state,g.playerId)} non appartiene alle squadre in campo.`});
       });
@@ -1098,7 +1200,8 @@
     (state.matches||[]).forEach(m=>{
       ng += (m.goals||[]).length;
       nc += (m.cards||[]).length;
-      st += (m.status||'')+(m.homeTeamId||'')+(m.awayTeamId||'')+(m.penalties?`${m.penalties.home}-${m.penalties.away}`:'');
+      const gSig=(m.goals||[]).map(g=>`${g.playerId||''}:${g.teamId||''}:${g.type||''}:${g.weight||1}`).join(';');
+      st += (m.status||'')+(m.homeTeamId||'')+(m.awayTeamId||'')+gSig+(m.penalties?`${m.penalties.home}-${m.penalties.away}`:'');
     });
     // Solo i campi delle regole che influenzano standings/bracket
     const rf=`${r.format}|${r.isKingsLeague}|${r.playoffTeams}|${(r.standingsCriteriaOrder||[]).join(',')}|${(r.groupConfigs||[]).map(g=>`${g.name}:${g.size}:${g.qualifiers}`).join('|')}`;
@@ -1137,5 +1240,5 @@
   const memoGroupedStandings = memo(groupedStandings,'groupedStandings');
   const memoStats = memo(stats,'stats');
 
-  window.NexoraStore={ADMIN_KEY,PUBLIC_KEY,FORMAT_LABELS,PHASE_LABELS,FORMAT_HELP,STANDINGS_CRITERIA,defaultStandingsCriteriaOrder,normalizeStandingsCriteriaOrder,standingsCriterionMeta,uid,blankRules,defaultGroupConfigs,defaultSite,normalizeSite,emptyState,normalizeState,readPendingRemoteState,newestAdminLocalState,publicCacheState,withoutHeavyMedia,mergeMissingMedia,eventScoreWeight,load,save,alignState,repairState,auditDataState,derivedSnapshot,integrityReport,getTeam,getPlayer,getPresident,getParticipant,isPresidentId,teamName,playerName,scoreText,matchGoals,actualGoalCount,hasScore,hasGoals,isPlayed,isLive,matchStatusInfo,normalizeJerseyNumber,normalizePenalties,isKnockoutPhase,penaltyWinnerId,winnerId,minimumTeams,plannedGroups,groupAssignmentsFromMatches,validateGroupAssignments,serpentineAssignments,randomAssignments,generateCalendar,ensureFreshCalendar,isCalendarFresh,scheduleSignature,validateGeneration,validateCompetitionConfig,generationPlan,autoResolveKnockout,bracketData:memoBracketData,sortedCompetitions,seedEntrantsHighLow,allowedDateList,weekdayLabels,suggestEndDateForMatches,oneDayCalendarPauseEvent,groupFieldMap,allowedFieldsForMatch,groupFieldPolicyMessage,deriveFingerprint,selectors:{calculateStandings:memoCalculateStandings,groupStandings:memoGroupStandings,groupNames,groupedStandings:memoGroupedStandings,hasGroupStage,playerStats:memoPlayerStats,presidentStats:memoPresidentStats,scorers:memoScorers,presidentScorers:memoPresidentScorers,stats:memoStats,phases,rounds,bracketData:memoBracketData,articles}};
+  window.NexoraStore={ADMIN_KEY,PUBLIC_KEY,FORMAT_LABELS,PHASE_LABELS,FORMAT_HELP,STANDINGS_CRITERIA,defaultStandingsCriteriaOrder,normalizeStandingsCriteriaOrder,standingsCriterionMeta,uid,blankRules,defaultGroupConfigs,defaultSite,normalizeSite,emptyState,normalizeState,readPendingRemoteState,newestAdminLocalState,publicCacheState,withoutHeavyMedia,mergeMissingMedia,eventScoreWeight,load,save,alignState,repairState,auditDataState,derivedSnapshot,integrityReport,getTeam,getPlayer,getPresident,getParticipant,isPresidentId,ownGoalValue,isOwnGoalValue,isOwnGoalEvent,ownGoalTeamId,goalScoringTeamId,goalEventTeamId,goalLabel,teamName,playerName,scoreText,matchGoals,actualGoalCount,hasScore,hasGoals,isPlayed,isLive,matchStatusInfo,normalizeJerseyNumber,normalizePenalties,isKnockoutPhase,penaltyWinnerId,winnerId,minimumTeams,plannedGroups,groupAssignmentsFromMatches,validateGroupAssignments,serpentineAssignments,randomAssignments,generateCalendar,ensureFreshCalendar,isCalendarFresh,scheduleSignature,validateGeneration,validateCompetitionConfig,generationPlan,autoResolveKnockout,bracketData:memoBracketData,sortedCompetitions,seedEntrantsHighLow,allowedDateList,weekdayLabels,suggestEndDateForMatches,oneDayCalendarPauseEvent,groupFieldMap,allowedFieldsForMatch,groupFieldPolicyMessage,deriveFingerprint,selectors:{calculateStandings:memoCalculateStandings,groupStandings:memoGroupStandings,groupNames,groupedStandings:memoGroupedStandings,hasGroupStage,playerStats:memoPlayerStats,presidentStats:memoPresidentStats,scorers:memoScorers,presidentScorers:memoPresidentScorers,stats:memoStats,phases,rounds,bracketData:memoBracketData,articles}};
 })();

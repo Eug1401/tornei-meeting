@@ -191,8 +191,102 @@
    doc.autoTable({...tableTheme(),startY:58,columns:[{header:'Fase',dataKey:'phase'},{header:'Giornata/turno',dataKey:'round'},{header:'Casa',dataKey:'home'},{header:'Ospite',dataKey:'away'},{header:'Campo',dataKey:'field'},{header:'Data e ora',dataKey:'date'},{header:'Risultato',dataKey:'score'},{header:'Stato',dataKey:'status'}],body:rows.length?rows:[{phase:'-',round:'-',home:'Nessuna partita disponibile',away:'-',field:'-',date:'-',score:'-',status:'-'}],columnStyles:{0:{cellWidth:28},1:{cellWidth:34},2:{cellWidth:46},3:{cellWidth:46},4:{cellWidth:35},5:{cellWidth:43},6:{cellWidth:26,halign:'center',fontStyle:'bold'},7:{cellWidth:24,halign:'center'}},didParseCell:function(data){if(data.section==='body'&&(data.column.index===2||data.column.index===3)){data.cell.styles.cellPadding={top:2,right:2,bottom:2,left:10};data.cell.styles.fontStyle='bold';}},didDrawCell:function(data){if(data.section!=='body')return;const r=rows[data.row.index];if(!r)return;if(data.column.index===2)drawLogo(data.doc,logos[r.homeTeamId],data.cell.x+1.4,data.cell.y+1.3,6,r.home);if(data.column.index===3)drawLogo(data.doc,logos[r.awayTeamId],data.cell.x+1.4,data.cell.y+1.3,6,r.away);}});
    addFooter(doc,s); doc.save(pdfName(s,'calendario-completo'));
  }
- function drawTeamLine(doc,s,logos,m,side,x,y,w){const id=side==='home'?m.homeTeamId:m.awayTeamId;const label=side==='home'?m.homeLabel:m.awayLabel;const name=store.teamName(s,id,label||'Da definire');const sc=store.matchGoals(s,m);const score=store.hasScore(s,m)?(side==='home'?sc.home:sc.away):'';drawLogo(doc,logos[id],x+1.5,y+1,5.7,name);setRgb(doc,'setTextColor',PDF_COLORS.ink);doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.text(String(name).slice(0,24),x+9,y+5.1,{maxWidth:w-16});if(score!==''){doc.setFontSize(7);doc.text(String(score),x+w-3,y+5.1,{align:'right'});} }
- function drawBracketPage(doc,s,logos,bracket,logo,addNewPage=true){if(addNewPage)doc.addPage('a4','landscape');drawHeader(doc,s,`Tabellone · ${bracket.name}`,'Grafica del tabellone con squadre, placeholder e risultati dal calendario.',logo);const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight();const left=12,right=12,top=58,bottom=20;const rounds=bracket.rounds;const gap=5;const colW=(w-left-right-gap*(rounds.length-1))/Math.max(1,rounds.length);rounds.forEach((round,ri)=>{const x=left+ri*(colW+gap);setRgb(doc,'setFillColor',PDF_COLORS.ink);doc.roundedRect(x,top-8,colW,6,1.8,1.8,'F');setRgb(doc,'setTextColor',PDF_COLORS.gold2);doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text(String(round.name),x+colW/2,top-4,{align:'center',maxWidth:colW-2});const count=Math.max(round.matches.length,1);const cardH=Math.max(15,Math.min(26,(h-top-bottom-(count-1)*5)/count));const usable=h-top-bottom-cardH;round.matches.forEach((m,mi)=>{const y=top+(count===1?usable/2:(usable*mi/(count-1))) ;setRgb(doc,'setFillColor',[247,251,255]);setRgb(doc,'setDrawColor',PDF_COLORS.line);doc.roundedRect(x,y,colW,cardH,3,3,'FD');setRgb(doc,'setTextColor',PDF_COLORS.muted);doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.text(`${m.round||round.name} · ${m.field||'Campo da definire'}`,x+2,y+4);drawTeamLine(doc,s,logos,m,'home',x+2,y+5,colW-4);drawTeamLine(doc,s,logos,m,'away',x+2,y+12,colW-4);if(ri<rounds.length-1){setRgb(doc,'setDrawColor',PDF_COLORS.gold);doc.setLineWidth(.25);const yMid=y+cardH/2;doc.line(x+colW,yMid,x+colW+gap*.65,yMid);}});});}
+ function bracketTeamName(s,m,side){const id=side==='home'?m.homeTeamId:m.awayTeamId;const label=side==='home'?m.homeLabel:m.awayLabel;return store.teamName(s,id,label||'Da definire');}
+ function bracketTeamId(m,side){return side==='home'?m.homeTeamId:m.awayTeamId;}
+ function isWinnerSide(s,m,side){const wid=store.winnerId(s,m);const id=bracketTeamId(m,side);return Boolean(wid&&id&&wid===id);}
+ function drawBracketTeamRow(doc,s,logos,m,side,x,y,w,rowH){
+   const id=bracketTeamId(m,side), name=bracketTeamName(s,m,side), win=isWinnerSide(s,m,side);
+   const sc=store.matchGoals(s,m); const score=store.hasScore(s,m)?(side==='home'?sc.home:sc.away):'';
+   setRgb(doc,'setFillColor',win?[255,246,235]:[255,255,255]);
+   setRgb(doc,'setDrawColor',win?PDF_COLORS.gold:[219,229,244]);
+   doc.roundedRect(x,y,w,rowH,2.2,2.2,'FD');
+   if(win){setRgb(doc,'setFillColor',PDF_COLORS.gold);doc.roundedRect(x,y,2.2,rowH,2,2,'F');}
+   drawLogo(doc,logos[id],x+3,y+1.6,7,name);
+   setRgb(doc,'setTextColor',PDF_COLORS.ink);doc.setFont('helvetica',win?'bold':'normal');doc.setFontSize(7.2);
+   doc.text(String(name).slice(0,28),x+12,y+6.4,{maxWidth:w-21});
+   if(score!==''){
+     setRgb(doc,'setFillColor',win?PDF_COLORS.gold:PDF_COLORS.ink);
+     setRgb(doc,'setTextColor',win?PDF_COLORS.ink:PDF_COLORS.gold2);
+     doc.roundedRect(x+w-9.5,y+1.6,7.6,rowH-3.2,1.8,1.8,'F');
+     doc.setFont('helvetica','bold');doc.setFontSize(7.6);doc.text(String(score),x+w-5.7,y+6.4,{align:'center'});
+   }
+ }
+ function drawBracketCard(doc,s,logos,m,roundName,x,y,w,h){
+   const done=store.hasScore(s,m)||m.status==='played';
+   setRgb(doc,'setFillColor',[255,255,255]);
+   setRgb(doc,'setDrawColor',[255,176,95]);
+   doc.setLineWidth(.25);doc.roundedRect(x,y,w,h,4,4,'FD');
+   setRgb(doc,'setFillColor',[6,19,45]);doc.roundedRect(x,y,w,7.2,4,4,'F');
+   setRgb(doc,'setFillColor',PDF_COLORS.gold);doc.rect(x,y+5.5,w,1.7,'F');
+   setRgb(doc,'setTextColor',PDF_COLORS.gold2);doc.setFont('helvetica','bold');doc.setFontSize(5.8);
+   const meta=`${m.round||roundName}${m.field?' · '+m.field:''}`;
+   doc.text(String(meta).slice(0,44),x+2.5,y+5,{maxWidth:w-5});
+   drawBracketTeamRow(doc,s,logos,m,'home',x+2,y+9,w-4,9.8);
+   drawBracketTeamRow(doc,s,logos,m,'away',x+2,y+20,w-4,9.8);
+   const p=store.normalizePenalties?store.normalizePenalties(m.penalties):m.penalties;
+   if(p&&store.hasScore(s,m)){
+     setRgb(doc,'setTextColor',PDF_COLORS.muted);doc.setFont('helvetica','normal');doc.setFontSize(5.4);
+     doc.text(`d.c.r. ${p.home}-${p.away}`,x+w-3,y+h-2.7,{align:'right'});
+   }
+   setRgb(doc,'setFillColor',done?[229,255,238]:[241,246,255]);
+   setRgb(doc,'setTextColor',done?[20,112,55]:PDF_COLORS.blue);
+   doc.roundedRect(x+2,y+h-5.2,18,3.6,1.7,1.7,'F');doc.setFont('helvetica','bold');doc.setFontSize(4.8);doc.text(done?'GIOCATA':'DA GIOCARE',x+11,y+h-2.6,{align:'center'});
+ }
+ function drawBracketPage(doc,s,logos,bracket,logo,addNewPage=true){
+   if(addNewPage)doc.addPage('a4','landscape');
+   drawHeader(doc,s,`Tabellone · ${bracket.name}`,'Percorso finale con accoppiamenti, risultati e avanzamento verso la finale.',logo);
+   const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight();
+   const left=10,right=10,top=56,bottom=15;
+   const rounds=bracket.rounds||[];
+   const gap=Math.max(5,Math.min(9,26/Math.max(1,rounds.length)));
+   const colW=(w-left-right-gap*(rounds.length-1))/Math.max(1,rounds.length);
+   // Sfondo sportivo leggero: bande blu/arancio senza appesantire il PDF.
+   setRgb(doc,'setFillColor',[247,251,255]);doc.rect(0,51,w,h-51,'F');
+   setRgb(doc,'setFillColor',[238,245,255]);doc.rect(left,top-4,w-left-right,h-top-bottom+6,'F');
+   setRgb(doc,'setFillColor',[255,122,24]);doc.rect(left,top-4,2.2,h-top-bottom+6,'F');
+   setRgb(doc,'setFillColor',[31,99,255]);doc.rect(w-right-2.2,top-4,2.2,h-top-bottom+6,'F');
+   const positions=[];
+   rounds.forEach((round,ri)=>{
+     const x=left+ri*(colW+gap);
+     const count=Math.max(round.matches.length,1);
+     const available=h-top-bottom-10;
+     const innerGap=count>1?Math.min(6,Math.max(3,(available-28*count)/(count-1))):0;
+     const cardH=Math.max(28,Math.min(34,(available-innerGap*(count-1))/count));
+     const totalH=count*cardH+(count-1)*innerGap;
+     const startY=top+9+Math.max(0,(available-totalH)/2);
+     positions[ri]=round.matches.map((m,mi)=>({x,y:startY+mi*(cardH+innerGap),w:colW,h:cardH,mid:startY+mi*(cardH+innerGap)+cardH/2,match:m,roundName:round.name}));
+   });
+   // Connettori tabellone: linee a gomito pulite tra un turno e il successivo.
+   setRgb(doc,'setDrawColor',PDF_COLORS.gold);doc.setLineWidth(.45);
+   for(let ri=0;ri<positions.length-1;ri++){
+     const curr=positions[ri],next=positions[ri+1];
+     next.forEach((n,j)=>{
+       const a=curr[j*2],b=curr[j*2+1];
+       const xStart=(a?a.x+a.w:(b?b.x+b.w:0));
+       const xMid=xStart+gap*.52;
+       if(a){doc.line(a.x+a.w,a.mid,xMid,a.mid);}
+       if(b){doc.line(b.x+b.w,b.mid,xMid,b.mid);}
+       if(a&&b)doc.line(xMid,a.mid,xMid,b.mid);
+       const yTo=n.mid;
+       doc.line(xMid,yTo,n.x,yTo);
+     });
+   }
+   // Colonne e card.
+   rounds.forEach((round,ri)=>{
+     const x=left+ri*(colW+gap);
+     setRgb(doc,'setFillColor',PDF_COLORS.ink);doc.roundedRect(x,top-3,colW,8,2.2,2.2,'F');
+     setRgb(doc,'setFillColor',PDF_COLORS.gold);doc.roundedRect(x,top+3.3,colW,1.7,0.8,0.8,'F');
+     setRgb(doc,'setTextColor',PDF_COLORS.gold2);doc.setFont('helvetica','bold');doc.setFontSize(7.4);
+     doc.text(String(round.name),x+colW/2,top+2.2,{align:'center',maxWidth:colW-3});
+     (positions[ri]||[]).forEach(pos=>drawBracketCard(doc,s,logos,pos.match,pos.roundName,pos.x,pos.y,pos.w,pos.h));
+   });
+   // Box finale/nota sportiva.
+   const last=positions[positions.length-1]?.[0];
+   if(last){
+     setRgb(doc,'setFillColor',[6,19,45]);setRgb(doc,'setDrawColor',PDF_COLORS.gold);doc.roundedRect(last.x,last.y+last.h+3,last.w,9,3,3,'FD');
+     setRgb(doc,'setTextColor',PDF_COLORS.gold2);doc.setFont('helvetica','bold');doc.setFontSize(5.6);doc.text('Percorso verso il titolo',last.x+last.w/2,last.y+last.h+8.6,{align:'center'});
+   }
+ }
  async function pdfBracket(){
    const s=currentPdfState(), logos=await preloadTeamLogos(s); const {doc,logo}=await baseDoc(s,'Tabellone fase finale','Grafica tabellone con squadre, placeholder e risultati.','l');
    const data=store.bracketData(s);

@@ -1,0 +1,9 @@
+Patch v121 - Autogol, tabellone due gironi, scheda squadre
+
+- Aggiunta gestione autogol nei marcatori: selezionabile per ciascuna squadra.
+- L'autogol incide sul risultato e sui referti ma non sulla classifica marcatori.
+- I referti pubblici mostrano l'autogol nella squadra che riceve il gol, con indicazione della squadra che lo ha causato.
+- In caso di 2 gironi con 4 qualificate per girone, i quarti vengono generati così: A1-B4, B2-A3 | B1-A4, A2-B3. Le prime dei due gironi sono in metà opposte del tabellone e possono incontrarsi solo in finale.
+- In caso di 2 gironi con 2 qualificate, le semifinali restano A1-B2 e B1-A2.
+- La scheda squadra pubblica e il PDF squadra ora leggono GF/GS dalla classifica coerente con il contesto: girone per tornei a gironi, classifica generale per campionato.
+- Aggiornata la firma del calendario per forzare il riallineamento del tabellone alla nuova logica.

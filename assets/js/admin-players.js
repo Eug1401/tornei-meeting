@@ -73,7 +73,7 @@
      const ids=new Set((team.players||[]).map(p=>p.id));
      team.players=[];
      (state.matches||[]).forEach(m=>{
-       m.goals=(m.goals||[]).filter(g=>!ids.has(g.playerId));
+       m.goals=(m.goals||[]).filter(g=>(store.isOwnGoalEvent&&store.isOwnGoalEvent(g))||!ids.has(g.playerId));
        m.cards=(m.cards||[]).filter(c=>!ids.has(c.playerId));
      });
    });

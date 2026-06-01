@@ -1,0 +1,9 @@
+Patch v123 - Refresh UI globale e anti-flicker
+
+- Rinfrescata generale UI lato pubblico e admin con palette blu/arancio.
+- Pulsanti, card, tabelle, filtri, tab e bottom navigation resi piu leggibili e coerenti.
+- Nessuna modifica alla logica del torneo/calendario/referti.
+- Stabilizzazione anti-flicker: lock transitorio delle transizioni durante cambi tab/render silenziosi.
+- Sezione articoli mantenuta con immagini anteprima uniformi e layout stabile.
+- Overlay/dettagli senza blur/backdrop-filter pesanti.
+- Cache-busting aggiornato a v123-ui-refresh.

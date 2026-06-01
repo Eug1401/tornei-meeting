@@ -23,7 +23,7 @@
     if(m.status==='live')return {key:'live',label:'Live',cls:'is-live'};
     return played?{label:'Giocata',cls:'is-played'}:{label:'Da giocare',cls:'is-pending'};
   }
-  function matchCard(state,m,clickable=false){const homeT=store.getTeam(state,m.homeTeamId),awayT=store.getTeam(state,m.awayTeamId);const home=store.teamName(state,m.homeTeamId,m.homeLabel),away=store.teamName(state,m.awayTeamId,m.awayLabel);const goals=(m.goals||[]).map(g=>`${store.playerName(state,g.playerId)}${Number(g.weight)===2?' (x2)':''}`).join(', ');const yellow=(m.cards||[]).filter(c=>c.type==='yellow').map(c=>store.playerName(state,c.playerId)).join(', ');const red=(m.cards||[]).filter(c=>c.type==='red').map(c=>store.playerName(state,c.playerId)).join(', ');const status=matchStatusMeta(state,m);const isLive=m.status==='live';const played=store.hasScore(state,m)||m.status==='played';const showScore=played||isLive||(store.hasGoals&&store.hasGoals(state,m));const score=showScore?store.matchGoals(state,m):null;const centerCls=isLive?'is-live':(played?'is-played':'is-pending');
+  function matchCard(state,m,clickable=false){const homeT=store.getTeam(state,m.homeTeamId),awayT=store.getTeam(state,m.awayTeamId);const home=store.teamName(state,m.homeTeamId,m.homeLabel),away=store.teamName(state,m.awayTeamId,m.awayLabel);const goals=(m.goals||[]).map(g=>`${store.goalLabel?store.goalLabel(state,m,g):store.playerName(state,g.playerId)}${(!store.isOwnGoalEvent?.(g)&&Number(g.weight)===2)?' (x2)':''}`).join(', ');const yellow=(m.cards||[]).filter(c=>c.type==='yellow').map(c=>store.playerName(state,c.playerId)).join(', ');const red=(m.cards||[]).filter(c=>c.type==='red').map(c=>store.playerName(state,c.playerId)).join(', ');const status=matchStatusMeta(state,m);const isLive=m.status==='live';const played=store.hasScore(state,m)||m.status==='played';const showScore=played||isLive||(store.hasGoals&&store.hasGoals(state,m));const score=showScore?store.matchGoals(state,m):null;const centerCls=isLive?'is-live':(played?'is-played':'is-pending');
     // Rigori: visibili solo se KO + pareggio + penalties valide
     let pBadge='';
     if(showScore&&score&&score.home===score.away&&store.isKnockoutPhase&&store.isKnockoutPhase(m)&&m.penalties){
@@ -225,7 +225,31 @@
   }
 
   function createTextPdf(title, lines, filename){const safe=s=>String(s).replace(/[()\\]/g,'');const body=[];let y=790;body.push('BT /F1 18 Tf 40 820 Td ('+safe(title)+') Tj ET');lines.forEach(line=>{if(y<40){return;}body.push(`BT /F1 10 Tf 40 ${y} Td (${safe(line).slice(0,110)}) Tj ET`);y-=16;});const stream=body.join('\n');const objs=[`1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj`,`2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj`,`3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj`,`4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj`,`5 0 obj << /Length ${stream.length} >> stream\n${stream}\nendstream endobj`];let pdf='%PDF-1.4\n';const offsets=[0];objs.forEach(o=>{offsets.push(pdf.length);pdf+=o+'\n';});const xref=pdf.length;pdf+=`xref\n0 6\n0000000000 65535 f \n`+offsets.slice(1).map(o=>String(o).padStart(10,'0')+' 00000 n ').join('\n')+`\ntrailer << /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;const blob=new Blob([pdf],{type:'application/pdf'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();URL.revokeObjectURL(a.href);}
-  function bindTabs(){document.addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(!b)return;const target=b.dataset.tab;$$('[data-tab]').forEach(x=>x.classList.remove('active'));$$('.tab-panel').forEach(x=>x.classList.remove('active'));$$(`[data-tab="${target}"]`).forEach(x=>x.classList.add('active'));$('#'+target)?.classList.add('active');document.dispatchEvent(new CustomEvent('ng:tab-changed',{detail:{tab:target}}));});}
+  function bindTabs(){
+    let tabLockTimer=0;
+    function lockInteraction(){
+      try{
+        document.body.classList.add('ng-interaction-lock');
+        clearTimeout(tabLockTimer);
+        requestAnimationFrame(()=>requestAnimationFrame(()=>{
+          tabLockTimer=setTimeout(()=>document.body.classList.remove('ng-interaction-lock'),60);
+        }));
+      }catch(_){ }
+    }
+    document.addEventListener('click',e=>{
+      const b=e.target.closest('[data-tab]');if(!b)return;
+      const target=b.dataset.tab;
+      const panel=$('#'+target);
+      if(!panel)return;
+      if(panel.classList.contains('active')){document.dispatchEvent(new CustomEvent('ng:tab-changed',{detail:{tab:target}}));return;}
+      lockInteraction();
+      $$('[data-tab]').forEach(x=>x.classList.remove('active'));
+      $$('.tab-panel').forEach(x=>x.classList.remove('active'));
+      $$(`[data-tab="${target}"]`).forEach(x=>x.classList.add('active'));
+      panel.classList.add('active');
+      document.dispatchEvent(new CustomEvent('ng:tab-changed',{detail:{tab:target}}));
+    });
+  }
   function bindDisclosures(){document.addEventListener('toggle',e=>{const d=e.target;if(!(d instanceof HTMLDetailsElement)||!d.open)return;const list=d.closest('.team-disclosure-list,.admin-disclosure-list,.admin-player-list');if(!list)return;list.querySelectorAll('details[open]').forEach(x=>{if(x!==d)x.open=false;});},true);}
   document.addEventListener('DOMContentLoaded',bindDisclosures);
   window.NexoraUI={esc,$,$$,logo,siteTitle,siteSubtitle,siteLogoMarkup,applySiteTheme,fmtDate,teamOptions,playerOptions,statsGrid,standingsTable,groupStandingsSelector,groupStandingsTables,playerStatsTable,presidentStatsTable,matchStatusMeta,matchCard,matchList,teamGrid,rulesSummary,bracketMarkup,articleCard,articleDetail,articleList,articlePlaceholder,replaceBrokenArticleImage,createTextPdf,bindTabs,bindDisclosures};
