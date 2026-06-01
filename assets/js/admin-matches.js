@@ -119,6 +119,10 @@
  function cardTypeSelect(selected='yellow'){
    return `<select data-card-type-picker><option value="yellow" ${selected==='yellow'?'selected':''}>Giallo</option><option value="red" ${selected==='red'?'selected':''}>Rosso</option></select>`;
  }
+ function goalCountSelect(selected=1){
+   const n=Math.max(1,Math.min(5,Number(selected)||1));
+   return `<select data-goal-count-picker>${[1,2,3,4,5].map(i=>`<option value="${i}" ${i===n?'selected':''}>${i} ${i===1?'gol':'gol'}</option>`).join('')}</select>`;
+ }
  function playerLabel(state,playerId){
    if(store.isOwnGoalValue&&store.isOwnGoalValue(playerId)){
      const tid=String(playerId||'').replace(/^own_goal:/,'');
@@ -313,6 +317,7 @@
           <div><label>Squadra / autogol</label><select data-goal-team-picker>${teamEventOptions(s,m)}</select></div>
           <div><label>Cerca numero</label><input data-goal-player-search inputmode="numeric" placeholder="Es. 10" autocomplete="off"></div>
           <div><label>Marcatore / autogol</label><select data-goal-player-picker><option value="">Seleziona prima una squadra</option></select></div>
+          <div><label>Numero gol</label>${goalCountSelect(1)}</div>
           ${isKings(s)?`<div><label>Peso gol</label><select data-goal-weight-picker><option value="1">Vale 1</option><option value="2">Vale 2 (solo calciatori)</option></select></div>`:''}
           <button class="btn" type="button" data-add-goal-row>Aggiungi marcatore</button>
         </div>
@@ -657,8 +662,8 @@ Verrà svuotato il campo arbitro in ${withRef.length} partita/e. Campo, data, or
    const match=e.target.closest('[data-select-match]');
    if(match){selectedMatch=match.dataset.selectMatch;render();closeMatchListModal();openMatchPanel('menu');return;}
    const panel=e.target.closest('[data-open-match-panel]');if(panel){syncOpenTaskDraft();openMatchPanel(panel.dataset.openMatchPanel);return;}
-   if(e.target.id==='closeMatchListModal'||e.target.id==='matchListModal')closeMatchListModal();
-   if(e.target.id==='closeMatchTaskModal'||e.target.id==='matchTaskModal')closeMatchTaskModal();
+   if(e.target.id==='closeMatchListModal')closeMatchListModal();
+   if(e.target.id==='closeMatchTaskModal')closeMatchTaskModal();
  });
  UI.$('#adminMatchRoundFilter').addEventListener('change',e=>{roundFilter=e.target.value;selectedMatch='';render();if(teamFilter)openTeamMatchesModal();});
  document.addEventListener('submit',e=>{
@@ -731,14 +736,16 @@ Verrà svuotato il campo arbitro in ${withRef.length} partita/e. Campo, data, or
      const picker=form.querySelector('[data-goal-player-picker]');
      const playerId=picker?.value;
      let weight=Number(form.querySelector('[data-goal-weight-picker]')?.value)||1;
+     let count=Math.max(1,Math.min(5,Number(form.querySelector('[data-goal-count-picker]')?.value)||1));
      if(!playerId){alert('Seleziona prima il marcatore o Autogol.');return;}
      if(store.isPresidentId(s,playerId)&&!isPresidentScorerAllowed(s)){alert('Fuori dalla Kings League il presidente non può essere selezionato come marcatore.');return;}
      if((store.isOwnGoalValue&&store.isOwnGoalValue(playerId))||!isKings(s)||store.isPresidentId(s,playerId)) weight=1;
      box.querySelector('[data-empty-goals]')?.remove();
-     box.insertAdjacentHTML('beforeend',goalDraftItem(s,playerId,weight));
+     for(let i=0;i<count;i++) box.insertAdjacentHTML('beforeend',goalDraftItem(s,playerId,weight));
      picker.value='';
      form.querySelector('[data-goal-player-search]').value='';
      updateEventPlayerPickers(form,'goal');
+     const cp=form.querySelector('[data-goal-count-picker]'); if(cp) cp.value='1';
      const wp=form.querySelector('[data-goal-weight-picker]'); if(wp) wp.value='1';
      updateDraftSummary(form);syncFormDraft(form);
    }

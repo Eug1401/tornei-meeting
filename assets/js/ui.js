@@ -204,7 +204,7 @@
 
 
   function siteSettings(state){return store.defaultSite?store.defaultSite():{title:'Coppa del Mondo',subtitle:'Risultati, squadre, giocatori e dettagli della Coppa del Mondo.',logo:'assets/brand/meeting-calcio-logo.png'};}
-  function siteTitle(state){const t=state?.site?.title;return (t&&String(t).trim())||state?.rules?.name||'Coppa del Mondo';}
+  function siteTitle(state){const t=String(state?.site?.title||'').trim();const fallback=String(state?.rules?.name||'Coppa del Mondo').trim()||'Coppa del Mondo';const def=String(store.defaultSite?store.defaultSite().title:'Coppa del Mondo');return (t&&t!==def)?t:fallback;}
   function siteSubtitle(state){return state?.site?.subtitle||'Risultati, squadre, giocatori e dettagli della Coppa del Mondo.';}
   function siteLogoMarkup(state,big=false){
     const site=siteSettings(state); const cls=`brand-logo-img ${big?'big':''}`;

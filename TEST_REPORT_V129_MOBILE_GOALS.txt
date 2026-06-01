@@ -1,0 +1,20 @@
+TEST_REPORT_V129_MOBILE_GOALS
+
+Suite logica ereditata v128: 6514 pass, 0 fail, 6514 assert totali.
+Controlli regressione v129: 9 pass, 0 fail, 9 controlli totali.
+Totale complessivo: 6523 pass, 0 fail, 6523 controlli/assert.
+
+Dettaglio v129:
+- PASS: Nome torneo salvabile anche se il calendario non è valido
+- PASS: Titolo sito usa rules.name quando il titolo grafico è quello default
+- PASS: Selettore numero gol 1-5 disponibile
+- PASS: Inserimento marcatori multipli crea più eventi gol distinti
+- PASS: Autogol resta peso 1 anche con selettore numero gol
+- PASS: Schermata referti non si chiude più toccando il backdrop
+- PASS: Schermata giocatori non si chiude più toccando il backdrop
+- PASS: Layout mobile admin full-screen stabile con 100dvh
+- PASS: Pulsanti touch ottimizzati con touch-action
+
+Suite logica coperta: campionato, eliminazione diretta, gironi+KO, campionato+playoff, BYE, prime dei gironi in metà opposte, Campo 1 nei gironi, autogol, rigori, live, preservazione referti, edge case 2/4/8/16 squadre e casi dispari.
+
+Nessun failure log: tutti i controlli automatici sono verdi.

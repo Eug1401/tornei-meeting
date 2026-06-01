@@ -1,0 +1,30 @@
+TEST REPORT v125 — contrasto UI e logica torneo
+
+Base: v124-favorite-fix
+Versione prodotta: v125-contrast-logic
+
+Test automatici eseguiti con Node.js su assets/js/store.js:
+
+PASS Campionato all'italiana 5 squadre multi-giorno
+PASS Eliminazione diretta 8 squadre one-day
+PASS Gironi + quarti: 2 gironi, prime in metà opposte, Campo 1 garantito
+PASS Gironi + semifinali: 2 gironi, prime opposte, Campo 1 multi-giorno
+PASS Gironi 3x3 + fase finale con BYE e Campo 1 garantito
+PASS Campionato + playoff multipli + Supercoppa
+PASS Autogol: punteggio sì, classifica marcatori no
+
+Controlli inclusi nei test:
+- nessuna squadra contro sé stessa;
+- nessuna sovrapposizione di campo nello stesso slot/giorno;
+- nessuna squadra impegnata due volte nello stesso slot/giorno;
+- garanzia Campo 1 per ogni squadra della fase a gironi quando ci sono 2 campi;
+- prime classificate dei due gironi in metà opposte del tabellone nei quarti;
+- autogol nel risultato ma fuori dalla classifica marcatori;
+- integrityReport del motore dati senza errori.
+
+Patch UI contrasto:
+- select/option/input/date/time leggibili anche su browser mobile;
+- label, testo muted, help-box, card, tabelle e messaggi con contrasto aumentato;
+- focus visibile giallo/arancio;
+- palette blu/arancio mantenuta;
+- animazioni ridotte/controllate per evitare sfarfallio.

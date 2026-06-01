@@ -159,14 +159,16 @@
  function closePlayersModal(){UI.$('#playersTeamModal')?.classList.remove('open');document.body.classList.remove('modal-open');}
  function render(){renderTeamButtons(); const box=UI.$('#playersWorkspace'); if(box) box.innerHTML='<div class="empty">Clicca una squadra per aprire la schermata completa di gestione roster.</div>';}
  document.addEventListener('DOMContentLoaded',render);
- document.addEventListener('click',e=>{const btn=e.target.closest('[data-player-team]');if(btn){openPlayersTeam(btn.dataset.playerTeam);return;} if(e.target.id==='closePlayersTeamModal'||e.target.id==='playersTeamModal')closePlayersModal();});
+ document.addEventListener('click',e=>{const btn=e.target.closest('[data-player-team]');if(btn){openPlayersTeam(btn.dataset.playerTeam);return;} if(e.target.id==='closePlayersTeamModal')closePlayersModal();});
  document.addEventListener('submit',e=>{
    const f=e.target;
    if(f.id==='playerCreateForm'){
      e.preventDefault();
      const fd=new FormData(f); selectedTeam=fd.get('teamId'); const name=normalizeName(fd.get('name')); if(!name)return;
      A.commit(s=>{const t=store.getTeam(s,selectedTeam); if(t)addPlayerToTeam(t,name,fd.get('birthYear'),fd.get('number'));});
+     const keepAdding = window.matchMedia&&window.matchMedia('(pointer: coarse)').matches;
      renderTeamButtons(); renderWorkspace('#playersTeamModalBody');
+     if(keepAdding){setTimeout(()=>{const nf=UI.$('#playerCreateForm'); if(nf){nf.closest('details')?.setAttribute('open',''); const first=nf.querySelector('[name="number"]'); first?.focus({preventScroll:true}); nf.scrollIntoView({block:'nearest'});}},80);}
    }
    if(f.id==='bulkPlayersForm'){
      e.preventDefault(); const fd=new FormData(f); selectedTeam=fd.get('teamId'); const lines=splitBulkList(fd.get('players')); const duplicateMode=fd.get('duplicateMode')||'skip';

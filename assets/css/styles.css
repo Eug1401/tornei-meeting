@@ -7482,3 +7482,382 @@ body.ng-quiet-render #publicArticles,body.ng-modal-settling #publicArticles{opac
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important;}
 }
+
+
+/* =================================================================
+   v125 — CONTRAST ACCESSIBILITY REFRESH + STABLE UI
+   Obiettivo: nessun bianco-su-bianco, controlli leggibili, palette blu/arancio.
+   ================================================================= */
+:root{
+  --ng-bg-deep:#03112e!important;
+  --ng-panel-high:#061d4f!important;
+  --ng-panel-mid:#082b72!important;
+  --ng-panel-soft:#0d3a94!important;
+  --ng-text-high:#f8fbff!important;
+  --ng-text:#edf5ff!important;
+  --ng-muted:#c7d8f2!important;
+  --ng-muted-strong:#dbe7fb!important;
+  --ng-orange:#ff7a18!important;
+  --ng-orange-2:#ffb160!important;
+  --ng-blue:#1f63ff!important;
+  --ng-focus:#ffd166!important;
+}
+html{color-scheme:dark!important;}
+body{
+  color:var(--ng-text)!important;
+  background:
+    radial-gradient(circle at 12% 0%,rgba(255,122,24,.20),transparent 34rem),
+    radial-gradient(circle at 88% 0%,rgba(31,99,255,.20),transparent 35rem),
+    linear-gradient(180deg,#02102b 0%,#041942 45%,#03112e 100%)!important;
+}
+body,.card,.pad,.modal-content,.article-modal-content,.mobile-nav-panel,.match-filter-panel{
+  text-rendering:optimizeLegibility!important;
+  -webkit-font-smoothing:antialiased!important;
+}
+/* Testi: aumenta contrasto generale senza appiattire il design */
+p,li,td,span,small,div{color:inherit;}
+.muted,.section-title p,.brand p,.tiny-label,.bracket-list-meta,.fixture-meta-row,.article-meta time,
+.team-profile-meta span,.help-box .muted,.advisor-card .muted{
+  color:var(--ng-muted)!important;
+}
+strong,h1,h2,h3,h4,th,label,.mini-section-title h3{
+  color:var(--ng-text-high)!important;
+}
+a{color:#ffd39f!important;text-decoration-thickness:2px;text-underline-offset:3px;}
+a:hover{color:#fff2e5!important;}
+/* Pannelli e blocchi informativi: blu leggibile, non bianco/trasparente */
+.card,.modal-content,.ng-modal,.team-row,.player-row,.event-row,.match-card,.team-card,.quick-card,.ng-disclosure,
+.help-box,.advisor-card,.empty,.message,.summary-grid span,.stat,.group-column,.health-line,.check-card,.pause-settings-box,
+.standings-criteria-box,.criteria-row,.selected-team-summary,.favorite-panel,.favorite-team-card,.filters,.match-filter-toolbar{
+  background:
+    radial-gradient(circle at 0% 0%,rgba(255,122,24,.13),transparent 28%),
+    radial-gradient(circle at 100% 0%,rgba(31,99,255,.13),transparent 32%),
+    linear-gradient(145deg,rgba(6,29,79,.96),rgba(4,20,58,.98))!important;
+  border-color:rgba(255,122,24,.30)!important;
+  color:var(--ng-text)!important;
+}
+.help-box,.advisor-card,.message.ok{
+  border-left:4px solid var(--ng-orange)!important;
+}
+.message.error,.health-line.error{
+  color:#fff3f3!important;
+  background:linear-gradient(145deg,rgba(92,15,38,.96),rgba(55,8,26,.98))!important;
+  border-color:rgba(255,107,129,.65)!important;
+}
+/* Controlli form: risolve select bianco-su-bianco e migliora leggibilità */
+input,select,textarea,
+.form-grid input,.form-grid select,.form-grid textarea{
+  color:var(--ng-text-high)!important;
+  background:
+    linear-gradient(180deg,rgba(8,43,114,.98),rgba(5,24,67,.98))!important;
+  border:1px solid rgba(255,177,96,.48)!important;
+  caret-color:var(--ng-orange)!important;
+  color-scheme:dark!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 8px 24px rgba(0,8,35,.12)!important;
+}
+input::placeholder,textarea::placeholder{color:#b8cae8!important;opacity:1!important;}
+select{appearance:auto!important;-webkit-appearance:auto!important;}
+select option,select optgroup{
+  background:#061d4f!important;
+  color:#f8fbff!important;
+}
+select option:checked,select option:hover{
+  background:#ff7a18!important;
+  color:#07183a!important;
+}
+input[type="date"],input[type="time"],input[type="number"]{color:var(--ng-text-high)!important;}
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator{
+  filter:invert(1) sepia(1) saturate(3) hue-rotate(345deg)!important;
+  opacity:.9!important;
+}
+input:focus,select:focus,textarea:focus,
+input:focus-visible,select:focus-visible,textarea:focus-visible{
+  outline:3px solid rgba(255,209,102,.55)!important;
+  outline-offset:2px!important;
+  border-color:var(--ng-focus)!important;
+  box-shadow:0 0 0 5px rgba(255,209,102,.14),inset 0 1px 0 rgba(255,255,255,.09)!important;
+}
+input:disabled,select:disabled,textarea:disabled,
+[aria-disabled="true"]{
+  opacity:.72!important;
+  color:#d3dff1!important;
+  background:linear-gradient(180deg,rgba(10,31,72,.88),rgba(5,18,48,.88))!important;
+}
+label{color:#f3f7ff!important;font-weight:950!important;}
+label input[type="checkbox"],label input[type="radio"],.weekday-grid input,.check-card input{
+  accent-color:var(--ng-orange)!important;
+  filter:drop-shadow(0 0 4px rgba(255,122,24,.30));
+}
+.weekday-grid label,.check-card,.fields-policy,.pause-settings-box{
+  color:var(--ng-text)!important;
+  border:1px solid rgba(255,177,96,.26)!important;
+  background:linear-gradient(145deg,rgba(8,43,114,.78),rgba(5,24,67,.86))!important;
+  border-radius:16px!important;
+  padding:10px 12px!important;
+}
+/* Pulsanti e tab: testo sempre leggibile su ogni stato */
+.btn,button.btn,.filter-chip-btn,.tab-btn,.admin-nav a,.mobile-nav-item,.mobile-sheet-item{
+  color:#f8fbff!important;
+  background:linear-gradient(135deg,rgba(255,122,24,.20),rgba(31,99,255,.18))!important;
+  border-color:rgba(255,177,96,.36)!important;
+  text-shadow:none!important;
+}
+.btn.primary,.tab-btn.active,.admin-nav a.active,.filter-chip-btn.active,.mobile-nav-item.active,.mobile-sheet-item.active,.favorite-team-btn.active{
+  color:#06132d!important;
+  background:linear-gradient(135deg,#ff7a18 0%,#ffb160 56%,#6fa0ff 100%)!important;
+  border-color:rgba(255,255,255,.35)!important;
+}
+.btn.danger{
+  color:#fff7f4!important;
+  background:linear-gradient(135deg,rgba(255,93,121,.34),rgba(255,122,24,.25))!important;
+  border-color:rgba(255,143,160,.58)!important;
+}
+.btn:focus-visible,button:focus-visible,.tab-btn:focus-visible,.admin-nav a:focus-visible,.mobile-nav-item:focus-visible{
+  outline:3px solid var(--ng-focus)!important;
+  outline-offset:3px!important;
+}
+/* Tabelle: header e celle leggibili anche su mobile */
+th{
+  color:#f2f7ff!important;
+  background:linear-gradient(180deg,#0a3d9e,#082b72)!important;
+  border-bottom:1px solid rgba(255,177,96,.42)!important;
+}
+td{color:#edf5ff!important;background:rgba(4,20,58,.35)!important;}
+tbody tr:nth-child(even) td{background:rgba(8,43,114,.28)!important;}
+/* Badge: evita pill chiare con testo chiaro */
+.pill,.score-badge,.rank,.article-kicker,.match-status-badge{
+  color:#06132d!important;
+  background:linear-gradient(135deg,#ff7a18,#ffbd78)!important;
+  border-color:rgba(255,255,255,.30)!important;
+}
+.pill.is-muted,.pill-live,.score-badge.is-pending{
+  color:#f8fbff!important;
+  background:linear-gradient(135deg,rgba(8,43,114,.92),rgba(5,24,67,.92))!important;
+  border-color:rgba(255,177,96,.34)!important;
+}
+/* Articoli: conserva immagini uniformi e migliora contrasto del testo */
+#publicArticles .article-card,#searchResults .article-card,#adminArticlesList .article-card{
+  background:
+    linear-gradient(135deg,rgba(255,122,24,.12) 0 1px,transparent 1px),
+    radial-gradient(circle at 100% 0%,rgba(31,99,255,.22),transparent 35%),
+    linear-gradient(145deg,#082b72,#051843)!important;
+  background-size:26px 26px,100% 100%,100% 100%!important;
+  border-color:rgba(255,177,96,.36)!important;
+}
+#publicArticles .article-content,#searchResults .article-content,#adminArticlesList .article-content{
+  color:#f8fbff!important;
+  background:
+    linear-gradient(90deg,rgba(255,122,24,.35) 0 4px,transparent 4px),
+    radial-gradient(circle at 100% 0%,rgba(255,122,24,.18),transparent 34%),
+    linear-gradient(145deg,rgba(8,43,114,.94),rgba(5,24,67,.97))!important;
+}
+#publicArticles .article-content p,#searchResults .article-content p,#adminArticlesList .article-content p{color:#dbe7fb!important;}
+/* Stabilità: niente animazioni implicite su render frequenti */
+.card,.tab-panel,.article-card,.match-card,.team-card,.ng-disclosure,.table-wrap,tbody tr,td,th{
+  animation:none!important;
+}
+body.ng-interaction-lock *,body.ng-quiet-render *,body.ng-modal-settling *{
+  animation:none!important;
+  transition:none!important;
+}
+@media (hover:hover){
+  .btn:hover,.tab-btn:hover,.admin-nav a:hover,.filter-chip-btn:hover,.mobile-nav-item:hover{
+    transform:translateY(-1px)!important;
+    border-color:rgba(255,209,102,.62)!important;
+  }
+}
+@media (max-width:760px){
+  input,select,textarea{font-size:16px!important;}
+  .weekday-grid label,.check-card{padding:11px 12px!important;}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important;}
+}
+
+/* v127 - Scheda squadra per fasi: leggibile, sportiva e senza alterare la logica */
+.team-phase-panel{
+  margin:16px 0!important;
+  background:
+    linear-gradient(135deg,rgba(7,31,82,.96),rgba(9,46,118,.92) 54%,rgba(255,122,24,.08))!important;
+  border:1px solid rgba(255,122,24,.34)!important;
+  box-shadow:0 18px 48px rgba(0,18,55,.28), inset 0 1px 0 rgba(255,255,255,.08)!important;
+}
+.team-phase-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:14px;}
+.team-phase-head h3{margin:0 0 4px!important;color:#fff7df!important;}
+.team-phase-head p{margin:0;color:#d7e7ff!important;font-weight:780;line-height:1.35;}
+.team-phase-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;}
+.team-phase-card{
+  position:relative;overflow:hidden;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:22px;
+  padding:14px;
+  background:
+    radial-gradient(circle at 0 0,rgba(255,122,24,.18),transparent 38%),
+    linear-gradient(135deg,rgba(11,42,106,.98),rgba(6,24,68,.96));
+  color:#f7fbff;
+}
+.team-phase-card::before{content:"";position:absolute;inset:0 auto 0 0;width:5px;background:linear-gradient(180deg,#ff7a18,#ffd39c);}
+.team-phase-card.is-primary{border-color:rgba(255,122,24,.52);box-shadow:0 18px 40px rgba(255,122,24,.10);}
+.team-phase-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px;}
+.team-phase-card-head strong{font-size:1.02rem;color:#fff7df;line-height:1.1;letter-spacing:-.02em;}
+.team-phase-card-head small{color:#d7e7ff;font-weight:850;font-size:.74rem;text-align:right;}
+.phase-kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+.phase-kpi-row span{display:grid;gap:3px;justify-items:center;border:1px solid rgba(255,255,255,.11);border-radius:15px;background:rgba(255,255,255,.055);padding:8px 4px;}
+.phase-kpi-row b{font-size:1.15rem;color:#fff;font-weight:950;line-height:1;}
+.phase-kpi-row em{font-style:normal;color:#ffcf9a;font-weight:950;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;}
+.phase-mini-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+.phase-mini-row span{border:1px solid rgba(255,122,24,.22);border-radius:999px;background:rgba(255,122,24,.10);color:#fff3df;font-weight:900;font-size:.78rem;padding:5px 9px;}
+.pro-team-title .pill{background:rgba(255,122,24,.16)!important;color:#fff3df!important;border-color:rgba(255,122,24,.42)!important;}
+@media(max-width:720px){
+  .team-phase-head{display:grid;gap:8px;}
+  .team-phase-grid{grid-template-columns:1fr;}
+  .phase-kpi-row{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;}
+  .phase-kpi-row span{padding:7px 2px;border-radius:12px;}
+  .phase-kpi-row b{font-size:1rem;}
+  .phase-kpi-row em{font-size:.62rem;}
+}
+
+/* =================================================================
+   v129 — Mobile admin consistency + readable goal input controls
+   ================================================================= */
+:root{
+  --v129-blue-deep:#061b48;
+  --v129-blue:#0b2f7a;
+  --v129-blue-soft:#123f96;
+  --v129-orange:#ff7a18;
+  --v129-orange-soft:#ffb45f;
+  --v129-paper:#f7fbff;
+}
+
+button,.btn,a[data-tab],summary,.flow-pick-btn,.match-action-card{
+  touch-action: manipulation;
+}
+
+/* Backdrop tap non chiude più le schermate operative admin: il bottone Chiudi è l'unica uscita volontaria. */
+.admin-players-modal,
+.match-task-modal,
+.match-list-modal{
+  cursor: default;
+}
+.admin-players-content,
+.match-task-content,
+.match-list-content{
+  cursor: auto;
+}
+
+/* Picker marcatori più leggibile: squadra, cerca, giocatore, numero gol, peso e bottone si dispongono bene. */
+.event-picker-grid{
+  display:grid!important;
+  grid-template-columns:repeat(auto-fit,minmax(170px,1fr))!important;
+  gap:12px!important;
+  align-items:end!important;
+}
+.event-picker-grid .btn{
+  min-height:48px!important;
+}
+.event-picker-grid select[data-goal-count-picker],
+.event-picker-grid select[data-goal-weight-picker]{
+  font-weight:900!important;
+  color:#041332!important;
+  background:linear-gradient(180deg,#fff7ed,#fed7aa)!important;
+  border-color:rgba(255,122,24,.75)!important;
+}
+
+/* Modali admin più solide su telefono: una vera schermata, senza salti quando la tastiera apre/chiude. */
+@media (max-width:760px){
+  html,body{overscroll-behavior-y:contain;}
+  .modal.match-task-modal,
+  .modal.match-list-modal,
+  .modal.admin-players-modal{
+    align-items:stretch!important;
+    padding:0!important;
+    background:var(--v129-blue-deep)!important;
+  }
+  .match-task-content,
+  .match-list-content,
+  .admin-players-content{
+    width:100%!important;
+    max-width:none!important;
+    height:100dvh!important;
+    max-height:100dvh!important;
+    margin:0!important;
+    border-radius:0!important;
+    border:0!important;
+    overflow:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+    background:
+      radial-gradient(circle at 0% 0%,rgba(255,122,24,.20),transparent 34%),
+      radial-gradient(circle at 100% 15%,rgba(31,99,255,.24),transparent 38%),
+      linear-gradient(160deg,#08245a,#061b48 58%,#0b2f7a)!important;
+  }
+  .match-task-toolbar{
+    position:sticky!important;
+    top:0!important;
+    z-index:30!important;
+    min-height:64px!important;
+    padding:12px 14px!important;
+    background:linear-gradient(135deg,rgba(6,27,72,.98),rgba(11,47,122,.98))!important;
+    border-bottom:1px solid rgba(255,180,95,.45)!important;
+    box-shadow:0 10px 28px rgba(0,0,0,.24)!important;
+  }
+  .match-task-toolbar h2{
+    font-size:1.02rem!important;
+    line-height:1.1!important;
+  }
+  .match-task-toolbar .btn,
+  .match-task-toolbar button{
+    min-height:44px!important;
+    padding:10px 13px!important;
+  }
+  .form-grid,
+  .quick-add-bar,
+  .event-picker-grid,
+  .card-add-bar{
+    grid-template-columns:1fr!important;
+  }
+  input,select,textarea{
+    min-height:48px!important;
+    font-size:16px!important;
+  }
+  textarea{min-height:120px!important;}
+  .ng-disclosure-summary,
+  .flow-pick-btn,
+  .match-pick-btn,
+  .match-action-card{
+    min-height:58px!important;
+  }
+  #playersTeamModalBody,
+  #matchTaskBody,
+  #matchListBody{
+    padding-bottom:calc(28px + env(safe-area-inset-bottom))!important;
+  }
+  .match-context-savebar{
+    position:sticky!important;
+    bottom:0!important;
+    z-index:20!important;
+    margin-left:-8px!important;
+    margin-right:-8px!important;
+    padding:12px!important;
+    border-radius:18px 18px 0 0!important;
+    background:linear-gradient(135deg,rgba(8,36,90,.98),rgba(255,122,24,.16))!important;
+    border:1px solid rgba(255,180,95,.5)!important;
+    box-shadow:0 -12px 34px rgba(0,0,0,.28)!important;
+  }
+  .match-context-savebar-actions{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:10px!important;
+  }
+  .match-context-savebar .btn{
+    min-height:52px!important;
+    font-size:1rem!important;
+  }
+  .player-edit-form,.report-complete-form,.match-edit-form,#playerCreateForm,#bulkPlayersForm{
+    scroll-margin-top:80px!important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .match-task-content,.match-list-content,.admin-players-content{scroll-behavior:auto!important;}
+}

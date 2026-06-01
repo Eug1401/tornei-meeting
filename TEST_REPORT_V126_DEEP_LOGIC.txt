@@ -1,0 +1,77 @@
+TEST_REPORT_V126_DEEP_LOGIC.txt
+================================
+
+Base testata:
+- Ultimo pacchetto v125, con patch v126 su tabellone due gironi.
+
+Correzione applicata durante i test:
+- Nei test approfonditi ho aggiunto anche il caso a 2 gironi con 3 qualificate per girone.
+- In quel caso, nella v125 le due prime classificate potevano finire nella stessa metà del tabellone.
+- Ho corretto l'algoritmo di seeding per tutti i casi a 2 gironi con lo stesso numero di qualificate: le prime dei due gironi vengono inserite in metà opposte del tabellone anche quando ci sono BYE.
+
+Test eseguiti:
+1. Sintassi JavaScript
+   - Controllo node --check su tutti i file JS in assets/js.
+   - Esito: OK, 0 errori di sintassi.
+
+2. Formato Campionato all'italiana
+   - Squadre: 2, 3, 4, 5, 6, 7, 8, 12.
+   - Campi: 1 e 2.
+   - Modalità: torneo in un giorno e torneo su più giorni.
+   - Controlli: numero partite n*(n-1)/2, nessuna sovrapposizione campo/slot, nessuna squadra nello stesso slot/giorno, coppie tutte presenti una sola volta, classifica GF/GS/DR coerente.
+   - Esito: OK.
+
+3. Formato Eliminazione diretta
+   - Squadre: 2, 3, 4, 5, 6, 7, 8, 9, 10, 16.
+   - Controlli: numero match con BYE, calendario senza sovrapposizioni, avanzamento vincitori turno per turno, finale risolvibile.
+   - Esito: OK.
+
+4. Formato Gironi + eliminazione diretta
+   - Casi testati: 2x2, 2x3, 2x4, 2x5, 3 gironi, 4 gironi, gironi dispari, configurazioni con BYE e qualificazioni diverse.
+   - Politiche campo: auto, rotazione per squadra, girone -> campo quando valida.
+   - Modalità: un giorno e più giorni.
+   - Controlli: round-robin completo dentro ogni girone, nessuna sovrapposizione, ogni squadra della fase a gironi almeno una volta su Campo 1 con due campi, numero match KO corretto, tabellone corretto.
+   - Esito: OK.
+
+5. Regola speciale prime classificate con 2 gironi
+   - Qualificate per girone testate: 2, 3, 4, 5.
+   - Controllo: 1ª Girone A e 1ª Girone B in metà opposte del tabellone.
+   - Esito: OK dopo patch v126.
+
+6. Formato Campionato + playoff
+   - Casi: playoff unico, playoff Oro/Argento, Supercoppa, 4/8/16 squadre.
+   - Controlli: validazione competizioni, fasce consecutive, potenze di due, conteggio match campionato/playoff/Supercoppa, calendario senza sovrapposizioni.
+   - Esito: OK.
+
+7. Autogol
+   - Controllo: autogol assegna il gol alla squadra avversaria nel risultato e in GF/GS.
+   - Controllo: autogol non entra nella classifica marcatori.
+   - Controllo: etichetta referto contiene "Autogol".
+   - Esito: OK.
+
+8. Casi speciali
+   - Kings League: gol doppio giocatore vale 2 nel punteggio ma 1 nella classifica marcatori.
+   - Presidente: gol presidente vale 1.
+   - Rigori: partita KO 0-0 con rigori risolve il vincitore.
+   - Live: risultati live esclusi dalle classifiche definitive, inclusi solo con includeLive.
+   - Esito: OK.
+
+9. Persistenza/referti
+   - Rigenerazione calendario preservando risultati/referti compatibili.
+   - Rilevamento calendario non aggiornato dopo modifica regole.
+   - Esito: OK.
+
+10. Validazioni negative
+   - Somma squadre gironi diversa dalle squadre iscritte.
+   - Qualificate totali insufficienti.
+   - Qualificate maggiori della dimensione del girone.
+   - Data fine precedente alla data inizio.
+   - Competizione playoff con numero squadre non potenza di due.
+   - Esito: OK, errori bloccati correttamente.
+
+Risultato finale suite automatica:
+- 9633 assert superati.
+- 0 assert falliti.
+
+Nota:
+- I primi falsi positivi emersi durante la costruzione della suite erano dovuti al test che provava a risolvere tutto il tabellone KO senza simulare i turni in ordine. Ho corretto il test per giocare i turni sequenzialmente, come avviene nella logica reale del sito.

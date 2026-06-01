@@ -19,6 +19,7 @@
  const imageCache=new Map();
  function teamFilterOptions(s,selected){return '<option value="">Tutte le squadre</option>'+s.teams.map(t=>`<option value="${t.id}" ${t.id===selected?'selected':''}>${UI.esc(t.name)}</option>`).join('');}
  function filteredPlayerStats(s){const rows=store.selectors.playerStats(s);return playerTeamFilter?rows.filter(p=>p.teamId===playerTeamFilter):rows.filter(p=>p.goals>0).slice(0,15);}
+ function standingsRowsForMainTable(s,opts){return s.rules?.format==='league_knockout'?store.selectors.calculateStandings(s,'league',opts):store.selectors.calculateStandings(s,undefined,opts);}
  function reportAvailability(s){
    const matchCount=(s.matches||[]).length;
    const teamCount=(s.teams||[]).length;
@@ -50,7 +51,7 @@
    UI.$('#adminStats').innerHTML=UI.statsGrid(store.selectors.stats(s));
    const standingsMenu=UI.$('#adminStandingsMenu');
    if(standingsMenu)standingsMenu.innerHTML=store.selectors.hasGroupStage(s)?UI.groupStandingsSelector(s,standingsGroup,'adminGroupStandingsFilter'):'';
-   UI.$('#adminStandings').innerHTML=store.selectors.hasGroupStage(s)?UI.groupStandingsTables(s,standingsGroup):UI.standingsTable(store.selectors.calculateStandings(s),s);
+   UI.$('#adminStandings').innerHTML=store.selectors.hasGroupStage(s)?UI.groupStandingsTables(s,standingsGroup):UI.standingsTable(standingsRowsForMainTable(s),s);
    const filter=UI.$('#adminPlayerTeamFilter');
    if(filter){filter.innerHTML=teamFilterOptions(s,playerTeamFilter);if(playerTeamFilter&&!s.teams.some(t=>t.id===playerTeamFilter))playerTeamFilter='';}
    UI.$('#adminPlayers').innerHTML=UI.playerStatsTable(filteredPlayerStats(s))+(s.rules.isKingsLeague?'<div class="mini-section-title margin-top"><h3>Presidenti marcatori</h3></div>'+UI.presidentStatsTable(store.selectors.presidentScorers(s).slice(0,15)):'');
@@ -156,7 +157,7 @@
  function tableTheme(){return {theme:'grid',styles:{font:'helvetica',fontSize:8,cellPadding:2.1,lineColor:[255,176,95],lineWidth:.12,textColor:PDF_COLORS.ink,overflow:'linebreak',valign:'middle'},headStyles:{fillColor:PDF_COLORS.ink,textColor:PDF_COLORS.gold2,fontStyle:'bold',fontSize:7.5,halign:'center'},alternateRowStyles:{fillColor:[247,251,255]},margin:{left:12,right:12},showHead:'everyPage'};}
  function didDrawTeamLogo(logos,teamsByRow,colIndex=1){return function(data){if(data.section!=='body'||data.column.index!==colIndex)return;const row=teamsByRow[data.row.index];if(!row)return;drawLogo(data.doc,logos[row.teamId],data.cell.x+1.6,data.cell.y+1.4,6.2,row.name||row.teamName||row.team);};}
  function didParseTeamCell(colIndex=1){return function(data){if(data.section==='body'&&data.column.index===colIndex){data.cell.styles.cellPadding={top:2.1,right:2.1,bottom:2.1,left:10};data.cell.styles.fontStyle='bold';}};}
- function standingsRows(s,phase){return store.selectors.calculateStandings(s,phase);}
+ function standingsRows(s,phase){return phase?store.selectors.calculateStandings(s,phase):standingsRowsForMainTable(s);}
  async function pdfStandings(){
    const s=currentPdfState(), logos=await preloadTeamLogos(s); const {doc}=await baseDoc(s,'Classifica generale','Loghi squadre, punti e differenza reti aggiornati ai risultati caricati.','p');
    const rows=standingsRows(s).map((r,i)=>({...r,rank:i+1}));

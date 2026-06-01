@@ -1,0 +1,44 @@
+TEST REPORT V127 - Phase stats and format logic
+
+Summary
+- Base regression suite: 9633 passed, 0 failed.
+- Extra format suite: 1493 passed, 0 failed.
+- Total: 11126 passed, 0 failed.
+
+Key scenarios covered
+1. League format
+   - Tested with 2, 4, 8, 16 teams.
+   - Round-robin pair count verified.
+   - Standings played count, GF/GS and goal difference verified.
+   - No same team duplicated in the same time/day slot.
+
+2. Knockout format
+   - Tested with 2, 4, 8, 16 teams.
+   - Bracket match count verified.
+   - Winner propagation across rounds verified.
+
+3. League + knockout format
+   - Tested with 2, 4, 8, 16 teams.
+   - League standings are calculated only from league matches.
+   - Knockout matches do not change the league table.
+   - Playoff match count verified.
+
+4. Groups + knockout format
+   - Tested with two groups and qualifying totals of 4, 8, 16.
+   - First placed teams of Girone A and Girone B stay in opposite halves of the bracket.
+   - Campo 1 guarantee verified: every group-stage team plays at least once on Campo 1 when multiple fields are enabled.
+   - Also tested 4 groups of 4 teams with top 2 qualified from each group.
+
+5. Existing special cases from the base suite
+   - Autogol counts in score/referti but not in scorers.
+   - Kings League double goals and president goals.
+   - Penalties in knockout.
+   - Live matches excluded from final standings unless explicitly requested for live display.
+   - Calendar regeneration preserves compatible referti.
+   - Invalid configurations rejected.
+
+V127 code changes validated
+- Public standings for league+knockout now use only the league phase.
+- Admin report standings for league+knockout now use only the league phase.
+- Print/PDF standings for league+knockout now use only the league phase.
+- Team sheets now show separate stats by phase: league/campionato, gironi, knockout/playoff/supercoppa.

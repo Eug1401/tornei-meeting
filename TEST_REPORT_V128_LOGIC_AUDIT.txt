@@ -1,0 +1,27 @@
+TEST REPORT v128 — Audit logica torneo e separazione classifiche
+Data: 2026-06-01
+Esito: 6514 test superati, 0 falliti, 6514 totali.
+
+Correzioni principali:
+- calculateStandings(state) ora usa per default la fase qualificante del format: league per Campionato/Campionato+KO, group per Gironi+KO, knockout per KO-only.
+- I playoff e la Supercoppa non possono più alterare la classifica campionato nel format Campionato + eliminazione diretta.
+- Le partite KO non alterano le classifiche gironi nel format Gironi + eliminazione diretta.
+- Aggiunti wins/draws/losses nelle righe classifica: le schede squadra per fase ora hanno V/N/P coerenti con PG e punti.
+- La lista partite non-KO nel PDF/scheda squadra esclude tutte le fasi knockout, non solo phase=knockout.
+
+Copertura test:
+- store API smoke + main standings phase helper: 4 OK, 0 KO
+- league calendars and standings for 2/4/8/16 + odd edge cases: 3132 OK, 0 KO
+- knockout calendars and winner flow for 2/4/8/16 + BYE edge cases: 239 OK, 0 KO
+- groups+KO logic: RR, Campo 1, firsts opposite, KO excluded from standings: 2244 OK, 0 KO
+- league+KO: playoff results never change league table/default table: 881 OK, 0 KO
+- own goal affects score/standings/referto label but not scorer table: 5 OK, 0 KO
+- live exclusion, penalties, preservation, validation edge cases: 7 OK, 0 KO
+- code regression surface: public team PDF excludes all knockout phases: 2 OK, 0 KO
+
+Note:
+- calculateStandings(state) now defaults to the qualifying table for the current format: league for league/league+KO, group for groups+KO, knockout for KO-only.
+- Use calculateStandings(state, "all") only for diagnostic all-phase aggregation.
+- Rows now include wins/draws/losses to keep team phase cards coherent with PG and points.
+
+Dettaglio fallimenti: nessuno.

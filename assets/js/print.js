@@ -62,12 +62,12 @@
           ${standingsRowsTable(g.rows)}
         </section>`).join('');
     }
-    const rows=store.selectors.calculateStandings(state);
+    const rows=state.rules?.format==='league_knockout'?store.selectors.calculateStandings(state,'league'):store.selectors.calculateStandings(state);
     return `
       <section class="pdf-card">
         <div class="pdf-section-title">
-          <h2>Classifica squadre</h2>
-          <p>Punti, partite giocate, gol fatti, gol subiti e differenza reti.</p>
+          <h2>${state.rules?.format==='league_knockout'?'Classifica fase campionato':'Classifica squadre'}</h2>
+          <p>Punti, partite giocate, gol fatti, gol subiti e differenza reti. Nei format con playoff la classifica resta separata dalla fase a eliminazione diretta.</p>
         </div>
         ${standingsRowsTable(rows)}
       </section>`;
