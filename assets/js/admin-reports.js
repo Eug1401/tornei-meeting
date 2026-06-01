@@ -288,11 +288,37 @@
      setRgb(doc,'setTextColor',PDF_COLORS.gold2);doc.setFont('helvetica','bold');doc.setFontSize(5.6);doc.text('Percorso verso il titolo',last.x+last.w/2,last.y+last.h+8.6,{align:'center'});
    }
  }
+
+ function drawDenseBracketPages(doc,s,logos,bracket,logo,addNewPage=true){
+   if(addNewPage)doc.addPage('a4','landscape');
+   const rounds=bracket.rounds||[];
+   let pageStarted=false;
+   function newPage(title){if(pageStarted)doc.addPage('a4','landscape');pageStarted=true;drawHeader(doc,s,title,'Tabellone fase finale in layout sportivo anti-sovrapposizione: turni separati, card leggibili, colori blu/arancio.',logo);}
+   newPage(`Tabellone · ${bracket.name}`);
+   const w=doc.internal.pageSize.getWidth();
+   const left=12, topStart=58, colGap=8, cardGap=6;
+   const cardW=(w-left*2-colGap)/2;
+   let y=topStart;
+   rounds.forEach((round,ri)=>{
+     const cards=round.matches||[];
+     const needed=12+Math.ceil(Math.max(cards.length,1)/2)*(32+cardGap)+6;
+     if(y+needed>188){newPage(`Tabellone · ${bracket.name}`);y=topStart;}
+     setRgb(doc,'setFillColor',PDF_COLORS.ink);setRgb(doc,'setDrawColor',PDF_COLORS.gold);doc.roundedRect(left,y,w-left*2,9,3,3,'FD');
+     setRgb(doc,'setTextColor',PDF_COLORS.gold2);doc.setFont('helvetica','bold');doc.setFontSize(8.6);doc.text(String(round.name),left+4,y+6.2,{maxWidth:w-left*2-8});
+     y+=13;
+     if(!cards.length){setRgb(doc,'setTextColor',PDF_COLORS.muted);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text('Nessuna partita in questo turno.',left,y+6);y+=18;return;}
+     cards.forEach((m,mi)=>{
+       const col=mi%2,row=Math.floor(mi/2);const x=left+col*(cardW+colGap);const cy=y+row*(32+cardGap);
+       drawBracketCard(doc,s,logos,m,round.name,x,cy,cardW,32);
+     });
+     y+=Math.ceil(cards.length/2)*(32+cardGap)+8;
+   });
+ }
  async function pdfBracket(){
    const s=currentPdfState(), logos=await preloadTeamLogos(s); const {doc,logo}=await baseDoc(s,'Tabellone fase finale','Grafica tabellone con squadre, placeholder e risultati.','l');
    const data=store.bracketData(s);
    if(!data.available){doc.autoTable({...tableTheme(),startY:58,head:[['Info']],body:[[data.message||'Nessun tabellone disponibile.']]});}
-   else {data.brackets.forEach((b,i)=>drawBracketPage(doc,s,logos,b,logo,i>0));}
+   else {data.brackets.forEach((b,i)=>{const maxMatches=Math.max(...(b.rounds||[]).map(r=>(r.matches||[]).length),0); if(maxMatches>4)drawDenseBracketPages(doc,s,logos,b,logo,i>0); else drawBracketPage(doc,s,logos,b,logo,i>0);});}
    addFooter(doc,s); doc.save(pdfName(s,'tabellone-fase-finale'));
  }
  async function runPdf(kind){

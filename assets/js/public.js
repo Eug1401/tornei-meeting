@@ -433,6 +433,17 @@
     return rowWithMeta(row||emptyTeamPhaseRow(teamId,'Totale'),'Totale','base-total','base');
   }
   function teamStatsForPdf(s,teamId){return teamBaseRecordForState(s,teamId);}
+  function teamPhaseStatsForState(s,teamId){
+    const phases=[]; const format=s.rules?.format||'';
+    if(format==='league'||format==='league_knockout'){const row=(store.selectors.calculateStandings(s,'league')||[]).find(r=>r.teamId===teamId);phases.push(rowWithMeta(row||emptyTeamPhaseRow(teamId),format==='league_knockout'?'Fase campionato':'Campionato','league','primary'));}
+    if(store.selectors.hasGroupStage(s)){const groups=store.selectors.groupedStandings(s)||[];const g=groups.find(x=>(x.rows||[]).some(r=>r.teamId===teamId));const row=g?.rows?.find(r=>r.teamId===teamId);phases.push(rowWithMeta(row||emptyTeamPhaseRow(teamId),`Fase gironi${g?.name?' · '+g.name:''}`,'group','primary'));}
+    const koMatches=(s.matches||[]).filter(m=>m.phase!=='league'&&m.phase!=='group'&&(m.homeTeamId===teamId||m.awayTeamId===teamId));
+    const buckets=new Map();
+    koMatches.forEach(m=>{const label=m.phase==='supercup'?'Supercoppa':(m.bracketName||store.PHASE_LABELS[m.phase]||'Eliminazione diretta');const key=`${m.phase}|${label}`;if(!buckets.has(key))buckets.set(key,{label,matches:[]});buckets.get(key).matches.push(m);});
+    [...buckets.entries()].forEach(([key,b])=>phases.push(teamStatsFromMatches(s,teamId,b.matches,b.label,key,'knockout')));
+    if(!phases.length)phases.push(rowWithMeta(emptyTeamPhaseRow(teamId),'Statistiche','empty','primary'));
+    return phases;
+  }
   function teamStatsFromMatches(s,teamId,matches,label,key,type='stage'){
     const row=emptyTeamPhaseRow(teamId,label); row.key=key||label; row.type=type; row.status='empty';
     (matches||[]).forEach(m=>{
@@ -448,31 +459,7 @@
     });
     row.diff=row.goalsFor-row.goalsAgainst; row.status=row.played?'played':'empty'; return row;
   }
-  function teamPhaseStats(teamId){
-    const phases=[];
-    const format=state.rules?.format||'';
-    if(format==='league'||format==='league_knockout'){
-      const row=(store.selectors.calculateStandings(state,'league')||[]).find(r=>r.teamId===teamId);
-      phases.push(rowWithMeta(row||emptyTeamPhaseRow(teamId),format==='league_knockout'?'Fase campionato':'Campionato','league','primary'));
-    }
-    if(store.selectors.hasGroupStage(state)){
-      const groups=store.selectors.groupedStandings(state)||[];
-      const g=groups.find(x=>(x.rows||[]).some(r=>r.teamId===teamId));
-      const row=g?.rows?.find(r=>r.teamId===teamId);
-      phases.push(rowWithMeta(row||emptyTeamPhaseRow(teamId),`Fase gironi${g?.name?' · '+g.name:''}`,'group','primary'));
-    }
-    const koMatches=(state.matches||[]).filter(m=>m.phase!=='league'&&m.phase!=='group'&&(m.homeTeamId===teamId||m.awayTeamId===teamId));
-    const buckets=new Map();
-    koMatches.forEach(m=>{
-      const label=m.phase==='supercup'?'Supercoppa':(m.bracketName||store.PHASE_LABELS[m.phase]||'Eliminazione diretta');
-      const key=`${m.phase}|${label}`;
-      if(!buckets.has(key))buckets.set(key,{label,matches:[]});
-      buckets.get(key).matches.push(m);
-    });
-    [...buckets.entries()].forEach(([key,b])=>{phases.push(teamStatsFromMatches(state,teamId,b.matches,b.label,key,'knockout'));});
-    if(!phases.length)phases.push(rowWithMeta(emptyTeamPhaseRow(teamId),'Statistiche','empty','primary'));
-    return phases;
-  }
+  function teamPhaseStats(teamId){return teamPhaseStatsForState(state,teamId);}
   function phaseStatsMarkup(teamId){
     const phases=teamPhaseStats(teamId);
     return `<section class="team-sheet-panel team-phase-panel"><div class="team-phase-head"><div><h3>Statistiche per fase</h3><p>Le statistiche sono separate: il tabellone non modifica classifica gironi/campionato.</p></div><span class="pill">${phases.length} sezioni</span></div><div class="team-phase-grid">${phases.map((r,i)=>`
@@ -495,19 +482,24 @@
     setRgb(doc,'setTextColor',PDF_COLORS.gold2);doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text(String(state.rules?.name||'New Generation').toUpperCase(),w/2,39,{align:'center'});
     setRgb(doc,'setFillColor',PDF_COLORS.paper);doc.roundedRect(12,55,w-24,44,8,8,'F');drawPdfLogo(doc,teamLogo,20,62,28,team.name);
     setRgb(doc,'setTextColor',PDF_COLORS.ink);doc.setFont('helvetica','bold');doc.setFontSize(22);doc.text(String(team.name||'Squadra'),55,74,{maxWidth:w-70});
-    doc.setFont('helvetica','normal');doc.setFontSize(9);setRgb(doc,'setTextColor',PDF_COLORS.muted);doc.text(`Presidente: ${team.president?.name||'Non inserito'}  ·  Allenatore: ${team.coach?.name||'Non inserito'}`,55,83,{maxWidth:w-70});
+    const staffLine=[team.president?.name?`Presidente: ${team.president.name}`:'',team.coach?.name?`Allenatore: ${team.coach.name}`:''].filter(Boolean).join('  ·  ');
+    if(staffLine){doc.setFont('helvetica','normal');doc.setFontSize(9);setRgb(doc,'setTextColor',PDF_COLORS.muted);doc.text(staffLine,55,83,{maxWidth:w-70});}
     const st=teamStatsForPdf(state,teamId);
     const chips=[['Punti',st.points],['PG',st.played],['GF',st.goalsFor],['GS',st.goalsAgainst],['DR',(st.diff>0?'+':'')+st.diff]];
     chips.forEach((c,i)=>{const x=20+i*34,y=106;setRgb(doc,'setFillColor',[247,251,255]);setRgb(doc,'setDrawColor',PDF_COLORS.line);doc.roundedRect(x,y,28,17,4,4,'FD');setRgb(doc,'setTextColor',PDF_COLORS.muted);doc.setFontSize(6.8);doc.text(c[0],x+14,y+5,{align:'center'});setRgb(doc,'setTextColor',PDF_COLORS.ink);doc.setFont('helvetica','bold');doc.setFontSize(10);doc.text(String(c[1]),x+14,y+12,{align:'center'});});
     if(doc.autoTable){
       let y=132;
-      const phaseRows=teamPhaseStats(teamId).map(r=>[r.label,String(r.points||0),String(r.played||0),String(r.goalsFor||0),String(r.goalsAgainst||0),`${(Number(r.diff)||0)>0?'+':''}${Number(r.diff)||0}`,`${Number(r.wins)||0}-${Number(r.draws)||0}-${Number(r.losses)||0}`]);
+      const phaseRows=teamPhaseStatsForState(state,teamId).map(r=>[r.label,String(r.points||0),String(r.played||0),String(r.goalsFor||0),String(r.goalsAgainst||0),`${(Number(r.diff)||0)>0?'+':''}${Number(r.diff)||0}`,`${Number(r.wins)||0}-${Number(r.draws)||0}-${Number(r.losses)||0}`]);
       doc.autoTable({startY:y,head:[['Statistiche per fase','Pt','PG','GF','GS','DR','V-N-P']],body:phaseRows,styles:{font:'helvetica',fontSize:7.6,cellPadding:2.2,textColor:PDF_COLORS.ink,lineColor:PDF_COLORS.line,lineWidth:.1},headStyles:{fillColor:PDF_COLORS.ink,textColor:PDF_COLORS.gold2,fontStyle:'bold'},alternateRowStyles:{fillColor:[247,251,255]},columnStyles:{0:{cellWidth:70,fontStyle:'bold'},1:{halign:'center'},2:{halign:'center'},3:{halign:'center'},4:{halign:'center'},5:{halign:'center'},6:{halign:'center'}}});
       y=(doc.lastAutoTable?.finalY||y)+8; if(y>220){doc.addPage();y=20;}
-      doc.autoTable({startY:y,head:[['Composizione tecnica','Nome','Anno']],body:[['Presidente',team.president?.name||'Non inserito','-'],['Allenatore',team.coach?.name||'Non inserito','-'],...(team.players||[]).map(p=>['Calciatore',p.name,p.birthYear||'-'])],styles:{font:'helvetica',fontSize:8,cellPadding:2.4,textColor:PDF_COLORS.ink,lineColor:PDF_COLORS.line,lineWidth:.1},headStyles:{fillColor:PDF_COLORS.ink,textColor:PDF_COLORS.gold2,fontStyle:'bold'},alternateRowStyles:{fillColor:[247,251,255]},columnStyles:{0:{cellWidth:38,fontStyle:'bold'},1:{cellWidth:95},2:{halign:'center'}}});
+      const staffRows=[team.president?.name?['Presidente',team.president.name]:null,team.coach?.name?['Allenatore',team.coach.name]:null].filter(Boolean);
+      if(staffRows.length){doc.autoTable({startY:y,head:[['Staff','Nome e cognome']],body:staffRows,styles:{font:'helvetica',fontSize:8,cellPadding:2.4,textColor:PDF_COLORS.ink,lineColor:PDF_COLORS.line,lineWidth:.1},headStyles:{fillColor:PDF_COLORS.ink,textColor:PDF_COLORS.gold2,fontStyle:'bold'},alternateRowStyles:{fillColor:[247,251,255]},columnStyles:{0:{cellWidth:38,fontStyle:'bold'},1:{cellWidth:130,fontStyle:'bold'}}});y=(doc.lastAutoTable?.finalY||y)+8;if(y>220){doc.addPage();y=20;}}
+      const playerStats=store.selectors.playerStats(state).filter(p=>p.teamId===teamId).sort((a,b)=>b.goals-a.goals||b.played-a.played||a.name.localeCompare(b.name,'it'));
+      doc.autoTable({startY:y,head:[['Giocatore','PG','Gol','Gialli','Rossi']],body:playerStats.length?playerStats.map(p=>[p.name,String(p.played||0),String(p.goals||0),String(p.yellow||0),String(p.red||0)]):[['Roster non inserito','-','-','-','-']],styles:{font:'helvetica',fontSize:8,cellPadding:2.4,textColor:PDF_COLORS.ink,lineColor:PDF_COLORS.line,lineWidth:.1},headStyles:{fillColor:PDF_COLORS.ink,textColor:PDF_COLORS.gold2,fontStyle:'bold'},alternateRowStyles:{fillColor:[247,251,255]},columnStyles:{0:{cellWidth:104,fontStyle:'bold'},1:{halign:'center'},2:{halign:'center',fontStyle:'bold'},3:{halign:'center'},4:{halign:'center'}}});
       y=(doc.lastAutoTable?.finalY||y)+10; if(y>215){doc.addPage();y=20;}
-      const matches=nonKnockoutMatchesForTeam(state,teamId).map(m=>{const isHome=m.homeTeamId===teamId;const other=store.teamName(state,isHome?m.awayTeamId:m.homeTeamId,isHome?m.awayLabel:m.homeLabel);return {phase:store.PHASE_LABELS[m.phase]||m.phase,round:m.round||'-',where:isHome?'Casa':'Trasferta',opponent:other,date:UI.fmtDate(m),field:m.field||'Campo da definire',score:store.hasScore(state,m)?store.scoreText(state,m):'Da giocare'};});
-      doc.autoTable({startY:y,head:[['Partite gironi/campionato','Avversaria','Data','Campo','Risultato']],body:matches.length?matches.map(m=>[`${m.round} · ${m.where}`,m.opponent,m.date,m.field,m.score]):[['Nessuna partita non a eliminazione diretta','-','-','-','-']],styles:{font:'helvetica',fontSize:7.4,cellPadding:2.2,textColor:PDF_COLORS.ink,lineColor:PDF_COLORS.line,lineWidth:.1},headStyles:{fillColor:PDF_COLORS.ink,textColor:PDF_COLORS.gold2,fontStyle:'bold'},alternateRowStyles:{fillColor:[247,251,255]},columnStyles:{0:{cellWidth:46},1:{cellWidth:45,fontStyle:'bold'},2:{cellWidth:42},3:{cellWidth:34},4:{cellWidth:25,halign:'center',fontStyle:'bold'}}});
+      const allTeamMatches=(state.matches||[]).filter(m=>m.homeTeamId===teamId||m.awayTeamId===teamId).sort((a,b)=>String(a.phase||'').localeCompare(String(b.phase||''))||((a.roundIndex||0)-(b.roundIndex||0))||String(a.date||'').localeCompare(String(b.date||''))||String(a.time||'').localeCompare(String(b.time||'')));
+      const matchRows=allTeamMatches.map(m=>{const isHome=m.homeTeamId===teamId;const other=store.teamName(state,isHome?m.awayTeamId:m.homeTeamId,isHome?m.awayLabel:m.homeLabel);return [store.PHASE_LABELS[m.phase]||m.bracketName||m.phase||'-',`${m.round||'-'} · ${isHome?'Casa':'Trasferta'}`,other,UI.fmtDate(m),m.field||'Campo da definire',store.hasScore(state,m)?store.scoreText(state,m):'Da giocare'];});
+      doc.autoTable({startY:y,head:[['Fase','Turno','Avversaria','Data','Campo','Risultato']],body:matchRows.length?matchRows:[['Nessuna partita disponibile','-','-','-','-','-']],styles:{font:'helvetica',fontSize:7.2,cellPadding:2.1,textColor:PDF_COLORS.ink,lineColor:PDF_COLORS.line,lineWidth:.1,overflow:'linebreak'},headStyles:{fillColor:PDF_COLORS.ink,textColor:PDF_COLORS.gold2,fontStyle:'bold'},alternateRowStyles:{fillColor:[247,251,255]},columnStyles:{0:{cellWidth:34,fontStyle:'bold'},1:{cellWidth:34},2:{cellWidth:44,fontStyle:'bold'},3:{cellWidth:36},4:{cellWidth:30},5:{cellWidth:24,halign:'center',fontStyle:'bold'}}});
     }
     addTeamPdfFooter(doc); doc.save(`${slug(state.rules?.name)}-${slug(team.name)}-scheda-squadra.pdf`);
   }
@@ -556,7 +548,7 @@
       const numBadge=p.number!==''&&p.number!=null
         ? `<span class="jersey-number small">${UI.esc(String(p.number))}</span>`
         : `<span class="jersey-number small empty">—</span>`;
-      return `<li class="roster-li-with-num"><span class="roster-num-col">${numBadge}</span><span class="roster-name-col"><strong>${UI.esc(p.name)}</strong><span class="roster-meta">${p.birthYear?UI.esc(p.birthYear):'Anno n.d.'} · PG ${st.played} · Gol ${st.goals}</span></span></li>`;
+      return `<li class="roster-li-with-num"><span class="roster-num-col">${numBadge}</span><span class="roster-name-col"><strong>${UI.esc(p.name)}</strong><span class="roster-meta">PG ${st.played} · Gol ${st.goals} · 🟨 ${st.yellow||0} · 🟥 ${st.red||0}</span></span></li>`;
     }).join('')||'<li class="muted">Roster non inserito</li>';
     const form=teamLastMatches(team.id).map(m=>{
       const isHome=m.homeTeamId===team.id;
@@ -570,15 +562,15 @@
     return `<section class="pro-team-sheet">
       <div class="pro-team-hero">
         <div class="pro-team-logo">${UI.logo(team,true)}</div>
-        <div class="pro-team-title"><span class="pill">${rec.played?`PG ${rec.played}`:'Squadra'}</span><h2>${UI.esc(team.name)}</h2><p>${team.president?.name?`Presidente: ${UI.esc(team.president.name)}`:'Presidente non inserito'}${team.coach?.name?` · Allenatore: ${UI.esc(team.coach.name)}`:''}</p><div class="favorite-hero-action">${favoriteButton(team.id,'Segui')}</div></div>
+        <div class="pro-team-title"><span class="pill">${rec.played?`PG ${rec.played}`:'Squadra'}</span><h2>${UI.esc(team.name)}</h2>${[team.president?.name?`Presidente: ${UI.esc(team.president.name)}`:'',team.coach?.name?`Allenatore: ${UI.esc(team.coach.name)}`:''].filter(Boolean).length?`<p>${[team.president?.name?`Presidente: ${UI.esc(team.president.name)}`:'',team.coach?.name?`Allenatore: ${UI.esc(team.coach.name)}`:''].filter(Boolean).join(' · ')}</p>`:''}<div class="favorite-hero-action">${favoriteButton(team.id,'Segui')}</div></div>
       </div>
       <div class="team-sheet-kpis">
         <div><strong>${rec.points||0}</strong><span>Punti</span></div><div><strong>${rec.goalsFor||0}</strong><span>Gol fatti</span></div><div><strong>${rec.goalsAgainst||0}</strong><span>Gol subiti</span></div><div><strong>${rec.diff>0?'+':''}${rec.diff||0}</strong><span>Diff.</span></div>
       </div>
       ${phaseStatsMarkup(team.id)}
       <div class="team-sheet-grid">
-        <section class="team-sheet-panel"><h3>Composizione tecnica</h3><div class="staff-cards"><div><span>Presidente</span><strong>${team.president?.name?UI.esc(team.president.name):'Non inserito'}</strong><small>${president?`PG ${president.played} · Gol ${president.goals}`:'Stats non disponibili'}</small></div><div><span>Allenatore</span><strong>${team.coach?.name?UI.esc(team.coach.name):'Non inserito'}</strong><small>Ruolo tecnico</small></div></div></section>
-        <section class="team-sheet-panel"><h3>Top giocatori</h3>${topPlayers.length?topPlayers.map(p=>`<div class="team-leader-row"><strong>${UI.esc(p.name)}</strong><span>Gol ${p.goals} · PG ${p.played}</span></div>`).join(''):'<div class="empty small">Nessuna statistica.</div>'}</section>
+        ${(team.president?.name||team.coach?.name)?`<section class="team-sheet-panel"><h3>Composizione tecnica</h3><div class="staff-cards">${team.president?.name?`<div><span>Presidente</span><strong>${UI.esc(team.president.name)}</strong>${president?`<small>PG ${president.played} · Gol ${president.goals}</small>`:''}</div>`:''}${team.coach?.name?`<div><span>Allenatore</span><strong>${UI.esc(team.coach.name)}</strong><small>Ruolo tecnico</small></div>`:''}</div></section>`:''}
+        <section class="team-sheet-panel"><h3>Top giocatori</h3>${topPlayers.length?topPlayers.map(p=>`<div class="team-leader-row"><strong>${UI.esc(p.name)}</strong><span>Gol ${p.goals} · PG ${p.played} · 🟨 ${p.yellow||0} · 🟥 ${p.red||0}</span></div>`).join(''):'<div class="empty small">Nessuna statistica.</div>'}</section>
         <section class="team-sheet-panel roster-panel"><h3>Roster</h3><ul class="roster-clean-list team-detail-roster">${roster}</ul></section>
         <section class="team-sheet-panel"><h3>Ultime partite</h3>${form}</section>
       </div>

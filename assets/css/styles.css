@@ -7861,3 +7861,71 @@ button,.btn,a[data-tab],summary,.flow-pick-btn,.match-action-card{
 @media (prefers-reduced-motion: reduce){
   .match-task-content,.match-list-content,.admin-players-content{scroll-behavior:auto!important;}
 }
+
+
+/* =====================================================================
+   v131 — Admin UX refresh + PDF/report readability helpers
+   ===================================================================== */
+.admin-page .site-header{
+  position:relative!important;
+  top:auto!important;
+  z-index:2!important;
+  backdrop-filter:none!important;
+}
+.admin-page .admin-nav{
+  position:relative!important;
+  top:auto!important;
+  z-index:1!important;
+  display:flex!important;
+  gap:10px!important;
+  overflow-x:auto!important;
+  overscroll-behavior-x:contain!important;
+  scrollbar-width:thin!important;
+  padding:10px!important;
+  background:linear-gradient(135deg,rgba(7,20,50,.96),rgba(18,55,112,.9))!important;
+  border:1px solid rgba(255,122,24,.28)!important;
+  box-shadow:0 16px 40px rgba(0,0,0,.22)!important;
+}
+.admin-page .admin-nav a{
+  flex:0 0 auto!important;
+  min-width:150px!important;
+  color:#f8fbff!important;
+  border-color:rgba(255,255,255,.1)!important;
+  background:rgba(255,255,255,.055)!important;
+}
+.admin-page .admin-nav a.active,
+.admin-page .admin-nav a:hover{
+  color:#06132d!important;
+  background:linear-gradient(135deg,#ff7a18,#ffb05f)!important;
+  box-shadow:0 10px 26px rgba(255,122,24,.22)!important;
+}
+.admin-page input,.admin-page select,.admin-page textarea{
+  background:#071633!important;
+  color:#fff!important;
+  border-color:rgba(255,255,255,.22)!important;
+}
+.admin-page option{background:#071633!important;color:#fff!important;}
+.admin-page .report-pdf-btn{
+  border-radius:20px!important;
+  align-items:flex-start!important;
+  justify-content:center!important;
+  min-height:74px!important;
+  color:#06132d!important;
+}
+.admin-page .forced-card{
+  border-color:rgba(255,122,24,.5)!important;
+  background:linear-gradient(135deg,rgba(255,122,24,.16),rgba(31,99,255,.10))!important;
+}
+.team-detail-roster .roster-meta{color:#dce8ff!important;font-weight:750!important;}
+.team-sheet-panel .staff-cards:empty{display:none!important;}
+@media(max-width:760px){
+  .admin-page .admin-nav{
+    margin:12px -4px 16px!important;
+    border-radius:18px!important;
+    padding:8px!important;
+  }
+  .admin-page .admin-nav a{
+    min-width:132px!important;
+    padding:11px 12px!important;
+  }
+}

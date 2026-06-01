@@ -1,5 +1,6 @@
 (function(){
   const store=window.NexoraStore, UI=window.NexoraUI;
+  document.body.classList.add('admin-page');
   function state(){return store.load('admin');}
   function save(s){store.save('admin',s);} 
   function commit(fn){const s=state(); fn(s); store.alignState(s); save(s); return s;}
@@ -43,7 +44,8 @@
     await ensurePdfTools();
     const {jsPDF}=window.jspdf; const doc=new jsPDF({orientation:'p',unit:'mm',format:'a4',compress:true});
     const logos=await preloadTeamLogos(s); const brand=await imgToDataURL('assets/brand/new-generation-logo-transparent.png');
-    const standings=store.selectors.calculateStandings(s).map((r,i)=>({...r,rank:i+1,diff:(r.diff>0?'+':'')+r.diff}));
+    const mainPhase=store.selectors.hasGroupStage(s)?'group':((s.rules?.format==='league'||s.rules?.format==='league_knockout')?'league':(s.rules?.format==='knockout'?'knockout':undefined));
+    const standings=store.selectors.calculateStandings(s,mainPhase).map((r,i)=>({...r,rank:i+1,diff:(r.diff>0?'+':'')+r.diff}));
     const scorers=store.selectors.scorers(s).slice(0,15).map((p,i)=>({...p,rank:i+1,player:p.name,team:p.teamName,year:p.birthYear||'-'}));
     const presidentScorers=(store.selectors.presidentScorers?store.selectors.presidentScorers(s):[]).map((p,i)=>({...p,rank:i+1,president:p.name,team:p.teamName}));
     const data=store.bracketData(s);
@@ -159,7 +161,7 @@
         <p class="muted">Il reset cancella torneo, squadre, giocatori, referti, articoli, calendari e cache pubbliche. Prima dell'azzeramento puoi scaricare i file di sicurezza.</p>
         <div class="reset-export-panel">
           <label class="check-card"><input id="resetExportBackup" type="checkbox" checked><span><strong>Scarica backup completo JSON</strong><small>Contiene l'intero stato del torneo e può essere ricaricato dall'interfaccia di ripristino.</small></span></label>
-          <label class="check-card"><input id="resetExportRecap" type="checkbox"><span><strong>Scarica recap PDF</strong><small>Solo classifiche, marcatori, tabellone finale e vincitore.</small></span></label>
+          <label class="check-card forced-card"><input id="resetExportRecap" type="checkbox" checked disabled><span><strong>Scarica PDF finale prima del reset</strong><small>Obbligatorio: viene generato con lo stato attuale prima di cancellare i dati.</small></span></label>
         </div>
         <label class="check-card confirm-card"><input id="resetConfirmCheck" type="checkbox"><span><strong>Confermo di voler azzerare il torneo</strong><small>Ho capito che l'operazione sostituisce lo stato attuale con un torneo vuoto.</small></span></label>
         <div id="resetDialogMsg"></div>
@@ -175,14 +177,14 @@
         if(!confirmCheck.checked)return;
         const msg=dlg.querySelector('#resetDialogMsg');
         const exportBackup=dlg.querySelector('#resetExportBackup')?.checked;
-        const exportRecap=dlg.querySelector('#resetExportRecap')?.checked;
+        const exportRecap=true;
         const current=state();
         try{
           execBtn.disabled=true;
           msg.innerHTML='<div class="message">Preparo i file selezionati prima del reset...</div>';
           if(exportBackup){downloadStateBackup(current,'reset-flow');}
-          if(exportRecap){await downloadRecapPdf(current);}
-          msg.innerHTML='<div class="message ok">File avviati. Reset in corso...</div>';
+          if(exportRecap){await downloadRecapPdf(current); await new Promise(resolve=>setTimeout(resolve,1500));}
+          msg.innerHTML='<div class="message ok">PDF finale e backup avviati. Reset in corso...</div>';
           setTimeout(resetStorageAndState,900);
         }catch(err){
           console.error(err);

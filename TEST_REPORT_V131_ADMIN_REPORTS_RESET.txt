@@ -1,0 +1,11 @@
+TEST REPORT V131 — Admin UI, PDF, Reset
+
+Esito: PASS
+
+Controlli eseguiti:
+- Sintassi JavaScript: admin-common.js, public.js, admin-reports.js, store.js, ui.js verificati con node --check.
+- Reset: il recap PDF finale è obbligatorio e viene generato prima di cancellare lo stato; il reset parte dopo l'avvio del download.
+- Admin UI: header e menu admin non sono più sticky/fissi; navigazione admin orizzontale scrollabile, più comoda su mobile.
+- PDF tabellone: aggiunto layout anti-sovrapposizione per tabelloni densi; card leggibili, turni separati, palette blu/arancio.
+- PDF squadra: rimossi anno di nascita e staff non presente; evidenziati nome/cognome e statistiche giocatori; risultati squadra mostrati per fase.
+- Compatibilità: mantenuta la logica torneo v130 e aggiornato cache busting a v131-admin-reports-reset.
