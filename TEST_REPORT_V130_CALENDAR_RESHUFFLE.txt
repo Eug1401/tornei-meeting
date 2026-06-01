@@ -1,0 +1,27 @@
+TEST REPORT V130 - CALENDARIO DIVERSO E SEEDING SPORTIVO
+
+Risultato complessivo: 23067 assert superati, 0 falliti.
+
+Suite 1 - Deep logic regression:
+- Pass: 6867
+- Fail: 0
+- Copertura: campionato, eliminazione diretta, gironi + KO, campionato + KO, autogol, rigori, live, preservazione referti, Campo 1, classifiche principali per fase.
+
+Suite 2 - Calendar variant matrix:
+- Pass: 16200
+- Fail: 0
+- Copertura: pulsante/seed di rigenerazione calendario per campionato, eliminazione diretta, gironi + KO, campionato + KO; casi 2/4/8/16 squadre; gironi a 2 gruppi con dimensioni 2..8 e qualificate 1..N.
+
+Regole verificate:
+1. Il nuovo pulsante genera una variante reale del calendario senza cambiare l'anagrafica delle squadre.
+2. Le assegnazioni manuali dei gironi non vengono cancellate.
+3. Nei gironi + KO con due gironi, le prime classificate finiscono in parti opposte del tabellone quando il tabellone ha almeno due metà.
+4. Nel caso esplicito 2 gironi da 6 squadre con 3 qualificate per girone, la 2ª del Girone A incontra la 3ª del Girone B e la 2ª del Girone B incontra la 3ª del Girone A.
+5. Le squadre dei gironi giocano almeno una volta sul Campo 1 quando sono disponibili due campi.
+6. I playoff non alterano la classifica del campionato nel format campionato + eliminazione diretta.
+7. Autogol, rigori e live restano coerenti con le regole precedenti.
+
+Note di progettazione:
+- La rigenerazione usa un seed salvato nello stato del torneo: stesso seed = calendario riproducibile, seed nuovo = calendario diverso.
+- Il seeding dei tabelloni resta deterministico: cambiano calendario/sorteggio, ma non vengono violate le regole sportive del tabellone.
+- Nei casi con BYE, i BYE restano assegnati alle teste di serie migliori, come pratica standard dei tabelloni a eliminazione.

@@ -91,7 +91,7 @@
   function standingsCriterionMeta(id){return STANDINGS_CRITERIA.find(c=>c.id===id)||STANDINGS_CRITERIA[0];}
   function normalizeHex(value, fallback){const v=String(value||'').trim();return /^#[0-9a-fA-F]{6}$/.test(v)?v:fallback;}
   function normalizeSite(site){const base=defaultSite();const out={...base,...(site||{})};out.title=String(out.title||base.title).trim().slice(0,80)||base.title;out.subtitle=String(out.subtitle||base.subtitle).trim().slice(0,160);out.logo=String(out.logo||'');out.primary=normalizeHex(out.primary,base.primary);out.accent=normalizeHex(out.accent,base.accent);out.surface=normalizeHex(out.surface,base.surface);out.radius=String(Math.max(8,Math.min(36,Number(out.radius)||24)));return out;}
-  function blankRules(){return {name:'Coppa del Mondo',format:'league',groupCount:2,groupConfigs:defaultGroupConfigs(),groupAssignments:{},playoffTeams:4,eliminationCompetitions:defaultCompetitions(),superCup:{enabled:false,homeCompetitionId:'comp_oro',awayCompetitionId:''},isKingsLeague:false,oneDay:false,fieldCount:1,startDate:'',endDate:'',startTime:'09:00',endTime:'18:00',matchDuration:40,breakMinutes:10,oneDayPauseEnabled:false,oneDayPauseStart:'13:00',oneDayPauseDuration:60,playingDays:[1,2,3,4,5,6,0],groupFieldPolicy:'auto',standingsCriteriaOrder:defaultStandingsCriteriaOrder()};}
+  function blankRules(){return {name:'Coppa del Mondo',format:'league',groupCount:2,groupConfigs:defaultGroupConfigs(),groupAssignments:{},playoffTeams:4,eliminationCompetitions:defaultCompetitions(),superCup:{enabled:false,homeCompetitionId:'comp_oro',awayCompetitionId:''},isKingsLeague:false,oneDay:false,fieldCount:1,startDate:'',endDate:'',startTime:'09:00',endTime:'18:00',matchDuration:40,breakMinutes:10,oneDayPauseEnabled:false,oneDayPauseStart:'13:00',oneDayPauseDuration:60,playingDays:[1,2,3,4,5,6,0],groupFieldPolicy:'auto',calendarVariantSeed:'',standingsCriteriaOrder:defaultStandingsCriteriaOrder()};}
   function emptyState(){return {rules:blankRules(),site:defaultSite(),teams:[],matches:[],articles:[],calendarSignature:''};}
   function normalizeRules(r){
     const base=blankRules();
@@ -113,6 +113,7 @@
     out.fieldCount=Math.min(2,Math.max(1,Number(out.fieldCount)||1));out.matchDuration=Math.max(5,Number(out.matchDuration)||40);out.breakMinutes=Math.max(0,Number(out.breakMinutes)||0);out.oneDayPauseEnabled=Boolean(out.oneDayPauseEnabled);out.oneDayPauseStart=out.oneDayPauseStart||'13:00';out.oneDayPauseDuration=Math.max(0,Number(out.oneDayPauseDuration)||60);
     out.playingDays=Array.isArray(out.playingDays)?out.playingDays.map(Number).filter(n=>Number.isInteger(n)&&n>=0&&n<=6):[1,2,3,4,5,6,0];
     out.groupFieldPolicy=['fixed_by_group','rotate_per_team'].includes(out.groupFieldPolicy)?out.groupFieldPolicy:'auto';
+    out.calendarVariantSeed=String(out.calendarVariantSeed||'').trim().slice(0,120);
     out.standingsCriteriaOrder=normalizeStandingsCriteriaOrder(out.standingsCriteriaOrder);
     return out;
   }
@@ -388,6 +389,38 @@
     return {ok:true,requiredDays:needed,suggestedEndDate:last,playingDaysLabel:weekdayLabels(days),message:`Con ${rules.fieldCount} campi e giorni di gioco ${weekdayLabels(days)}, servono circa ${needed} giorni di gioco. Data fine consigliata: ${last}.`};
   }
 
+  function hashStringSeed(value){
+    let h=2166136261>>>0;
+    const str=String(value||'');
+    for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)>>>0;}
+    return h||1;
+  }
+  function seededRandomFactory(seed){
+    let t=hashStringSeed(seed);
+    return function(){
+      t+=0x6D2B79F5;
+      let r=Math.imul(t^(t>>>15),1|t);
+      r^=r+Math.imul(r^(r>>>7),61|r);
+      return ((r^(r>>>14))>>>0)/4294967296;
+    };
+  }
+  function seededShuffle(list,seed){
+    const src=[...(list||[])];
+    const out=[...src];
+    if(!seed||out.length<2)return out;
+    const rand=seededRandomFactory(seed);
+    for(let i=out.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));const tmp=out[i];out[i]=out[j];out[j]=tmp;}
+    // Una rigenerazione richiesta dall'admin deve produrre davvero un ordine diverso
+    // quando esiste almeno un'alternativa sensata. Con liste molto corte può capitare
+    // che il Fisher-Yates ritorni lo stesso ordine: in quel caso forziamo il reverse.
+    if(out.every((x,i)=>x===src[i]))out.reverse();
+    return out;
+  }
+  function orderRoundRobinRounds(rounds,seed){
+    if(!seed)return rounds;
+    return seededShuffle(rounds,seed).map(round=>seededShuffle(round,seed+'|pairs|'+round.map(p=>p.map(x=>x?.id||x?.label||'').join('-')).join('|')));
+  }
+
   function minimumTeams(r){r=normalizeRules(r);if(r.format==='league')return 2;if(r.format==='knockout')return 2;if(r.format==='groups_knockout')return Math.max(4,r.groupConfigs.reduce((sum,g)=>sum+g.size,0));if(r.format==='league_knockout'){const maxEnd=Math.max(...r.eliminationCompetitions.map(c=>c.startRank+c.teams-1),0);return Math.max(2,maxEnd);}return 2;}
   function groupConfigsTotal(r){return normalizeRules(r).groupConfigs.reduce((sum,g)=>sum+g.size,0);}
   function groupQualifiersTotal(r){return normalizeRules(r).groupConfigs.reduce((sum,g)=>sum+g.qualifiers,0);}
@@ -528,7 +561,65 @@
   }
   function sortedCompetitions(r){return normalizeRules(r).eliminationCompetitions.slice().sort((a,b)=>a.startRank-b.startRank||a.name.localeCompare(b.name));}
 
-  function buildMatches(state){const teams=[...state.teams];const r=normalizeRules(state.rules);const matches=[];if(r.format==='league'){roundRobinPairs(teams).forEach((round,i)=>round.forEach(([h,a])=>matches.push(createMatch(h,a,'league',`Giornata ${i+1}`,i))));return matches;}if(r.format==='knockout'){return genKO(teams,'knockout',0,'Tabellone','Tabellone principale');}if(r.format==='groups_knockout'){const groups=splitGroupsByConfig(teams,r.groupConfigs,r.groupAssignments||{});const maxGroupRounds=Math.max(...groups.map(g=>roundRobinPairs(g.teams).length));groups.forEach(g=>{roundRobinPairs(g.teams).forEach((round,ri)=>round.forEach(([h,a])=>matches.push(createMatch(h,a,'group',`${g.name} · Giornata ${ri+1}`,ri,{groupName:g.name}))));});matches.push(...genKO(groupQualifierSlotsFromConfigs(r.groupConfigs),'knockout',maxGroupRounds,'Fase finale','Fase finale',{prePaired:true}));return matches;}if(r.format==='league_knockout'){const rounds=roundRobinPairs(teams);rounds.forEach((round,i)=>round.forEach(([h,a])=>matches.push(createMatch(h,a,'league',`Giornata ${i+1}`,i))));let maxKO=0;sortedCompetitions(r).forEach((c,idx)=>{const phase=idx===0?'playoff':'secondary_playoff';const entrants=leagueEntrants(c.teams,c.startRank-1,'classificata');matches.push(...genKO(entrants,phase,rounds.length,c.name,c.name));maxKO=Math.max(maxKO,Math.log2(nextPow2(c.teams)));});if(r.superCup?.enabled){const comps=sortedCompetitions(r);const h=comps.find(c=>c.id===r.superCup.homeCompetitionId)||comps[0];const a=comps.find(c=>c.id===r.superCup.awayCompetitionId)||comps[1];if(h&&a&&h.id!==a.id){matches.push(createMatch({label:`Vincente ${h.name}`,source:`bracketwinner:${h.name}`},{label:`Vincente ${a.name}`,source:`bracketwinner:${a.name}`},'supercup','Supercoppa',rounds.length+maxKO,{bracketRound:'Supercoppa',bracketName:'Supercoppa',bracketRoundIndex:1,bracketMatchIndex:1,sourceHome:`bracketwinner:${h.name}`,sourceAway:`bracketwinner:${a.name}`}));}}return matches;}return matches;}
+  function buildMatches(state){
+    const r=normalizeRules(state.rules);
+    const seed=String(r.calendarVariantSeed||'');
+    const baseTeams=[...(state.teams||[])];
+    const tournamentTeams=seed?seededShuffle(baseTeams,seed+'|teams|'+r.format):baseTeams;
+    const matches=[];
+
+    function addRoundRobin(teamList,phase,roundPrefix,startIndex=0,extraFactory=null,seedPart=''){
+      const teamsForRR=teamList;
+      const rounds=orderRoundRobinRounds(roundRobinPairs(teamsForRR),seed?seed+'|rr-rounds|'+seedPart:'');
+      rounds.forEach((round,i)=>round.forEach(([h,a])=>{
+        const extra=extraFactory?extraFactory(i,h,a):{};
+        matches.push(createMatch(h,a,phase,`${roundPrefix}${i+1}`,startIndex+i,extra));
+      }));
+      return rounds.length;
+    }
+
+    if(r.format==='league'){
+      addRoundRobin(tournamentTeams,'league','Giornata ',0,null,'league');
+      return matches;
+    }
+    if(r.format==='knockout'){
+      return genKO(tournamentTeams,'knockout',0,'Tabellone','Tabellone principale');
+    }
+    if(r.format==='groups_knockout'){
+      // Se l'admin ha assegnato manualmente i gironi, le assegnazioni restano intoccate.
+      // Se non ci sono assegnazioni complete, la seed del calendario permette un sorteggio
+      // alternativo, ma sempre bilanciato sui posti configurati dei gironi.
+      const groups=splitGroupsByConfig(tournamentTeams,r.groupConfigs,r.groupAssignments||{});
+      let maxGroupRounds=0;
+      groups.forEach(g=>{
+        const rounds=addRoundRobin(g.teams,'group',`${g.name} · Giornata `,0,(ri)=>({groupName:g.name}),`group|${g.name}`);
+        maxGroupRounds=Math.max(maxGroupRounds,rounds);
+      });
+      matches.push(...genKO(groupQualifierSlotsFromConfigs(r.groupConfigs),'knockout',maxGroupRounds,'Fase finale','Fase finale',{prePaired:true}));
+      return matches;
+    }
+    if(r.format==='league_knockout'){
+      const rounds=orderRoundRobinRounds(roundRobinPairs(tournamentTeams),seed?seed+'|league-ko-rr':'');
+      rounds.forEach((round,i)=>round.forEach(([h,a])=>matches.push(createMatch(h,a,'league',`Giornata ${i+1}`,i))));
+      let maxKO=0;
+      sortedCompetitions(r).forEach((c,idx)=>{
+        const phase=idx===0?'playoff':'secondary_playoff';
+        const entrants=leagueEntrants(c.teams,c.startRank-1,'classificata');
+        matches.push(...genKO(entrants,phase,rounds.length,c.name,c.name));
+        maxKO=Math.max(maxKO,Math.log2(nextPow2(c.teams)));
+      });
+      if(r.superCup?.enabled){
+        const comps=sortedCompetitions(r);
+        const h=comps.find(c=>c.id===r.superCup.homeCompetitionId)||comps[0];
+        const a=comps.find(c=>c.id===r.superCup.awayCompetitionId)||comps[1];
+        if(h&&a&&h.id!==a.id){
+          matches.push(createMatch({label:`Vincente ${h.name}`,source:`bracketwinner:${h.name}`},{label:`Vincente ${a.name}`,source:`bracketwinner:${a.name}`},'supercup','Supercoppa',rounds.length+maxKO,{bracketRound:'Supercoppa',bracketName:'Supercoppa',bracketRoundIndex:1,bracketMatchIndex:1,sourceHome:`bracketwinner:${h.name}`,sourceAway:`bracketwinner:${a.name}`}));
+        }
+      }
+      return matches;
+    }
+    return matches;
+  }
 
   function matchesByRoundIndex(matches){const map=new Map();matches.forEach(m=>{const k=m.roundIndex||0;if(!map.has(k))map.set(k,[]);map.get(k).push(m);});return [...map.entries()].sort((a,b)=>a[0]-b[0]);}
 
@@ -838,7 +929,7 @@
   function validateGeneration(state){const r=normalizeRules(state.rules);const teams=state.teams.length;const min=minimumTeams(r);if(teams<min)return {ok:false,message:`Servono almeno ${min} squadre per ${FORMAT_LABELS[r.format]}. Inserite: ${teams}.`};if(Number(r.fieldCount||0)<1)return {ok:false,message:'Inserisci almeno 1 campo disponibile.'};if(!r.oneDay&&(!Array.isArray(r.playingDays)||!r.playingDays.length))return {ok:false,message:'Seleziona almeno un giorno della settimana in cui si può giocare.'};if(r.format==='league')return {ok:true,message:'Formato valido: campionato unico senza fasi successive.'};if(r.format==='knockout')return {ok:true,message:'Formato valido: solo tabellone a eliminazione diretta.'};if(r.format==='groups_knockout'){const cfgs=r.groupConfigs||[];if(cfgs.length<2)return {ok:false,message:'Per gironi + eliminazione diretta servono almeno 2 gironi.'};if(r.groupFieldPolicy==='fixed_by_group'&&cfgs.length!==r.fieldCount)return {ok:false,message:`La modalità girone → campo richiede che il numero di gironi (${cfgs.length}) sia uguale al numero di campi (${r.fieldCount}).`};const totalSizes=cfgs.reduce((sum,g)=>sum+g.size,0);if(totalSizes!==teams)return {ok:false,message:`La somma delle squadre nei gironi deve essere uguale alle squadre iscritte. Configurate: ${totalSizes}, iscritte: ${teams}.`};for(const g of cfgs){if(g.size<2)return {ok:false,message:`${g.name}: servono almeno 2 squadre.`};if(g.qualifiers<0)return {ok:false,message:`${g.name}: qualificate non valide.`};if(g.qualifiers>g.size)return {ok:false,message:`${g.name}: non puoi qualificare ${g.qualifiers} squadre su ${g.size}.`};}const totalQ=cfgs.reduce((sum,g)=>sum+g.qualifiers,0);if(totalQ<2)return {ok:false,message:'Devono qualificarsi almeno 2 squadre complessive alla fase finale.'};if(totalQ>teams)return {ok:false,message:'Le qualificate alla fase finale non possono superare le squadre iscritte.'};return {ok:true,message:'Formato valido: gironi personalizzati + fase finale a eliminazione con eventuali BYE.'};}if(r.format==='league_knockout'){const cfg=validateCompetitionConfig(r,teams);if(!cfg.ok)return cfg;return {ok:true,message:'Formato valido: campionato unico + competizioni a eliminazione diretta configurabili.'};}return {ok:false,message:'Formato torneo non riconosciuto.'};}
   function scheduleSignature(state){
     const r=normalizeRules(state.rules);
-    const rulesForSchedule={schema:'v128-logic-audit-main-standings',format:r.format,groupConfigs:r.groupConfigs,groupAssignments:r.groupAssignments,playoffTeams:r.playoffTeams,eliminationCompetitions:r.eliminationCompetitions,superCup:r.superCup,isKingsLeague:r.isKingsLeague,oneDay:r.oneDay,fieldCount:r.fieldCount,startDate:r.startDate,endDate:r.endDate,startTime:r.startTime,matchDuration:r.matchDuration,breakMinutes:r.breakMinutes,oneDayPauseEnabled:r.oneDayPauseEnabled,oneDayPauseStart:r.oneDayPauseStart,oneDayPauseDuration:r.oneDayPauseDuration,playingDays:r.playingDays,groupFieldPolicy:r.groupFieldPolicy};
+    const rulesForSchedule={schema:'v130-calendar-variant-cross-seeding',format:r.format,groupConfigs:r.groupConfigs,groupAssignments:r.groupAssignments,playoffTeams:r.playoffTeams,eliminationCompetitions:r.eliminationCompetitions,superCup:r.superCup,isKingsLeague:r.isKingsLeague,oneDay:r.oneDay,fieldCount:r.fieldCount,startDate:r.startDate,endDate:r.endDate,startTime:r.startTime,matchDuration:r.matchDuration,breakMinutes:r.breakMinutes,oneDayPauseEnabled:r.oneDayPauseEnabled,oneDayPauseStart:r.oneDayPauseStart,oneDayPauseDuration:r.oneDayPauseDuration,playingDays:r.playingDays,groupFieldPolicy:r.groupFieldPolicy,calendarVariantSeed:r.calendarVariantSeed};
     const teams=(state.teams||[]).map(t=>({id:t.id}));
     return JSON.stringify({rules:rulesForSchedule,teams});
   }
@@ -1292,5 +1383,6 @@
   const memoGroupedStandings = memo(groupedStandings,'groupedStandings');
   const memoStats = memo(stats,'stats');
 
-  window.NexoraStore={ADMIN_KEY,PUBLIC_KEY,FORMAT_LABELS,PHASE_LABELS,FORMAT_HELP,STANDINGS_CRITERIA,defaultStandingsCriteriaOrder,normalizeStandingsCriteriaOrder,standingsCriterionMeta,uid,blankRules,defaultGroupConfigs,defaultSite,normalizeSite,emptyState,normalizeState,readPendingRemoteState,newestAdminLocalState,publicCacheState,withoutHeavyMedia,mergeMissingMedia,eventScoreWeight,load,save,alignState,repairState,auditDataState,derivedSnapshot,integrityReport,getTeam,getPlayer,getPresident,getParticipant,isPresidentId,ownGoalValue,isOwnGoalValue,isOwnGoalEvent,ownGoalTeamId,goalScoringTeamId,goalEventTeamId,goalLabel,teamName,playerName,scoreText,matchGoals,actualGoalCount,hasScore,hasGoals,isPlayed,isLive,matchStatusInfo,normalizeJerseyNumber,normalizePenalties,isKnockoutPhase,penaltyWinnerId,winnerId,minimumTeams,plannedGroups,groupAssignmentsFromMatches,validateGroupAssignments,serpentineAssignments,randomAssignments,generateCalendar,ensureFreshCalendar,isCalendarFresh,scheduleSignature,validateGeneration,validateCompetitionConfig,generationPlan,mainStandingsPhase,autoResolveKnockout,bracketData:memoBracketData,sortedCompetitions,seedEntrantsHighLow,allowedDateList,weekdayLabels,suggestEndDateForMatches,oneDayCalendarPauseEvent,groupFieldMap,allowedFieldsForMatch,groupFieldPolicyMessage,deriveFingerprint,selectors:{calculateStandings:memoCalculateStandings,groupStandings:memoGroupStandings,groupNames,groupedStandings:memoGroupedStandings,hasGroupStage,playerStats:memoPlayerStats,presidentStats:memoPresidentStats,scorers:memoScorers,presidentScorers:memoPresidentScorers,stats:memoStats,phases,rounds,bracketData:memoBracketData,articles}};
+  function nextCalendarVariantSeed(){return uid('calendar_variant');}
+  window.NexoraStore={ADMIN_KEY,PUBLIC_KEY,FORMAT_LABELS,PHASE_LABELS,FORMAT_HELP,STANDINGS_CRITERIA,nextCalendarVariantSeed,defaultStandingsCriteriaOrder,normalizeStandingsCriteriaOrder,standingsCriterionMeta,uid,blankRules,defaultGroupConfigs,defaultSite,normalizeSite,emptyState,normalizeState,readPendingRemoteState,newestAdminLocalState,publicCacheState,withoutHeavyMedia,mergeMissingMedia,eventScoreWeight,load,save,alignState,repairState,auditDataState,derivedSnapshot,integrityReport,getTeam,getPlayer,getPresident,getParticipant,isPresidentId,ownGoalValue,isOwnGoalValue,isOwnGoalEvent,ownGoalTeamId,goalScoringTeamId,goalEventTeamId,goalLabel,teamName,playerName,scoreText,matchGoals,actualGoalCount,hasScore,hasGoals,isPlayed,isLive,matchStatusInfo,normalizeJerseyNumber,normalizePenalties,isKnockoutPhase,penaltyWinnerId,winnerId,minimumTeams,plannedGroups,groupAssignmentsFromMatches,validateGroupAssignments,serpentineAssignments,randomAssignments,generateCalendar,ensureFreshCalendar,isCalendarFresh,scheduleSignature,validateGeneration,validateCompetitionConfig,generationPlan,mainStandingsPhase,autoResolveKnockout,bracketData:memoBracketData,sortedCompetitions,seedEntrantsHighLow,allowedDateList,weekdayLabels,suggestEndDateForMatches,oneDayCalendarPauseEvent,groupFieldMap,allowedFieldsForMatch,groupFieldPolicyMessage,deriveFingerprint,selectors:{calculateStandings:memoCalculateStandings,groupStandings:memoGroupStandings,groupNames,groupedStandings:memoGroupedStandings,hasGroupStage,playerStats:memoPlayerStats,presidentStats:memoPresidentStats,scorers:memoScorers,presidentScorers:memoPresidentScorers,stats:memoStats,phases,rounds,bracketData:memoBracketData,articles}};
 })();

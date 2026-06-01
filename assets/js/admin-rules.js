@@ -88,16 +88,21 @@
   UI.$('#rulesForm').addEventListener('submit',e=>{e.preventDefault();let draft=A.state();readInto(draft);const check=store.validateGeneration(draft);if(!check.ok){saveTournamentNameOnly();A.flash('#rulesMessage','Nome torneo salvato. Le altre regole non sono state applicate perché il calendario non è ancora valido: '+check.message,'error');fill();render();return;}let res;A.commit(s=>{readInto(s);res=store.generateCalendar(s,{preserveResults:true});});const type=res.ok?'ok':'error';const msg=res.ok?'Regole salvate, nome aggiornato, classifica aggiornata e calendario allineato. '+res.message:'Nome e regole salvate, ma il calendario non può essere aggiornato: '+res.message;A.flash('#rulesMessage',msg,type);fill();render();});
   UI.$('#generateCalendarBtn').addEventListener('click',()=>{const old=A.state();const hasReports=old.matches.some(m=>(m.goals&&m.goals.length)||(m.cards&&m.cards.length));if(hasReports&&!confirm('Rigenerare il calendario? I risultati/referti delle partite ancora compatibili verranno preservati, gli altri potrebbero essere rimossi.'))return;let res;A.commit(s=>{readInto(s);res=store.generateCalendar(s,{preserveResults:true});});A.flash('#rulesMessage',res.message,res.ok?'ok':'error');fill();render();});
   UI.$('#reshuffleCalendarBtn')?.addEventListener('click',function(){
-    if(!confirm('Rigenerare il calendario con un ordine completamente nuovo? I risultati esistenti verranno rimossi.'))return;
+    const old=A.state();
+    const hasReports=old.matches.some(m=>(m.goals&&m.goals.length)||(m.cards&&m.cards.length));
+    const warning=hasReports
+      ? 'Rigenerare un calendario davvero diverso? I referti esistenti verranno rimossi perché cambiano ordine, slot e potenzialmente accoppiamenti.'
+      : 'Rigenerare un calendario davvero diverso mantenendo le regole attuali?';
+    if(!confirm(warning))return;
     var res;
     A.commit(function(s){
       readInto(s);
-      var arr=s.teams;
-      for(var i=arr.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=arr[i];arr[i]=arr[j];arr[j]=tmp;}
-      s.rules.groupAssignments={};
+      s.rules.calendarVariantSeed=store.nextCalendarVariantSeed?store.nextCalendarVariantSeed():store.uid('calendar_variant');
+      // Non tocchiamo l'ordine anagrafico delle squadre e non cancelliamo i gironi manuali.
+      // La variante cambia il sorteggio/calendario tramite seed, ma resta riproducibile nello stato.
       res=store.generateCalendar(s,{preserveResults:false});
     });
-    A.flash('#rulesMessage',res.ok?'Calendario rigenerato con ordine nuovo. '+res.message:res.message,res.ok?'ok':'error');
+    A.flash('#rulesMessage',res.ok?'Calendario rigenerato con una variante nuova. '+res.message:res.message,res.ok?'ok':'error');
     fill();render();
   });
 

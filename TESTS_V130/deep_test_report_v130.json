@@ -1,0 +1,60 @@
+{
+  "summary": {
+    "pass": 6867,
+    "fail": 0,
+    "total": 6867
+  },
+  "results": [
+    {
+      "name": "store API smoke + main standings phase helper",
+      "pass": 4,
+      "fail": 0
+    },
+    {
+      "name": "league calendars and standings for 2/4/8/16 + odd edge cases",
+      "pass": 3132,
+      "fail": 0
+    },
+    {
+      "name": "knockout calendars and winner flow for 2/4/8/16 + BYE edge cases",
+      "pass": 239,
+      "fail": 0
+    },
+    {
+      "name": "groups+KO logic: RR, Campo 1, firsts opposite, KO excluded from standings",
+      "pass": 2244,
+      "fail": 0
+    },
+    {
+      "name": "league+KO: playoff results never change league table/default table",
+      "pass": 881,
+      "fail": 0
+    },
+    {
+      "name": "calendar variant button logic: different calendar, same rules, cross seeding for 2x6 q=3",
+      "pass": 353,
+      "fail": 0
+    },
+    {
+      "name": "own goal affects score/standings/referto label but not scorer table",
+      "pass": 5,
+      "fail": 0
+    },
+    {
+      "name": "live exclusion, penalties, preservation, validation edge cases",
+      "pass": 7,
+      "fail": 0
+    },
+    {
+      "name": "code regression surface: public team PDF excludes all knockout phases",
+      "pass": 2,
+      "fail": 0
+    }
+  ],
+  "failures": [],
+  "notes": [
+    "calculateStandings(state) now defaults to the qualifying table for the current format: league for league/league+KO, group for groups+KO, knockout for KO-only.",
+    "Use calculateStandings(state, \"all\") only for diagnostic all-phase aggregation.",
+    "Rows now include wins/draws/losses to keep team phase cards coherent with PG and points."
+  ]
+}
