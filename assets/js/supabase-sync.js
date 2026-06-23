@@ -131,7 +131,6 @@
     if(!value || typeof value !== 'object') return value;
     const copy = JSON.parse(JSON.stringify(value));
     delete copy._remoteUpdatedAt;
-    delete copy._simulationUpdatedAt;
     delete copy._localUpdatedAt;
     delete copy._localRevision;
     delete copy._clientId;
@@ -491,16 +490,6 @@
       }
 
       const remote = await fetchRemote();
-      const localSimTime = Date.parse(local._simulationUpdatedAt || 0) || 0;
-      const remoteTime = remote ? (Date.parse(remote._remoteUpdatedAt || 0) || 0) : 0;
-
-      if(localSimTime && (!remote || localSimTime > remoteTime)){
-        scheduleRemoteSave(local, {immediate:true, source:'simulation'}).catch(()=>{});
-        remoteReady = true;
-        banner('Simulazione locale ripubblicata in background.', 'ok');
-        startAdminOnlineServicesWhenSafe();
-        return;
-      }
       if(localIsNewerThanRemote(local, remote)){
         // Regola fondamentale: una schermata admin appena aperta non deve mai essere riportata indietro
         // da un fetch remoto più vecchio quando esiste una modifica locale non ancora pubblicata.

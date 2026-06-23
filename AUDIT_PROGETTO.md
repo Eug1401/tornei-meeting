@@ -11,9 +11,11 @@
 - Nessun ID HTML duplicato.
 - Sintassi JavaScript valida.
 - CSS bilanciato e analizzato senza errori.
-- Test logici: 6.514 + 6.867 casi superati.
-- Matrice varianti calendario: 16.200 casi superati.
+- Test logici V130: 6.871 casi superati.
+- Test modalità torneo V132: 14 casi superati.
+- Matrice varianti calendario: 16.395 casi superati.
 - Corretto l'avvio di Realtime/polling dopo il recupero di modifiche admin locali pendenti.
+- Verificata UI admin regole per "Classifica unica + eliminazione diretta" su desktop e viewport mobile 390px.
 
 ## Punto da decidere
 

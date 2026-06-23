@@ -66,7 +66,7 @@
     return `
       <section class="pdf-card">
         <div class="pdf-section-title">
-          <h2>${state.rules?.format==='league_knockout'?'Classifica fase campionato':'Classifica squadre'}</h2>
+          <h2>${state.rules?.format==='league_knockout'?'Classifica unica':'Classifica squadre'}</h2>
           <p>Punti, partite giocate, gol fatti, gol subiti e differenza reti. Nei format con playoff la classifica resta separata dalla fase a eliminazione diretta.</p>
         </div>
         ${standingsRowsTable(rows)}

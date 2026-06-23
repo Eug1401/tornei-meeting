@@ -10,7 +10,7 @@
 <div class="shell">
   <header class="site-header">
     <div class="brand"><div data-brand-logo><div class="logo"><span></span></div></div><div><h1 data-brand-title>Coppa del Mondo · Regole</h1><p data-brand-subtitle>Formato torneo, fasi, campi e generazione automatica.</p></div></div>
-    <div class="actions"><button class="btn primary" id="simulateTournamentBtn" type="button">Simula</button><button class="btn danger" id="resetAllBtn" type="button">Reset</button></div>
+    <div class="actions"><button class="btn danger" id="resetAllBtn" type="button">Reset</button></div>
   </header>
   <nav class="admin-nav"><a href="admin.html">Dashboard</a><a href="admin-rules.html" class="active">Regole & calendario</a><a href="admin-groups.html">Gironi</a><a href="admin-teams.html">Squadre</a><a href="admin-players.html">Giocatori</a><a href="admin-matches.html">Partite & referti</a><a href="admin-articles.html">Articoli</a><a href="admin-reports.html">Report & PDF</a></nav>
   <main>
@@ -19,7 +19,7 @@
         <h2>Regole torneo</h2>
         <form id="rulesForm" class="form-grid">
           <div><label>Nome torneo</label><input name="name" id="ruleName" required></div>
-          <div><label>Formato</label><select name="format" id="ruleFormat"><option value="league">Campionato all'italiana</option><option value="knockout">Eliminazione diretta</option><option value="groups_knockout">Gironi + eliminazione diretta</option><option value="league_knockout">Campionato + eliminazione diretta</option></select></div>
+          <div><label>Formato</label><select name="format" id="ruleFormat"><option value="league_knockout">Classifica unica + eliminazione diretta</option><option value="groups_knockout">Gironi + eliminazione diretta</option></select></div>
           <div id="formatHint" class="field-full"></div>
           <div class="field-full"><label><input type="checkbox" name="isKingsLeague" id="isKingsLeague" style="width:auto"> Modalità Kings League</label><p class="muted">Se attiva, nel referto partita ogni gol può valere 1 oppure 2. Il risultato e la classifica usano il peso selezionato.</p></div>
 
@@ -35,10 +35,9 @@
           </div>
 
           <div class="field-full league-ko-only">
-            <div class="section-title compact"><div><h3>Competizioni a eliminazione diretta</h3><p>Di default esiste solo Playoff Oro. Aggiungi Argento, Bronzo, ecc. solo quando servono. Il seeding è automatico: prima contro ultima, seconda contro penultima.</p></div><button class="btn small" id="addCompetitionBtn" type="button">Aggiungi competizione</button></div>
+            <div class="section-title compact"><div><h3>Classifica unica + fase finale</h3><p>Configura quante squadre della classifica generale entrano nel tabellone finale.</p></div><span class="pill">Fase finale</span></div>
             <div id="competitionsEditor"></div>
           </div>
-          <div class="field-full league-ko-only" id="superCupBox" style="display:none"><h3>Supercoppa</h3><label><input type="checkbox" name="superCupEnabled" id="superCupEnabled" style="width:auto"> Abilita Supercoppa</label><div class="supercup-grid margin-top"><div><label>Prima finalista</label><select id="superCupHome" name="superCupHome"></select></div><div><label>Seconda finalista</label><select id="superCupAway" name="superCupAway"></select></div></div><p class="muted">Disponibile solo se hai almeno due competizioni. Di base: vincente Playoff Oro contro vincente Playoff Argento.</p></div>
 
           <div><label>Numero campi disponibili</label><select name="fieldCount" id="fieldCount"><option value="1">1 campo</option><option value="2">2 campi</option></select></div>
           <div class="fields-policy"><input type="hidden" name="groupFieldPolicy" id="groupFieldPolicy" value="rotate_per_team"><p class="muted" id="groupFieldPolicyHint">Con 2 campi la rotazione è automatica: ogni squadra gioca su entrambi i campi, con almeno una partita su Campo 1.</p></div>

@@ -422,7 +422,7 @@
     }
     if(format==='league'||format==='league_knockout'){
       const row=(store.selectors.calculateStandings(s,'league')||[]).find(r=>r.teamId===teamId);
-      if(row)return rowWithMeta(row,format==='league_knockout'?'Fase campionato':'Campionato','base-league','base');
+      if(row)return rowWithMeta(row,format==='league_knockout'?'Classifica unica':'Campionato','base-league','base');
     }
     if(format==='knockout'){
       return teamStatsFromMatches(s,teamId,(s.matches||[]).filter(m=>store.isKnockoutPhase?store.isKnockoutPhase(m):m.phase==='knockout'),'Eliminazione diretta','base-knockout','base');
@@ -433,11 +433,11 @@
   function teamStatsForPdf(s,teamId){return teamBaseRecordForState(s,teamId);}
   function teamPhaseStatsForState(s,teamId){
     const phases=[]; const format=s.rules?.format||'';
-    if(format==='league'||format==='league_knockout'){const row=(store.selectors.calculateStandings(s,'league')||[]).find(r=>r.teamId===teamId);phases.push(rowWithMeta(row||emptyTeamPhaseRow(teamId),format==='league_knockout'?'Fase campionato':'Campionato','league','primary'));}
+    if(format==='league'||format==='league_knockout'){const row=(store.selectors.calculateStandings(s,'league')||[]).find(r=>r.teamId===teamId);phases.push(rowWithMeta(row||emptyTeamPhaseRow(teamId),format==='league_knockout'?'Classifica unica':'Campionato','league','primary'));}
     if(store.selectors.hasGroupStage(s)){const groups=store.selectors.groupedStandings(s)||[];const g=groups.find(x=>(x.rows||[]).some(r=>r.teamId===teamId));const row=g?.rows?.find(r=>r.teamId===teamId);phases.push(rowWithMeta(row||emptyTeamPhaseRow(teamId),`Fase gironi${g?.name?' · '+g.name:''}`,'group','primary'));}
     const koMatches=(s.matches||[]).filter(m=>m.phase!=='league'&&m.phase!=='group'&&(m.homeTeamId===teamId||m.awayTeamId===teamId));
     const buckets=new Map();
-    koMatches.forEach(m=>{const label=m.phase==='supercup'?'Supercoppa':(m.bracketName||store.PHASE_LABELS[m.phase]||'Eliminazione diretta');const key=`${m.phase}|${label}`;if(!buckets.has(key))buckets.set(key,{label,matches:[]});buckets.get(key).matches.push(m);});
+    koMatches.forEach(m=>{const label=m.bracketName||store.PHASE_LABELS[m.phase]||'Eliminazione diretta';const key=`${m.phase}|${label}`;if(!buckets.has(key))buckets.set(key,{label,matches:[]});buckets.get(key).matches.push(m);});
     [...buckets.entries()].forEach(([key,b])=>phases.push(teamStatsFromMatches(s,teamId,b.matches,b.label,key,'knockout')));
     if(!phases.length)phases.push(rowWithMeta(emptyTeamPhaseRow(teamId),'Statistiche','empty','primary'));
     return phases;
