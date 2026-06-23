@@ -356,8 +356,6 @@
     _lastArticlesFP=fp;
   }
 
-  // ---- Sezione Foto squadre rimossa: le immagini restano solo negli articoli ----
-  function renderPhotos(){ /* feature foto rimossa */ }
 
   function setRgb(doc,method,c){doc[method](c[0],c[1],c[2]);}
   function slug(v){return String(v||'scheda-squadra').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')||'scheda-squadra';}
@@ -923,7 +921,7 @@
     _lastRenderFP=fp;
     resetFiltersForNewState();
     persistPublicFilters();
-    renderHome();renderTeams();renderPlayers();renderMatches();renderBracket();renderArticles();renderPhotos();renderSearch();
+    renderHome();renderTeams();renderPlayers();renderMatches();renderBracket();renderArticles();renderSearch();
   }
   let _saveTimer=null;
   function deferredSave(){

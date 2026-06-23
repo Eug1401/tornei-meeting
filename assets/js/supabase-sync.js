@@ -437,6 +437,27 @@
     return Boolean(localTime && (!remote || localTime > remoteTime));
   }
 
+  let adminOnlineServicesStarted = false;
+  function startAdminOnlineServices(){
+    if(adminOnlineServicesStarted) return;
+    adminOnlineServicesStarted = true;
+    subscribeRealtime();
+    setupConnectivityHandlers();
+  }
+
+  function startAdminOnlineServicesWhenSafe(){
+    if(!hasRemoteWork()){
+      startAdminOnlineServices();
+      return;
+    }
+    const onStatus = () => {
+      if(hasRemoteWork()) return;
+      window.removeEventListener('ng:remote-save-status', onStatus);
+      startAdminOnlineServices();
+    };
+    window.addEventListener('ng:remote-save-status', onStatus);
+  }
+
   async function initAdmin(){
     installAdminAuthUI();
     const session = await getSession();
@@ -465,6 +486,7 @@
         remoteReady = true;
         banner('Modifiche riprese: salvataggio online in background.', 'ok');
         flushRemoteSave().catch(()=>{});
+        startAdminOnlineServicesWhenSafe();
         return;
       }
 
@@ -476,6 +498,7 @@
         scheduleRemoteSave(local, {immediate:true, source:'simulation'}).catch(()=>{});
         remoteReady = true;
         banner('Simulazione locale ripubblicata in background.', 'ok');
+        startAdminOnlineServicesWhenSafe();
         return;
       }
       if(localIsNewerThanRemote(local, remote)){
@@ -487,6 +510,7 @@
         scheduleRemoteSave(local, {immediate:true, source:'local-newer'}).catch(()=>{});
         remoteReady = true;
         banner('Modifiche locali già pronte: pubblicazione online in background.', 'ok');
+        startAdminOnlineServicesWhenSafe();
         return;
       }
       if(remote && !same(remote, local)){
@@ -499,8 +523,7 @@
       remoteReady = true;
       banner('Backend Supabase attivo. Salvataggi in background e navigation-safe.', 'ok');
       // Realtime: ricevi le modifiche di altri admin senza dover ricaricare la pagina.
-      subscribeRealtime();
-      setupConnectivityHandlers();
+      startAdminOnlineServices();
     }catch(err){
       console.error(err);
       banner('Errore caricamento Supabase: ' + (err.message || err), 'error', {sticky:true});

@@ -1,5 +1,6 @@
-const fs=require('fs'), vm=require('vm');
-const code=fs.readFileSync('/mnt/data/work_v130/tornei-clean/assets/js/store.js','utf8');
+const fs=require('fs'), vm=require('vm'), nodePath=require('path');
+const projectRoot=nodePath.resolve(__dirname,'..');
+const code=fs.readFileSync(nodePath.join(projectRoot,'assets/js/store.js'),'utf8');
 function load(){const storage=new Map();const localStorage={getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k)};const c={console,setTimeout,clearTimeout,structuredClone:global.structuredClone,localStorage,CustomEvent:function(){},window:{dispatchEvent(){},addEventListener(){}}};Object.assign(c.window,{console,localStorage,setTimeout,clearTimeout,structuredClone:global.structuredClone,CustomEvent:c.CustomEvent});vm.createContext(c);vm.runInContext(code,c);return c.window.NexoraStore;}const store=load();
 let pass=0,fail=0;const failures=[];function assert(cond,msg,detail){cond?pass++:(fail++,failures.push({msg,detail}));}
 function teams(n){return Array.from({length:n},(_,i)=>({id:'T'+(i+1),name:'T'+(i+1),players:[{id:'P'+(i+1),name:'P'+(i+1)}],president:{id:'PR'+(i+1),name:'PR'+(i+1)},coach:{name:'C'}}));}

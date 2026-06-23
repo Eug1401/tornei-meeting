@@ -1,7 +1,9 @@
 const fs = require('fs');
 const vm = require('vm');
-const path = '/mnt/data/work_v128/tornei-clean/assets/js/store.js';
-const code = fs.readFileSync(path,'utf8');
+const nodePath = require('path');
+const projectRoot = nodePath.resolve(__dirname, '..');
+const storePath = nodePath.join(projectRoot, 'assets/js/store.js');
+const code = fs.readFileSync(storePath,'utf8');
 function loadStore(){
   const storage = new Map();
   const localStorage = {getItem:k=>storage.has(k)?storage.get(k):null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k),key:i=>Array.from(storage.keys())[i]||null,get length(){return storage.size;}};
@@ -62,7 +64,7 @@ test('own goal affects score/standings/referto label but not scorer table',()=>{
 test('live exclusion, penalties, preservation, validation edge cases',()=>{let s=baseState(2,{format:'knockout',fieldCount:1,oneDay:true,startDate:'2026-06-06'}); let res=store.generateCalendar(s,{preserveResults:false}); assert(res.ok,'KO live calendar'); const m=s.matches[0]; scoreMatch(s,m,0,0); m.penalties={home:2,away:4}; assert(store.winnerId(s,m)===m.awayTeamId,'penalty winner'); m.status='live'; m.goals=[{id:'live',playerId:store.getTeam(s,m.homeTeamId).players[0].id,weight:1}]; assert(store.selectors.calculateStandings(s).find(r=>r.teamId===m.homeTeamId).goalsFor===0,'live excluded default'); assert(store.selectors.calculateStandings(s,null,{includeLive:true}).find(r=>r.teamId===m.homeTeamId).goalsFor===1,'live included when requested'); s=baseState(4,{format:'league',fieldCount:1,oneDay:true,startDate:'2026-06-06'}); res=store.generateCalendar(s,{preserveResults:false}); s.matches[0].referee='Preserve'; scoreMatch(s,s.matches[0],1,0); res=store.generateCalendar(s,{preserveResults:true}); assert(!!s.matches.find(m=>m.referee==='Preserve'&&store.hasScore(s,m)),'preserve results on regenerate'); let inv=baseState(3,{format:'groups_knockout',groupConfigs:[{name:'A',size:2,qualifiers:1},{name:'B',size:2,qualifiers:1}]}); assert(!store.validateGeneration(inv).ok,'reject group size mismatch'); inv=baseState(6,{format:'league_knockout',eliminationCompetitions:[{id:'bad',name:'Bad',startRank:1,teams:3}]}); assert(!store.validateGeneration(inv).ok,'reject non power-of-two playoff');});
 
 // Check files for known regression surfaces
-test('code regression surface: public team PDF excludes all knockout phases',()=>{const publicCode=fs.readFileSync('/mnt/data/work_v128/tornei-clean/assets/js/public.js','utf8'); assert(publicCode.includes('store.isKnockoutPhase?store.isKnockoutPhase(m)'), 'public team match list uses isKnockoutPhase guard'); const adminCommon=fs.readFileSync('/mnt/data/work_v128/tornei-clean/assets/js/admin-common.js','utf8'); assert(adminCommon.includes('calculateStandings(s)'), 'admin dashboard still calls selector, which now defaults to main standings');});
+test('code regression surface: public team PDF excludes all knockout phases',()=>{const publicCode=fs.readFileSync(nodePath.join(projectRoot,'assets/js/public.js'),'utf8'); assert(publicCode.includes('store.isKnockoutPhase?store.isKnockoutPhase(m)'), 'public team match list uses isKnockoutPhase guard'); const adminCommon=fs.readFileSync(nodePath.join(projectRoot,'assets/js/admin-common.js'),'utf8'); assert(adminCommon.includes('calculateStandings(s,mainPhase)'), 'admin dashboard explicitly uses the main standings phase');});
 
 const report={summary:{pass,fail,total:pass+fail},results,failures,notes:[
   'calculateStandings(state) now defaults to the qualifying table for the current format: league for league/league+KO, group for groups+KO, knockout for KO-only.',

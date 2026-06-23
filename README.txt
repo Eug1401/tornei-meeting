@@ -25,7 +25,7 @@ Questa versione può funzionare con Supabase per avere dati condivisi tra admin 
 1. Crea progetto Supabase.
 2. Esegui SUPABASE_SETUP.sql in SQL Editor.
 3. Crea l'utente admin in Authentication > Users.
-4. Copia Project URL e anon public key in assets/js/supabase-config.js.
+4. Copia Project URL base e publishable key in assets/js/supabase-config.js.
 5. Imposta ENABLED:true.
 6. Pubblica la cartella su hosting statico.
 
@@ -65,3 +65,10 @@ Aggiornamento v25:
 - Classifica marcatori limitata alla Top 10 quando non si filtra per squadra.
 - Selezionando una squadra, admin e pubblico mostrano le statistiche complete di tutti i giocatori della squadra.
 - Inserimento gol e cartellini più guidato: prima scegli la squadra, poi cerchi/selezioni il calciatore.
+
+AGGIORNAMENTO SUPABASE 2026
+- Configurato il progetto fvcuganqopmshdpysoxi con publishable key.
+- Rimossi il codice e i file della vecchia galleria squadre non più esposta nei menu.
+- Le immagini degli articoli e i loghi squadra restano disponibili.
+- Corretto l'avvio di Realtime dopo il recupero di modifiche admin pendenti.
+- Importante: con le policy incluse ogni utente authenticated può scrivere; disabilitare signup pubblico o restringere le policy all'UUID dell'admin.

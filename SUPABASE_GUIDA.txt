@@ -1,29 +1,28 @@
-NEW GENERATION + SUPABASE
+COPPA DEL MONDO + SUPABASE
 
-Questa versione include il backend condiviso Supabase.
-Finché assets/js/supabase-config.js ha ENABLED:false, l'app funziona ancora in locale.
-Quando configuri URL e ANON_KEY e metti ENABLED:true:
-- admin.html e pagine admin richiedono login Supabase;
+Questa versione usa Supabase come backend condiviso.
+Quando assets/js/supabase-config.js contiene ENABLED:true, Project URL e publishable key:
+- le pagine admin richiedono il login Supabase;
 - ogni salvataggio admin aggiorna la riga online app_state/main;
 - index.html legge la stessa riga online;
-- gli utenti pubblici vedono gli stessi dati aggiornati.
+- gli utenti pubblici vedono gli aggiornamenti tramite Realtime e polling di sicurezza.
 
 File importanti:
-- SUPABASE_SETUP.sql: script da eseguire nel SQL Editor Supabase.
-- assets/js/supabase-config.js: incolla qui Project URL e anon public key.
-- assets/js/supabase-sync.js: sincronizzazione online.
+- SUPABASE_SETUP.sql: crea tabella, policy RLS, riga iniziale e configurazione Realtime.
+- assets/js/supabase-config.js: contiene Project URL base e publishable key.
+- assets/js/supabase-sync.js: gestisce login, salvataggio, Realtime e recupero offline.
 
 Sicurezza:
-- La anon key è pubblica per definizione.
-- La sicurezza è garantita da Row Level Security.
-- Le policy permettono SELECT a tutti e scrittura solo ad authenticated.
-- Crea l'utente admin da Supabase Authentication e disabilita/evita registrazioni pubbliche.
+- La publishable key è pubblica per definizione; non inserire secret/service_role nel frontend.
+- La sicurezza delle scritture dipende da Supabase Auth e Row Level Security.
+- Le policy incluse permettono SELECT a tutti e scrittura a ogni utente authenticated.
+- Se deve esistere un solo admin, disabilita le registrazioni pubbliche oppure restringi le policy al suo auth.uid().
 
-Loghi:
-- Per semplicità, i loghi caricati sono salvati nello stato JSON come Data URL.
-- Va bene per tornei piccoli. Per molti loghi pesanti, conviene passare a Supabase Storage.
+Immagini:
+- I loghi squadra e le immagini degli articoli restano nello stato JSON come Data URL.
+- Per molti file o immagini pesanti conviene in futuro passare a Supabase Storage.
 
-ARTICOLI
-La feature Articoli non richiede nuove tabelle: gli articoli sono salvati nel campo JSONB data della tabella app_state.
-L'admin autenticato può crearli/modificarli/eliminarli da admin-articles.html.
-Gli utenti pubblici li vedono nel tab Articoli di index.html dopo il caricamento/aggiornamento dati da Supabase.
+Articoli:
+- Non richiedono nuove tabelle: sono salvati nel campo JSONB data di app_state.
+- L'admin li gestisce da admin-articles.html.
+- Il pubblico li vede nel tab Articoli di index.html.
