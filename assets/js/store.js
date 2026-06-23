@@ -1,7 +1,8 @@
 (function(){
-  const ADMIN_KEY='new-generation-admin-state-v23';
-  const PUBLIC_KEY='new-generation-public-state-v23';
-  const PENDING_REMOTE_SAVE_KEY='new-generation-pending-remote-save-v1';
+  const ADMIN_KEY='meeting-tournament-admin-state-v23';
+  const PUBLIC_KEY='meeting-tournament-public-state-v23';
+  const PENDING_REMOTE_SAVE_KEY='meeting-tournament-pending-remote-save-v1';
+  const LEGACY_STORAGE_PREFIX=['new','generation'].join('-');
 
   const FORMAT_LABELS={
     groups_knockout:'Gironi + eliminazione diretta',
@@ -121,7 +122,10 @@
   }
   function normalizeState(data){const rawRules=(data&&data.rules)||{};const hasExplicitFormat=Boolean(rawRules&&Object.prototype.hasOwnProperty.call(rawRules,'format')&&rawRules.format);const s={...emptyState(),...(data||{})};s.rules=normalizeRules(s.rules);s.site=normalizeSite(s.site);s.calendarSignature=typeof s.calendarSignature==='string'?s.calendarSignature:'';s.teams=Array.isArray(s.teams)?s.teams:[];s.matches=Array.isArray(s.matches)?s.matches:[];s.teams.forEach(t=>{t.id=t.id||uid('team');t.name=t.name||'Squadra';t.logo=t.logo||'';t.players=Array.isArray(t.players)?t.players:[];t.president=(t.president&&typeof t.president==='object')?t.president:{name:t.presidentName||''};t.president.id=t.president.id||uid('president');t.president.name=String(t.president.name||'').trim();t.coach=(t.coach&&typeof t.coach==='object')?t.coach:{name:t.coachName||''};t.coach.name=String(t.coach.name||'').trim();t.players.forEach(p=>{p.id=p.id||uid('player');p.name=p.name||'Calciatore';p.birthYear=normalizeBirthYear(p.birthYear||p.year||p.annoNascita);p.number=normalizeJerseyNumber(p.number);delete p.role;});});s.matches.forEach((m,i)=>{m.id=m.id||uid('match');m.phase=m.phase||'league';m.round=m.round||`Giornata ${i+1}`;m.roundIndex=Number(m.roundIndex)||0;m.groupName=m.groupName||'';m.bracketRound=m.bracketRound||'';m.bracketName=m.bracketName||'';m.bracketRoundIndex=Number(m.bracketRoundIndex)||0;m.bracketMatchIndex=Number(m.bracketMatchIndex)||0;m.sourceHome=m.sourceHome||'';m.sourceAway=m.sourceAway||'';m.homeTeamId=m.homeTeamId||'';m.awayTeamId=m.awayTeamId||'';m.homeLabel=m.homeLabel||'';m.awayLabel=m.awayLabel||'';m.date=m.date||'';m.time=m.time||'';m.datetime=m.datetime||'';m.field=m.field||'';m.referee=m.referee||'';m.status=normalizeMatchStatus(m.status);m.penalties=normalizePenalties(m.penalties);m.goals=Array.isArray(m.goals)?m.goals.map(g=>normalizeGoalEvent(g)):[];m.cards=Array.isArray(m.cards)?m.cards.map(c=>({id:c.id||uid('card'),playerId:c.playerId||'',type:c.type==='red'?'red':'yellow'})):[];});if(!hasExplicitFormat){const phases=new Set(s.matches.map(m=>m.phase));const hasKo=s.matches.some(m=>isKnockoutPhase(m));if(phases.has('group'))s.rules.format='groups_knockout';else if(phases.has('league')||hasKo)s.rules.format='league_knockout';s.rules=normalizeRules(s.rules);}s.articles=Array.isArray(s.articles)?s.articles:[];s.articles=s.articles.map(a=>{const img=a.image||a.imageUrl||a.coverImage||a.photo||a.thumbnail||'';return {id:a.id||uid('article'),title:a.title||'Articolo senza titolo',body:a.body||'',image:img,createdAt:a.createdAt||new Date().toISOString(),updatedAt:a.updatedAt||a.createdAt||new Date().toISOString()};}).sort((a,b)=>new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt));return alignState(s,{silent:true});}
   function legacyStorageKeys(){
-    try{return Object.keys(localStorage).filter(k=>/^new-generation-(admin|public)-state-v\d+$/.test(k)||/^nexora-(admin|public)-state/.test(k));}
+    try{
+      const legacyRe=new RegExp(`^${LEGACY_STORAGE_PREFIX}-(admin|public)-state-v\\d+$`);
+      return Object.keys(localStorage).filter(k=>/^meeting-tournament-(admin|public)-state-v\d+$/.test(k)||legacyRe.test(k)||/^nexora-(admin|public)-state/.test(k));
+    }
     catch(e){return [];}
   }
   function cleanupLegacyStorage(keep=[]){
@@ -136,9 +140,27 @@
   function readStoredStateRaw(key){
     try{const raw=localStorage.getItem(key);return raw?JSON.parse(raw):null;}catch(_){return null;}
   }
+  function migrateLegacyStateKey(mode){
+    const current=mode==='admin'?ADMIN_KEY:PUBLIC_KEY;
+    if(readStoredStateRaw(current))return;
+    try{
+      const re=new RegExp(`^${LEGACY_STORAGE_PREFIX}-${mode}-state-v(\\d+)$`);
+      const keys=Object.keys(localStorage).filter(k=>re.test(k)).sort((a,b)=>{
+        const av=Number((a.match(re)||[])[1])||0,bv=Number((b.match(re)||[])[1])||0;
+        return bv-av;
+      });
+      for(const key of keys){
+        const raw=localStorage.getItem(key);
+        if(!raw)continue;
+        JSON.parse(raw);
+        localStorage.setItem(current,raw);
+        break;
+      }
+    }catch(_){}
+  }
   function readPendingRemoteState(){
     try{
-      const raw=localStorage.getItem(PENDING_REMOTE_SAVE_KEY);
+      const raw=localStorage.getItem(PENDING_REMOTE_SAVE_KEY)||localStorage.getItem(`${LEGACY_STORAGE_PREFIX}-pending-remote-save-v1`);
       if(!raw)return null;
       const parsed=JSON.parse(raw);
       if(!parsed||!parsed.state)return null;
@@ -223,6 +245,7 @@
   }
   function load(mode){
     try{
+      if(mode==='admin'||mode==='public')migrateLegacyStateKey(mode);
       cleanupLegacyStorage([ADMIN_KEY,PUBLIC_KEY]);
       if(mode==='admin'){
         const adminState=newestAdminLocalState();

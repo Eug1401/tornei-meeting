@@ -56,7 +56,7 @@
     const form=UI.$('#articleForm');
     form.reset();
     UI.$('#articleId').value='';
-    UI.$('#articleImagePreview').innerHTML='<div class="article-image article-placeholder small"><span>NG</span></div><span class="muted">Nessuna immagine selezionata.</span>';
+    UI.$('#articleImagePreview').innerHTML='<div class="article-image article-placeholder small"><span>MT</span></div><span class="muted">Nessuna immagine selezionata.</span>';
     UI.$('#articleSubmitBtn').textContent='Pubblica articolo';
     UI.$('#cancelEditArticleBtn').hidden=true;
   }
@@ -72,7 +72,7 @@
     UI.$('#articleId').value=article.id;
     UI.$('#articleTitle').value=article.title||'';
     UI.$('#articleBody').value=article.body||'';
-    UI.$('#articleImagePreview').innerHTML=currentImage?`<img class="article-image small" src="${UI.esc(currentImage)}" alt="Anteprima articolo"><span class="muted">Immagine attuale. Caricane una nuova solo se vuoi sostituirla.</span>`:'<div class="article-image article-placeholder small"><span>NG</span></div><span class="muted">Nessuna immagine.</span>';
+    UI.$('#articleImagePreview').innerHTML=currentImage?`<img class="article-image small" src="${UI.esc(currentImage)}" alt="Anteprima articolo"><span class="muted">Immagine attuale. Caricane una nuova solo se vuoi sostituirla.</span>`:'<div class="article-image article-placeholder small"><span>MT</span></div><span class="muted">Nessuna immagine.</span>';
     UI.$('#articleSubmitBtn').textContent='Salva e inoltra modifica';
     UI.$('#cancelEditArticleBtn').hidden=false;
     window.scrollTo({top:0,behavior:'smooth'});
@@ -90,7 +90,7 @@
   UI.$('#removeArticleImageBtn')?.addEventListener('click',()=>{
     currentImage='';
     UI.$('#articleImage').value='';
-    UI.$('#articleImagePreview').innerHTML='<div class="article-image article-placeholder small"><span>NG</span></div><span class="muted">Immagine rimossa.</span>';
+    UI.$('#articleImagePreview').innerHTML='<div class="article-image article-placeholder small"><span>MT</span></div><span class="muted">Immagine rimossa.</span>';
   });
 
   UI.$('#cancelEditArticleBtn')?.addEventListener('click',resetForm);

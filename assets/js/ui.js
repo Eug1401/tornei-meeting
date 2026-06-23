@@ -136,8 +136,8 @@
     if(!value) return '';
     try{return new Intl.DateTimeFormat('it-IT',{dateStyle:'medium',timeStyle:'short'}).format(new Date(value));}catch(e){return '';}
   }
-  function articlePlaceholder(title='NG'){
-    const label=initials(title||'NG')||'NG';
+  function articlePlaceholder(title='MT'){
+    const label=initials(title||'MT')||'MT';
     return `<div class="article-image article-placeholder" role="img" aria-label="Immagine articolo non disponibile"><span>${esc(label)}</span></div>`;
   }
   function replaceBrokenArticleImage(img){
@@ -145,8 +145,8 @@
     holder.className='article-image article-placeholder';
     holder.setAttribute('role','img');
     holder.setAttribute('aria-label','Immagine articolo non disponibile');
-    const title=(img?.dataset?.articleTitle||img?.alt||'NG').replace(/^Immagine articolo\s*/i,'').trim();
-    const label=initials(title||'NG')||'NG';
+    const title=(img?.dataset?.articleTitle||img?.alt||'MT').replace(/^Immagine articolo\s*/i,'').trim();
+    const label=initials(title||'MT')||'MT';
     holder.innerHTML=`<span>${esc(label)}</span>`;
     img?.closest('.article-media')?.classList.add('image-fallback');
     img?.replaceWith(holder);
@@ -189,7 +189,7 @@
     const src=articleImageSrc(article);
     const hero=src
       ? `<img class="article-detail-backdrop-img" src="${esc(src)}" alt="" aria-hidden="true" loading="eager" decoding="async"><div class="article-detail-frame">${articleImageMarkup(article||{}).replace('loading="lazy"','loading="eager"')}</div>`
-      : `<div class="article-detail-frame">${articlePlaceholder(article?.title||'NG')}</div>`;
+      : `<div class="article-detail-frame">${articlePlaceholder(article?.title||'MT')}</div>`;
     return `<article class="article-detail article-detail-editorial">
       <div class="article-detail-hero">
         ${hero}

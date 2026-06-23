@@ -1,7 +1,7 @@
 (function(){
  const store=NexoraStore, UI=NexoraUI, A=NexoraAdmin;
  let playerTeamFilter='', standingsGroup='all';
- const BRAND_LOGO='assets/brand/new-generation-logo-transparent.png';
+ const BRAND_LOGO='assets/brand/meeting-tournament-logo-transparent.png';
  // Palette PDF tema Coppa del Mondo (blu/arancio). Le chiavi storiche restano
  // per compatibilità ma puntano ai colori del tema: header blu scuro, accenti
  // arancio, testo chiaro leggibile su fondo scuro, superfici chiare pulite.
@@ -63,7 +63,7 @@
 
  function slug(s){return String(s||'report').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'').slice(0,60)||'report';}
  function today(){return new Intl.DateTimeFormat('it-IT',{dateStyle:'medium',timeStyle:'short'}).format(new Date());}
- function pdfName(s,type){return `${slug(s.rules?.name||'new-generation')}-${type}-${new Date().toISOString().slice(0,10)}.pdf`;}
+ function pdfName(s,type){return `${slug(s.rules?.name||'meeting-tournament')}-${type}-${new Date().toISOString().slice(0,10)}.pdf`;}
  function setRgb(doc,method,rgb){doc[method](rgb[0],rgb[1],rgb[2]);}
  function toolsReady(){return window.jspdf&&window.jspdf.jsPDF;}
  function toast(msg,type='ok'){const box=UI.$('#pdfStatus'); if(box)box.innerHTML=`<div class="message ${type}">${UI.esc(msg)}</div>`;}
@@ -128,7 +128,7 @@
    return p;
  }
  async function preloadTeamLogos(s){const out={};await Promise.all(s.teams.map(async t=>{out[t.id]=await dataUrlFromImageContained(t.logo,120);}));return out;}
- function teamInitial(name){return String(name||'?').trim().split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()||'NG';}
+ function teamInitial(name){return String(name||'?').trim().split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()||'MT';}
  function drawPlaceholderLogo(doc,x,y,size,label){setRgb(doc,'setFillColor',PDF_COLORS.soft);setRgb(doc,'setDrawColor',PDF_COLORS.line);doc.roundedRect(x,y,size,size,2.2,2.2,'FD');setRgb(doc,'setTextColor',PDF_COLORS.gold);doc.setFont('helvetica','bold');doc.setFontSize(Math.max(5,size*.45));doc.text(teamInitial(label),x+size/2,y+size*.62,{align:'center'});}
  function drawLogo(doc,src,x,y,size,label){
    if(src){
@@ -145,14 +145,14 @@
    const w=doc.internal.pageSize.getWidth();
    setRgb(doc,'setFillColor',[6,19,45]);doc.rect(0,0,w,48,'F');
    setRgb(doc,'setFillColor',[6,19,45]);doc.rect(0,48,w,3,'F');
-   drawLogo(doc,logo,w/2-12,6.5,24,s.rules?.name||'NG');
-   setRgb(doc,'setTextColor',PDF_COLORS.cream);doc.setFont('helvetica','bold');doc.setFontSize(15);doc.text(String(s.rules?.name||'New Generation'),w/2,34,{align:'center'});
+   drawLogo(doc,logo,w/2-12,6.5,24,s.rules?.name||'MT');
+   setRgb(doc,'setTextColor',PDF_COLORS.cream);doc.setFont('helvetica','bold');doc.setFontSize(15);doc.text(String(s.rules?.name||'Meeting Tournament'),w/2,34,{align:'center'});
    setRgb(doc,'setTextColor',PDF_COLORS.gold2);doc.setFontSize(10);doc.text(String(title||'Report ufficiale'),w/2,40.5,{align:'center'});
    setRgb(doc,'setTextColor',[255,176,95]);doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.text(String(subtitle||''),w/2,45.3,{align:'center'});
  }
  function addFooter(doc,s){
    const pages=doc.internal.getNumberOfPages();
-   for(let i=1;i<=pages;i++){doc.setPage(i);const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight();setRgb(doc,'setDrawColor',[255,122,24]);doc.setLineWidth(.2);doc.line(12,h-12,w-12,h-12);setRgb(doc,'setTextColor',PDF_COLORS.muted);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text(`${s.rules?.name||'New Generation'} · generato ${today()}`,12,h-7);doc.text(`Pagina ${i}/${pages}`,w-12,h-7,{align:'right'});}
+   for(let i=1;i<=pages;i++){doc.setPage(i);const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight();setRgb(doc,'setDrawColor',[255,122,24]);doc.setLineWidth(.2);doc.line(12,h-12,w-12,h-12);setRgb(doc,'setTextColor',PDF_COLORS.muted);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text(`${s.rules?.name||'Meeting Tournament'} · generato ${today()}`,12,h-7);doc.text(`Pagina ${i}/${pages}`,w-12,h-7,{align:'right'});}
  }
  function tableTheme(){return {theme:'grid',styles:{font:'helvetica',fontSize:8,cellPadding:2.1,lineColor:[255,176,95],lineWidth:.12,textColor:PDF_COLORS.ink,overflow:'linebreak',valign:'middle'},headStyles:{fillColor:PDF_COLORS.ink,textColor:PDF_COLORS.gold2,fontStyle:'bold',fontSize:7.5,halign:'center'},alternateRowStyles:{fillColor:[247,251,255]},margin:{left:12,right:12},showHead:'everyPage'};}
  function didDrawTeamLogo(logos,teamsByRow,colIndex=1){return function(data){if(data.section!=='body'||data.column.index!==colIndex)return;const row=teamsByRow[data.row.index];if(!row)return;drawLogo(data.doc,logos[row.teamId],data.cell.x+1.6,data.cell.y+1.4,6.2,row.name||row.teamName||row.team);};}
@@ -256,7 +256,7 @@
     setRgb(doc,'setFillColor',[250,252,255]);doc.rect(0,0,w,h,'F');
     setRgb(doc,'setFillColor',[255,255,255]);doc.roundedRect(10,8,w-20,31,5,5,'F');
     setRgb(doc,'setDrawColor',[219,229,244]);doc.roundedRect(10,8,w-20,31,5,5,'S');
-    drawLogo(doc,logo,16,14,15,s.rules?.name||'NG');
+    drawLogo(doc,logo,16,14,15,s.rules?.name||'MT');
     setRgb(doc,'setTextColor',PDF_COLORS.ink);doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text(cleanPdfText(s.rules?.name,'Torneo'),36,18,{maxWidth:w-110});
     doc.setFontSize(9);doc.text(`Tabellone - ${cleanPdfText(bracket.name,'Fase finale')}`,36,27,{maxWidth:w-110});
     setRgb(doc,'setTextColor',PDF_COLORS.muted);doc.setFont('helvetica','normal');doc.setFontSize(7);

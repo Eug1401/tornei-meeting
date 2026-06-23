@@ -1,5 +1,5 @@
 // =============================================================
-// New Generation — PhotoRuntime v105
+// Meeting Tournament — PhotoRuntime v105
 // Gestione immagini foto riscritta da zero.
 // Obiettivi:
 //   1) mai mostrare "Foto non disponibile" se l'originale è caricabile;

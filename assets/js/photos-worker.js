@@ -1,5 +1,5 @@
 // =============================================================
-// New Generation — Photo Compression Worker (v104)
+// Meeting Tournament — Photo Compression Worker (v104)
 // =============================================================
 // Comprime immagini off-main-thread.
 // Riceve: {id, file, maxDim, quality, progressive}

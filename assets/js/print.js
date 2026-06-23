@@ -21,7 +21,7 @@
             </div>
           </div>
           <div class="pdf-meta">
-            <span>${UI.esc(r.name || 'New Generation')}</span>
+            <span>${UI.esc(r.name || 'Meeting Tournament')}</span>
             <small>Generato: ${UI.esc(today())}</small>
           </div>
         </div>
@@ -140,10 +140,10 @@
   function render(){
     const root=UI.$('#printRoot');
     root.innerHTML = type==='standings'
-      ? reportHeader(`Classifica · ${state.rules.name}`,'Report essenziale ufficiale New Generation') + compactStandingsTable()
+      ? reportHeader(`Classifica · ${state.rules.name}`,'Report essenziale ufficiale Meeting Tournament') + compactStandingsTable()
       : type==='bracket'
-        ? reportHeader(`Tabellone · ${state.rules.name}`,'Report essenziale ufficiale New Generation') + compactBracketReport()
-        : reportHeader(`Calendario · ${state.rules.name}`,'Report essenziale ufficiale New Generation') + compactCalendarTable();
+        ? reportHeader(`Tabellone · ${state.rules.name}`,'Report essenziale ufficiale Meeting Tournament') + compactBracketReport()
+        : reportHeader(`Calendario · ${state.rules.name}`,'Report essenziale ufficiale Meeting Tournament') + compactCalendarTable();
     setTimeout(()=>window.print(),450);
   }
 

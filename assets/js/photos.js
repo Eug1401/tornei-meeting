@@ -1,5 +1,5 @@
 // =============================================================
-// New Generation — Foto squadre via Cloudinary + Supabase Edge Function
+// Meeting Tournament — Foto squadre via Cloudinary + Supabase Edge Function
 // v106-cloudinary
 // =============================================================
 // Il DB Supabase resta dedicato allo stato applicativo/articoli.
@@ -20,9 +20,9 @@
     FOLDER: DEFAULT_FOLDER,
     SECTION: DEFAULT_SECTION,
     EDGE_FUNCTION: DEFAULT_FUNCTION
-  }, window.NEW_GENERATION_CLOUDINARY || {});
+  }, window.MEETING_TOURNAMENT_CLOUDINARY || {});
 
-  const supabaseCfg = window.NEW_GENERATION_SUPABASE || {};
+  const supabaseCfg = window.MEETING_TOURNAMENT_SUPABASE || {};
   const cache = {
     loaded: false,
     loading: null,

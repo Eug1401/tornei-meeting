@@ -1,12 +1,14 @@
 (function(){
   const store=window.NexoraStore, UI=window.NexoraUI, $=UI.$;
   let state=store.load('public'); let phaseFilter='', roundFilter='', teamFilter='', statusFilter='', playerTeamFilter='', standingsGroup='all';
-  const FAVORITE_TEAM_KEY='new-generation-public-favorite-team-v1';
-  let favoriteTeamId=loadFavoriteTeamId();
-  const BRAND_LOGO='assets/brand/new-generation-logo-transparent.png';
+  const FAVORITE_TEAM_KEY_PREFIX='meeting-tournament-public-favorite-team-v2';
+  const LEGACY_FAVORITE_TEAM_KEY=['new','generation','public','favorite','team','v1'].join('-');
+  let favoriteTeamId='';
+  let favoriteTournamentKey='';
+  const BRAND_LOGO='assets/brand/meeting-tournament-logo-transparent.png';
   const PDF_COLORS={bg:[6,19,45],ink:[6,19,45],muted:[90,108,140],gold:[255,122,24],gold2:[255,255,255],paper:[247,251,255],line:[255,122,24]};
-  const PUBLIC_ACTIVE_TAB_KEY='new-generation-public-active-tab-v1';
-  const PUBLIC_FILTERS_KEY='new-generation-public-filter-state-v1';
+  const PUBLIC_ACTIVE_TAB_KEY='meeting-tournament-public-active-tab-v1';
+  const PUBLIC_FILTERS_KEY='meeting-tournament-public-filter-state-v1';
   const PUBLIC_TABS=new Set(['home','teams','players','matches','bracket','articles','search']);
   const shareImageBusy=new Set();
   function safeSessionGet(key){try{return sessionStorage.getItem(key)||'';}catch(_){return '';}}
@@ -47,8 +49,34 @@
     else safeSessionSet(PUBLIC_ACTIVE_TAB_KEY,activePublicTab());
   }
   function save(){store.save('public',state);} 
-  function loadFavoriteTeamId(){try{return localStorage.getItem(FAVORITE_TEAM_KEY)||'';}catch(_){return '';}}
-  function persistFavoriteTeamId(){try{favoriteTeamId?localStorage.setItem(FAVORITE_TEAM_KEY,favoriteTeamId):localStorage.removeItem(FAVORITE_TEAM_KEY);}catch(_){}}
+  function favoriteSlug(value){
+    return String(value||'torneo').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'').slice(0,80)||'torneo';
+  }
+  function favoriteTournamentIdentity(){
+    const r=state?.rules||{};
+    return favoriteSlug([r.name||UI.siteTitle?.(state)||'Meeting Tournament',r.format||'',r.startDate||'',r.endDate||''].join('|'));
+  }
+  function favoriteStorageKey(){return `${FAVORITE_TEAM_KEY_PREFIX}:${favoriteTournamentIdentity()}`;}
+  function loadFavoriteTeamId(){
+    const key=favoriteStorageKey();
+    try{
+      const saved=localStorage.getItem(key)||'';
+      if(saved&&store.getTeam(state,saved))return saved;
+      if(saved)localStorage.removeItem(key);
+      const legacy=localStorage.getItem(LEGACY_FAVORITE_TEAM_KEY)||'';
+      if(legacy&&store.getTeam(state,legacy)){localStorage.setItem(key,legacy);localStorage.removeItem(LEGACY_FAVORITE_TEAM_KEY);return legacy;}
+      if(legacy)localStorage.removeItem(LEGACY_FAVORITE_TEAM_KEY);
+    }catch(_){}
+    return '';
+  }
+  function syncFavoriteForTournament(){
+    const key=favoriteStorageKey();
+    if(key===favoriteTournamentKey)return;
+    favoriteTournamentKey=key;
+    favoriteTeamId=loadFavoriteTeamId();
+    invalidateFavoriteDependentViews();
+  }
+  function persistFavoriteTeamId(){try{const key=favoriteStorageKey();favoriteTeamId?localStorage.setItem(key,favoriteTeamId):localStorage.removeItem(key);}catch(_){}}
   function invalidateFavoriteDependentViews(){
     // La squadra preferita è stato locale, non fa parte dello stato torneo.
     // Per questo bisogna invalidare esplicitamente le cache di rendering,
@@ -59,6 +87,7 @@
     if(statusFilter==='favorite'&&!favoriteTeamId) statusFilter='';
   }
   function sanitizeFavoriteTeam(){
+    syncFavoriteForTournament();
     if(favoriteTeamId&&!store.getTeam(state,favoriteTeamId)){
       favoriteTeamId='';
       persistFavoriteTeamId();
@@ -227,7 +256,7 @@
   function renderHome(){
     var hfp=store.deriveFingerprint(state)+"|"+standingsGroup+"|favorite:"+(favoriteTeamId||'');
     if(hfp===_lastHomeFP){decorateFavoriteUI();return;}
-    _lastHomeFP=hfp;document.title=UI.siteTitle?UI.siteTitle(state):(state.rules.name||'New Generation');const titleEl=$('#publicTitle');if(titleEl)titleEl.textContent=state.rules.name||'New Generation';const summaryEl=$('#publicSummary');if(summaryEl)summaryEl.innerHTML=UI.rulesSummary(state);const statsEl=$('#publicStats');if(statsEl)statsEl.innerHTML=UI.statsGrid(store.selectors.stats(state));renderLiveHome();renderFavoriteHome();const standingsMenu=$('#publicStandingsMenu');if(standingsMenu)standingsMenu.innerHTML=store.selectors.hasGroupStage(state)?UI.groupStandingsSelector(state,standingsGroup,'publicGroupStandingsFilter'):'';$('#publicStandings').innerHTML=store.selectors.hasGroupStage(state)?UI.groupStandingsTables(state,standingsGroup,{includeLive:true}):UI.standingsTable(publicMainStandingsRows({includeLive:true}),state);$('#publicPlayersMini').innerHTML=UI.playerStatsTable(store.selectors.playerStats(state).filter(p=>p.goals>0).slice(0,10));decorateFavoriteUI();renderShareActions();}
+    _lastHomeFP=hfp;document.title=UI.siteTitle?UI.siteTitle(state):(state.rules.name||'Meeting Tournament');const titleEl=$('#publicTitle');if(titleEl)titleEl.textContent=state.rules.name||'Meeting Tournament';const summaryEl=$('#publicSummary');if(summaryEl)summaryEl.innerHTML=UI.rulesSummary(state);const statsEl=$('#publicStats');if(statsEl)statsEl.innerHTML=UI.statsGrid(store.selectors.stats(state));renderLiveHome();renderFavoriteHome();const standingsMenu=$('#publicStandingsMenu');if(standingsMenu)standingsMenu.innerHTML=store.selectors.hasGroupStage(state)?UI.groupStandingsSelector(state,standingsGroup,'publicGroupStandingsFilter'):'';$('#publicStandings').innerHTML=store.selectors.hasGroupStage(state)?UI.groupStandingsTables(state,standingsGroup,{includeLive:true}):UI.standingsTable(publicMainStandingsRows({includeLive:true}),state);$('#publicPlayersMini').innerHTML=UI.playerStatsTable(store.selectors.playerStats(state).filter(p=>p.goals>0).slice(0,10));decorateFavoriteUI();renderShareActions();}
   var _lastTeamsFingerprint="";
   function renderTeams(){
     var container=$("#publicTeams");
@@ -421,9 +450,9 @@
       }
     });
   }
-  function drawPdfLogo(doc,src,x,y,size,fallback='NG'){
+  function drawPdfLogo(doc,src,x,y,size,fallback='MT'){
     if(src){try{doc.addImage(src,'PNG',x,y,size,size,undefined,'FAST');return;}catch(_){}}
-    setRgb(doc,'setFillColor',PDF_COLORS.gold);doc.roundedRect(x,y,size,size,5,5,'F');setRgb(doc,'setTextColor',PDF_COLORS.ink);doc.setFont('helvetica','bold');doc.setFontSize(Math.max(8,size*.28));doc.text(String(fallback||'NG').slice(0,2).toUpperCase(),x+size/2,y+size*.6,{align:'center'});
+    setRgb(doc,'setFillColor',PDF_COLORS.gold);doc.roundedRect(x,y,size,size,5,5,'F');setRgb(doc,'setTextColor',PDF_COLORS.ink);doc.setFont('helvetica','bold');doc.setFontSize(Math.max(8,size*.28));doc.text(String(fallback||'MT').slice(0,2).toUpperCase(),x+size/2,y+size*.6,{align:'center'});
   }
   function addTeamPdfFooter(doc){
     const pages=doc.internal.getNumberOfPages();
@@ -494,8 +523,8 @@
     const {jsPDF}=window.jspdf; const doc=new jsPDF({orientation:'p',unit:'mm',format:'a4',compress:true});
     const brandLogo=await dataUrlFromImageContained(BRAND_LOGO,300); const teamLogo=await dataUrlFromImageContained(team.logo,300);
     const w=doc.internal.pageSize.getWidth();
-    setRgb(doc,'setFillColor',PDF_COLORS.bg);doc.rect(0,0,w,48,'F');drawPdfLogo(doc,brandLogo,w/2-13,7,26,state.rules?.name||'NG');
-    setRgb(doc,'setTextColor',PDF_COLORS.gold2);doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text(String(state.rules?.name||'New Generation').toUpperCase(),w/2,39,{align:'center'});
+    setRgb(doc,'setFillColor',PDF_COLORS.bg);doc.rect(0,0,w,48,'F');drawPdfLogo(doc,brandLogo,w/2-13,7,26,state.rules?.name||'MT');
+    setRgb(doc,'setTextColor',PDF_COLORS.gold2);doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text(String(state.rules?.name||'Meeting Tournament').toUpperCase(),w/2,39,{align:'center'});
     setRgb(doc,'setFillColor',PDF_COLORS.paper);doc.roundedRect(12,55,w-24,44,8,8,'F');drawPdfLogo(doc,teamLogo,20,62,28,team.name);
     setRgb(doc,'setTextColor',PDF_COLORS.ink);doc.setFont('helvetica','bold');doc.setFontSize(22);doc.text(String(team.name||'Squadra'),55,74,{maxWidth:w-70});
     const staffLine=[team.president?.name?`Presidente: ${team.president.name}`:'',team.coach?.name?`Allenatore: ${team.coach.name}`:''].filter(Boolean).join('  ·  ');
@@ -614,17 +643,17 @@
   function getTeamLogoImage(team){return new Promise(resolve=>{if(!team?.logo){resolve(null);return;}const img=new Image();img.crossOrigin='anonymous';img.onload=()=>resolve(img);img.onerror=()=>resolve(null);img.src=team.logo;});}
   function roundRectPath(ctx,x,y,w,h,r){const rr=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+rr,y);ctx.arcTo(x+w,y,x+w,y+h,rr);ctx.arcTo(x+w,y+h,x,y+h,rr);ctx.arcTo(x,y+h,x,y,rr);ctx.arcTo(x,y,x+w,y,rr);ctx.closePath();}
   function drawTextFit(ctx,text,x,y,maxWidth,fontSize=42,fw='900',align='center',color='#fff'){ctx.textAlign=align;ctx.textBaseline='middle';ctx.fillStyle=color;let size=fontSize;do{ctx.font=`${fw} ${size}px Arial, sans-serif`;if(ctx.measureText(text).width<=maxWidth||size<=18)break;size-=2;}while(size>18);ctx.fillText(text,x,y,maxWidth);}
-  function shareSlug(value){return String(value||'new-generation').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'').slice(0,70)||'new-generation';}
+  function shareSlug(value){return String(value||'meeting-tournament').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'').slice(0,70)||'meeting-tournament';}
   function canvasToBlob(canvas){return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob&&blob.size?resolve(blob):reject(new Error('Canvas esportato vuoto')),'image/png',.96));}
   function downloadBlob(blob,fileName){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=fileName;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},1400);}
-  async function shareImageBlob(blob,fileName,title,text){if(!blob)throw new Error('Immagine non generata');let file=null;try{file=new File([blob],fileName,{type:'image/png'});}catch(_){}if(file&&navigator.canShare&&navigator.canShare({files:[file]})&&navigator.share){await navigator.share({title:title||state.rules.name||'New Generation',text:text||'',files:[file]});return 'shared';}downloadBlob(blob,fileName);return 'downloaded';}
+  async function shareImageBlob(blob,fileName,title,text){if(!blob)throw new Error('Immagine non generata');let file=null;try{file=new File([blob],fileName,{type:'image/png'});}catch(_){}if(file&&navigator.canShare&&navigator.canShare({files:[file]})&&navigator.share){await navigator.share({title:title||state.rules.name||'Meeting Tournament',text:text||'',files:[file]});return 'shared';}downloadBlob(blob,fileName);return 'downloaded';}
   async function runShareTask(key,btn,build,title,text,fileName){if(shareImageBusy.has(key))return;shareImageBusy.add(key);const old=btn?.textContent;if(btn){btn.disabled=true;btn.textContent='Preparo immagine...';}try{const blob=await build();const mode=await shareImageBlob(blob,fileName,title,text);if(mode==='downloaded'&&btn)btn.textContent='Scaricata';}catch(err){if(err&&err.name==='AbortError')return;alert('Non riesco a preparare la condivisione immagine: '+(err?.message||err));}finally{setTimeout(()=>{if(btn){btn.disabled=false;btn.textContent=old;}},450);shareImageBusy.delete(key);}}
   function wrapCanvasText(ctx,text,maxWidth){const words=String(text||'').split(/\s+/).filter(Boolean);const lines=[];let line='';words.forEach(word=>{const next=line?line+' '+word:word;if(ctx.measureText(next).width<=maxWidth)line=next;else{if(line)lines.push(line);line=word;}});if(line)lines.push(line);return lines.length?lines:[''];}
   function drawWrappedText(ctx,text,x,y,maxWidth,lineHeight,maxLines=2){const all=wrapCanvasText(ctx,text,maxWidth);const lines=all.slice(0,maxLines);lines.forEach((line,i)=>ctx.fillText(i===maxLines-1&&all.length>maxLines?line.replace(/\s+\S*$/,'')+'...':line,x,y+i*lineHeight,maxWidth));return lines.length*lineHeight;}
   function drawImageLogo(ctx,img,x,y,size,label){roundRectPath(ctx,x,y,size,size,18);ctx.fillStyle='rgba(255,255,255,.92)';ctx.fill();ctx.strokeStyle='rgba(255,122,24,.35)';ctx.lineWidth=2;ctx.stroke();if(img){const pad=Math.round(size*.12),inner=size-pad*2;const ar=(img.naturalWidth||img.width||1)/(img.naturalHeight||img.height||1);const dw=ar>=1?inner:inner*ar,dh=ar>=1?inner/ar:inner;ctx.drawImage(img,x+pad+(inner-dw)/2,y+pad+(inner-dh)/2,dw,dh);}else{ctx.fillStyle='#08245a';ctx.font=`900 ${Math.round(size*.32)}px Arial, sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(label||'?').trim().slice(0,2).toUpperCase(),x+size/2,y+size/2);}ctx.textBaseline='alphabetic';}
   function canvasExportScale(width,height,preferred=2){let scale=preferred;const maxPixels=72000000,maxEdge=12000;while(scale>1&&(width*scale>maxEdge||height*scale>maxEdge||width*height*scale*scale>maxPixels))scale-=.25;return Math.max(1,Number(scale.toFixed(2)));}
   async function waitForShareRender(){try{if(document.fonts&&document.fonts.ready)await document.fonts.ready;}catch(_){}await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));}
-  function initShareCanvas(width,height,scale=1){const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));canvas.style.width=width+'px';canvas.style.height=height+'px';const ctx=canvas.getContext('2d');ctx.scale(scale,scale);const bg=ctx.createLinearGradient(0,0,width,height);bg.addColorStop(0,'#06132d');bg.addColorStop(.55,'#08245a');bg.addColorStop(1,'#09111f');ctx.fillStyle=bg;ctx.fillRect(0,0,width,height);ctx.fillStyle='rgba(255,255,255,.07)';ctx.fillRect(0,0,width,180);ctx.fillStyle='#ff7a18';ctx.font='900 34px Arial, sans-serif';ctx.textAlign='left';ctx.fillText('NEW GENERATION',70,78);ctx.fillStyle='#ffffff';ctx.font='900 52px Arial, sans-serif';ctx.fillText(state.rules.name||'Torneo',70,136,width-140);ctx.textAlign='right';ctx.fillStyle='rgba(255,255,255,.78)';ctx.font='800 24px Arial, sans-serif';ctx.fillText(new Intl.DateTimeFormat('it-IT',{dateStyle:'medium',timeStyle:'short'}).format(new Date()),width-70,82);return {canvas,ctx,scale};}
+  function initShareCanvas(width,height,scale=1){const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));canvas.style.width=width+'px';canvas.style.height=height+'px';const ctx=canvas.getContext('2d');ctx.scale(scale,scale);const bg=ctx.createLinearGradient(0,0,width,height);bg.addColorStop(0,'#06132d');bg.addColorStop(.55,'#08245a');bg.addColorStop(1,'#09111f');ctx.fillStyle=bg;ctx.fillRect(0,0,width,height);ctx.fillStyle='rgba(255,255,255,.07)';ctx.fillRect(0,0,width,180);ctx.fillStyle='#ff7a18';ctx.font='900 34px Arial, sans-serif';ctx.textAlign='left';ctx.fillText('MEETING TOURNAMENT',70,78);ctx.fillStyle='#ffffff';ctx.font='900 52px Arial, sans-serif';ctx.fillText(state.rules.name||'Torneo',70,136,width-140);ctx.textAlign='right';ctx.fillStyle='rgba(255,255,255,.78)';ctx.font='800 24px Arial, sans-serif';ctx.fillText(new Intl.DateTimeFormat('it-IT',{dateStyle:'medium',timeStyle:'short'}).format(new Date()),width-70,82);return {canvas,ctx,scale};}
   async function buildStandingsShareImage(groupName=''){
     const grouped=store.selectors.hasGroupStage(state);let title='Classifica generale';let rows=publicMainStandingsRows({includeLive:true});
     if(groupName&&grouped){const group=(store.selectors.groupedStandings(state,{includeLive:true})||[]).find(g=>g.name===groupName);if(group){title='Classifica '+group.name;rows=group.rows||[];}}
@@ -676,9 +705,9 @@
     if(!blob||blob.size<2048)throw new Error('Esportazione tabellone non valida o vuota');
     return blob;
   }
-  async function shareStandingsImage(btn){await runShareTask('standings',btn,()=>buildStandingsShareImage(''),'Classifica generale',state.rules.name||'New Generation',`${shareSlug(state.rules.name)}-classifica.png`);}
-  async function shareGroupStandingsImage(groupName,btn){await runShareTask('standings:'+groupName,btn,()=>buildStandingsShareImage(groupName),'Classifica '+groupName,state.rules.name||'New Generation',`${shareSlug(state.rules.name)}-${shareSlug(groupName)}.png`);}
-  async function shareBracketImage(btn){await runShareTask('bracket',btn,()=>buildBracketShareImage(),'Tabellone '+(state.rules.name||''),state.rules.name||'New Generation',`${shareSlug(state.rules.name)}-tabellone.png`);}
+  async function shareStandingsImage(btn){await runShareTask('standings',btn,()=>buildStandingsShareImage(''),'Classifica generale',state.rules.name||'Meeting Tournament',`${shareSlug(state.rules.name)}-classifica.png`);}
+  async function shareGroupStandingsImage(groupName,btn){await runShareTask('standings:'+groupName,btn,()=>buildStandingsShareImage(groupName),'Classifica '+groupName,state.rules.name||'Meeting Tournament',`${shareSlug(state.rules.name)}-${shareSlug(groupName)}.png`);}
+  async function shareBracketImage(btn){await runShareTask('bracket',btn,()=>buildBracketShareImage(),'Tabellone '+(state.rules.name||''),state.rules.name||'Meeting Tournament',`${shareSlug(state.rules.name)}-tabellone.png`);}
   function renderShareActions(){const menu=$('#publicStandingsMenu');if(menu&&!menu.querySelector('[data-share-actions="standings"]')){const groups=store.selectors.hasGroupStage(state)?store.selectors.groupNames(state):[];const groupBtns=groups.map(g=>`<button class="btn small" type="button" data-share-group-standings="${UI.esc(g)}">Immagine ${UI.esc(g)}</button>`).join('');menu.insertAdjacentHTML('beforeend',`<div class="share-toolbar" data-share-actions="standings"><button class="btn small primary" type="button" data-share-standings>Immagine classifica</button>${groupBtns}</div>`);}const bracket=$('#publicBracket');if(bracket&&store.bracketData(state).available&&!bracket.querySelector('[data-share-actions="bracket"]'))bracket.insertAdjacentHTML('afterbegin','<div class="share-toolbar bracket-share-toolbar" data-share-actions="bracket"><button class="btn small primary" type="button" data-share-bracket>Immagine tabellone</button></div>');}
   async function buildMatchShareImage(m){
     const homeT=store.getTeam(state,m.homeTeamId),awayT=store.getTeam(state,m.awayTeamId);
@@ -690,7 +719,7 @@
     const bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#070806');bg.addColorStop(.58,'#17190f');bg.addColorStop(1,'#090a07');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
     ctx.fillStyle='rgba(230,199,96,.06)';ctx.fillRect(0,0,W,160);
     roundRectPath(ctx,64,64,W-128,H-128,44);ctx.fillStyle='rgba(255,255,255,.035)';ctx.fill();ctx.strokeStyle='rgba(230,199,96,.72)';ctx.lineWidth=2;ctx.stroke();
-    ctx.fillStyle='#e6c760';ctx.font='900 34px Arial, sans-serif';ctx.textAlign='left';ctx.fillText('NEW GENERATION',112,132);
+    ctx.fillStyle='#e6c760';ctx.font='900 34px Arial, sans-serif';ctx.textAlign='left';ctx.fillText('MEETING TOURNAMENT',112,132);
     ctx.textAlign='right';ctx.font='800 30px Arial, sans-serif';ctx.fillText(UI.fmtDate(m),W-112,132);
     const contextLine=`${store.PHASE_LABELS[m.phase]||m.phase||'Partita'}${m.groupName?' · '+m.groupName:''}${m.round?' · '+m.round:''}`.replace(/\s+/g,' ').trim();
     ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font='900 42px Arial, sans-serif';ctx.fillText(contextLine,W/2,210,W-240);

@@ -1,4 +1,4 @@
-# Tornei Meeting · New Generation
+# Tornei Meeting · Meeting Tournament
 
 Applicazione web statica per gestire un torneo con squadre, giocatori, calendario, referti, articoli, classifiche, tabellone finale, schede squadra e PDF.
 

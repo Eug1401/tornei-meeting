@@ -1,5 +1,5 @@
 // =============================================================
-// New Generation — admin-photos.js (v91 UI ottimizzata)
+// Meeting Tournament — admin-photos.js (v91 UI ottimizzata)
 // =============================================================
 // Funzionalità:
 //   - Drag&drop area per upload

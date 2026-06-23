@@ -112,6 +112,18 @@ assert(/data-team-id/.test(uiJs) && /fixture-team/.test(uiJs) && /bracket-team/.
 assert(/public-score-team[^\n]+data-team-id/.test(publicJs), 'Public match detail exposes team ids for favorite highlighting.');
 assert(/favorite-inline-badge/.test(publicJs) && /favorite-inline-badge/.test(css), 'Favorite highlighting uses a visible inline badge, not color alone.');
 assert(/tr\.is-favorite-team td:first-child:before\{content:none;\}/.test(css), 'Favorite table marker avoids absolute-position overlap in ranking cells.');
+assert(/FAVORITE_TEAM_KEY_PREFIX='meeting-tournament-public-favorite-team-v2'/.test(publicJs) && /favoriteTournamentIdentity/.test(publicJs), 'Favorite team persistence is scoped to the current tournament.');
+assert(/LEGACY_FAVORITE_TEAM_KEY=\['new','generation','public','favorite','team','v1'\]\.join\('-'\)/.test(publicJs), 'Favorite team migration keeps legacy browser data without static legacy branding.');
+assert(/meeting-tournament-logo-transparent\.png/.test(publicJs) && /MEETING TOURNAMENT/.test(publicJs), 'Public PDF and image exports use Meeting Tournament branding assets/text.');
+const oldBrandWords = ['New','Generation'];
+const oldBrandPatterns = [
+  oldBrandWords.join(' '),
+  oldBrandWords.join(' ').toUpperCase(),
+  oldBrandWords.map(w=>w.toLowerCase()).join('-'),
+  oldBrandWords.map(w=>w.toLowerCase()).join('_'),
+  oldBrandWords.join('')
+];
+assert(!new RegExp(oldBrandPatterns.join('|')).test(publicJs + uiJs + css), 'Prompt 4 touched files do not contain old branding variants.');
 
 const summary = {pass, fail, total:pass+fail, failures};
 console.log(JSON.stringify(summary, null, 2));

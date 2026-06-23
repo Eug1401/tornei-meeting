@@ -1,4 +1,4 @@
-New Generation - Tornei Meeting
+Meeting Tournament - Tornei Meeting
 
 Documentazione aggiornata:
 - README.md

@@ -13,7 +13,7 @@
       if(stored) return stored;
       const sess = window.NG_SUPABASE_CLIENT?.auth?.getSession?.();
       // sess è una Promise - non possiamo aspettarla qui. Usiamo email cache se disponibile.
-      const cached = window.NG_ADMIN_EMAIL_CACHE;
+      const cached = window.MT_ADMIN_EMAIL_CACHE;
       if(cached) return cached.split('@')[0];
     }catch(_){}
     return 'Admin';
@@ -32,8 +32,8 @@
   };
   function setRgb(doc,fn,c){doc[fn](...(Array.isArray(c)?c:[c,c,c]));}
   function today(){return new Date().toLocaleDateString('it-IT');}
-  function slug(v){return String(v||'new-generation').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'new-generation';}
-  function teamInitial(label){return String(label||'NG').trim().split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase()||'NG';}
+  function slug(v){return String(v||'meeting-tournament').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'meeting-tournament';}
+  function teamInitial(label){return String(label||'MT').trim().split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase()||'MT';}
   function loadScriptOnce(src){return new Promise((resolve,reject)=>{if([...document.scripts].some(s=>s.src===src)){resolve();return;}const s=document.createElement('script');s.src=src;s.async=true;s.onload=resolve;s.onerror=()=>reject(new Error('Libreria non caricata: '+src));document.head.appendChild(s);});}
   async function ensurePdfTools(){if(!(window.jspdf&&window.jspdf.jsPDF))await loadScriptOnce('https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js');if(!(window.jspdf&&window.jspdf.jsPDF))throw new Error('jsPDF non disponibile');if(!window.jspdf.jsPDF.API.autoTable)await loadScriptOnce('https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js');}
   function imgToDataURL(src){return new Promise(resolve=>{if(!src){resolve('');return;}if(/^data:image\//.test(src)){resolve(src);return;}const img=new Image();img.crossOrigin='anonymous';img.onload=()=>{try{const c=document.createElement('canvas');const scale=Math.min(1,900/Math.max(img.naturalWidth||1,img.naturalHeight||1));c.width=Math.max(1,Math.round((img.naturalWidth||1)*scale));c.height=Math.max(1,Math.round((img.naturalHeight||1)*scale));c.getContext('2d').drawImage(img,0,0,c.width,c.height);resolve(c.toDataURL('image/png'));}catch(e){resolve('');}};img.onerror=()=>resolve('');img.src=src;});}
@@ -43,13 +43,13 @@
   async function createRecapDoc(s){
     await ensurePdfTools();
     const {jsPDF}=window.jspdf; const doc=new jsPDF({orientation:'p',unit:'mm',format:'a4',compress:true});
-    const logos=await preloadTeamLogos(s); const brand=await imgToDataURL('assets/brand/new-generation-logo-transparent.png');
+    const logos=await preloadTeamLogos(s); const brand=await imgToDataURL('assets/brand/meeting-tournament-logo-transparent.png');
     const mainPhase=store.mainStandingsPhase?store.mainStandingsPhase(s):(store.selectors.hasGroupStage(s)?'group':'league');
     const standings=store.selectors.calculateStandings(s,mainPhase).map((r,i)=>({...r,rank:i+1,diff:(r.diff>0?'+':'')+r.diff}));
     const scorers=store.selectors.scorers(s).slice(0,15).map((p,i)=>({...p,rank:i+1,player:p.name,team:p.teamName,year:p.birthYear||'-'}));
     const data=store.bracketData(s);
     const winner=findWinner(s,standings);
-    function header(title,subtitle){const w=doc.internal.pageSize.getWidth();setRgb(doc,'setFillColor',PDF_COLORS.bg);doc.rect(0,0,w,50,'F');drawLogo(doc,brand,w/2-15,6,30,s.rules?.name||'NG');setRgb(doc,'setTextColor',PDF_COLORS.gold2);doc.setFont('helvetica','bold');doc.setFontSize(15);doc.text(String(s.rules?.name||'New Generation'),w/2,40,{align:'center'});setRgb(doc,'setTextColor',PDF_COLORS.ink);doc.setFont('helvetica','bold');doc.setFontSize(18);doc.text(title,14,66);setRgb(doc,'setTextColor',PDF_COLORS.muted);doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text(subtitle,14,72,{maxWidth:w-28});}
+    function header(title,subtitle){const w=doc.internal.pageSize.getWidth();setRgb(doc,'setFillColor',PDF_COLORS.bg);doc.rect(0,0,w,50,'F');drawLogo(doc,brand,w/2-15,6,30,s.rules?.name||'MT');setRgb(doc,'setTextColor',PDF_COLORS.gold2);doc.setFont('helvetica','bold');doc.setFontSize(15);doc.text(String(s.rules?.name||'Meeting Tournament'),w/2,40,{align:'center'});setRgb(doc,'setTextColor',PDF_COLORS.ink);doc.setFont('helvetica','bold');doc.setFontSize(18);doc.text(title,14,66);setRgb(doc,'setTextColor',PDF_COLORS.muted);doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text(subtitle,14,72,{maxWidth:w-28});}
     function footer(){const pages=doc.internal.getNumberOfPages();for(let i=1;i<=pages;i++){doc.setPage(i);const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight();setRgb(doc,'setDrawColor',PDF_COLORS.gold);doc.setLineWidth(.25);doc.line(14,h-13,w-14,h-13);setRgb(doc,'setTextColor',PDF_COLORS.muted);doc.setFont('helvetica','normal');doc.setFontSize(7);doc.text(`Recap torneo - ${today()}`,14,h-8);doc.text(`Pagina ${i}/${pages}`,w-14,h-8,{align:'right'});}}
     function tableTheme(){return {theme:'grid',styles:{font:'helvetica',fontSize:8,cellPadding:2,lineColor:[255,176,95],lineWidth:.12,textColor:PDF_COLORS.ink,overflow:'linebreak',valign:'middle'},headStyles:{fillColor:PDF_COLORS.ink,textColor:PDF_COLORS.gold2,fontStyle:'bold',fontSize:7.5,halign:'center'},alternateRowStyles:{fillColor:[247,251,255]},margin:{left:14,right:14},showHead:'everyPage'};}
     function didParseTeamCell(col){return function(d){if(d.section==='body'&&d.column.index===col){d.cell.styles.cellPadding={top:2,right:2,bottom:2,left:11};d.cell.styles.fontStyle='bold';}};}
@@ -88,8 +88,8 @@
     return fallback||'Da definire';
   }
   function drawTeamLine(doc,s,logos,m,side,x,y,w){const id=side==='home'?m.homeTeamId:m.awayTeamId;const raw=side==='home'?m.homeLabel:m.awayLabel;const name=id?store.teamName(s,id,raw):recapSourceLabel(m,side,raw||'Da definire');const sc=store.matchGoals(s,m);const score=store.hasScore(s,m)?(side==='home'?sc.home:sc.away):'';drawLogo(doc,logos[id],x+1.4,y+1,5.8,name);setRgb(doc,'setTextColor',PDF_COLORS.ink);doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.text(String(name),x+8.8,y+5.2,{maxWidth:w-17});if(score!==''){setRgb(doc,'setFillColor',PDF_COLORS.gold);doc.circle(x+w-4.2,y+4.0,3.2,'F');setRgb(doc,'setTextColor',PDF_COLORS.ink);doc.setFontSize(7);doc.text(String(score),x+w-4.2,y+5.0,{align:'center'});} }
-  function drawBracketRecap(doc,s,logos,brand,data){const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight();setRgb(doc,'setFillColor',PDF_COLORS.bg);doc.rect(0,0,w,38,'F');drawLogo(doc,brand,w/2-11,4,22,s.rules?.name||'NG');setRgb(doc,'setTextColor',PDF_COLORS.gold2);doc.setFont('helvetica','bold');doc.setFontSize(14);doc.text('Tabellone finale',w/2,32,{align:'center'});if(!data.available){setRgb(doc,'setTextColor',PDF_COLORS.muted);doc.setFontSize(12);doc.text(data.message||'Nessun tabellone disponibile.',w/2,h/2,{align:'center'});return;}const bracket=data.brackets.find(b=>['Fase finale','Tabellone principale','Tabellone'].includes(b.name))||data.brackets[0];const rounds=bracket.rounds||[];const left=10,right=10,top=50,bottom=18,gap=6;const colW=Math.min(88,(w-left-right-gap*(rounds.length-1))/Math.max(1,rounds.length));const startX=(w-(colW*rounds.length+gap*(rounds.length-1)))/2;const yMap=[];rounds.forEach((round,ri)=>{const x=startX+ri*(colW+gap);setRgb(doc,'setFillColor',PDF_COLORS.ink);doc.roundedRect(x,top-10,colW,7.5,2,2,'F');setRgb(doc,'setTextColor',PDF_COLORS.gold2);doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.text(String(round.name),x+colW/2,top-4.9,{align:'center',maxWidth:colW-2});const count=Math.max(round.matches.length,1);const cardH=Math.max(20,Math.min(30,(h-top-bottom-(count-1)*7)/count));const available=h-top-bottom-cardH;const ys=[];round.matches.forEach((m,mi)=>{const y=top+(count===1?available/2:(available*mi/(count-1)));ys.push(y);setRgb(doc,'setFillColor',[247,251,255]);setRgb(doc,'setDrawColor',PDF_COLORS.line);doc.setLineWidth(.22);doc.roundedRect(x,y,colW,cardH,3.5,3.5,'FD');setRgb(doc,'setTextColor',PDF_COLORS.muted);doc.setFont('helvetica','normal');doc.setFontSize(5.6);doc.text(`${m.bracketName||bracket.name} · ${round.name} ${m.bracketMatchIndex||mi+1} · ${m.field||'Campo da definire'}`,x+2.2,y+4.3,{maxWidth:colW-4});drawTeamLine(doc,s,logos,m,'home',x+2,y+7.0,colW-4);drawTeamLine(doc,s,logos,m,'away',x+2,y+15.2,colW-4);});yMap[ri]=ys;});for(let ri=0;ri<rounds.length-1;ri++){const x1=startX+ri*(colW+gap)+colW;const x2=startX+(ri+1)*(colW+gap);(rounds[ri].matches||[]).forEach((m,mi)=>{const target=Math.floor(mi/2);const y1=(yMap[ri][mi]||0)+12;const y2=(yMap[ri+1][target]||0)+12;const mid=x1+gap/2;setRgb(doc,'setDrawColor',PDF_COLORS.gold);doc.setLineWidth(.32);doc.line(x1,y1,mid,y1);doc.line(mid,y1,mid,y2);doc.line(mid,y2,x2,y2);});}}
-  async function downloadRecapPdf(s){const doc=await createRecapDoc(store.normalizeState(s));doc.save(`${slug(s.rules?.name||'new-generation')}-recap-torneo.pdf`);}  
+  function drawBracketRecap(doc,s,logos,brand,data){const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight();setRgb(doc,'setFillColor',PDF_COLORS.bg);doc.rect(0,0,w,38,'F');drawLogo(doc,brand,w/2-11,4,22,s.rules?.name||'MT');setRgb(doc,'setTextColor',PDF_COLORS.gold2);doc.setFont('helvetica','bold');doc.setFontSize(14);doc.text('Tabellone finale',w/2,32,{align:'center'});if(!data.available){setRgb(doc,'setTextColor',PDF_COLORS.muted);doc.setFontSize(12);doc.text(data.message||'Nessun tabellone disponibile.',w/2,h/2,{align:'center'});return;}const bracket=data.brackets.find(b=>['Fase finale','Tabellone principale','Tabellone'].includes(b.name))||data.brackets[0];const rounds=bracket.rounds||[];const left=10,right=10,top=50,bottom=18,gap=6;const colW=Math.min(88,(w-left-right-gap*(rounds.length-1))/Math.max(1,rounds.length));const startX=(w-(colW*rounds.length+gap*(rounds.length-1)))/2;const yMap=[];rounds.forEach((round,ri)=>{const x=startX+ri*(colW+gap);setRgb(doc,'setFillColor',PDF_COLORS.ink);doc.roundedRect(x,top-10,colW,7.5,2,2,'F');setRgb(doc,'setTextColor',PDF_COLORS.gold2);doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.text(String(round.name),x+colW/2,top-4.9,{align:'center',maxWidth:colW-2});const count=Math.max(round.matches.length,1);const cardH=Math.max(20,Math.min(30,(h-top-bottom-(count-1)*7)/count));const available=h-top-bottom-cardH;const ys=[];round.matches.forEach((m,mi)=>{const y=top+(count===1?available/2:(available*mi/(count-1)));ys.push(y);setRgb(doc,'setFillColor',[247,251,255]);setRgb(doc,'setDrawColor',PDF_COLORS.line);doc.setLineWidth(.22);doc.roundedRect(x,y,colW,cardH,3.5,3.5,'FD');setRgb(doc,'setTextColor',PDF_COLORS.muted);doc.setFont('helvetica','normal');doc.setFontSize(5.6);doc.text(`${m.bracketName||bracket.name} · ${round.name} ${m.bracketMatchIndex||mi+1} · ${m.field||'Campo da definire'}`,x+2.2,y+4.3,{maxWidth:colW-4});drawTeamLine(doc,s,logos,m,'home',x+2,y+7.0,colW-4);drawTeamLine(doc,s,logos,m,'away',x+2,y+15.2,colW-4);});yMap[ri]=ys;});for(let ri=0;ri<rounds.length-1;ri++){const x1=startX+ri*(colW+gap)+colW;const x2=startX+(ri+1)*(colW+gap);(rounds[ri].matches||[]).forEach((m,mi)=>{const target=Math.floor(mi/2);const y1=(yMap[ri][mi]||0)+12;const y2=(yMap[ri+1][target]||0)+12;const mid=x1+gap/2;setRgb(doc,'setDrawColor',PDF_COLORS.gold);doc.setLineWidth(.32);doc.line(x1,y1,mid,y1);doc.line(mid,y1,mid,y2);doc.line(mid,y2,x2,y2);});}}
+  async function downloadRecapPdf(s){const doc=await createRecapDoc(store.normalizeState(s));doc.save(`${slug(s.rules?.name||'meeting-tournament')}-recap-torneo.pdf`);}  
   function stableStringify(value){
     if(value===null||typeof value!=='object')return JSON.stringify(value);
     if(Array.isArray(value))return '['+value.map(stableStringify).join(',')+']';
@@ -106,7 +106,7 @@
     const archiveId=`snap_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,8)}`;
     const stateText=stableStringify(clean);
     return {
-      app:'new-generation',
+      app:'meeting-tournament',
       type:'tournament-state-snapshot',
       version:2,
       snapshotVersion:2,
@@ -115,7 +115,7 @@
       source,
       checksum:checksumText(stateText),
       meta:{
-        tournamentName:clean.rules?.name||'New Generation',
+        tournamentName:clean.rules?.name||'Meeting Tournament',
         format:store.FORMAT_LABELS?.[clean.rules?.format]||clean.rules?.format||'',
         teams:(clean.teams||[]).length,
         players:(clean.teams||[]).reduce((sum,t)=>sum+(t.players||[]).length,0),
@@ -160,14 +160,14 @@
   function importStateBackup(payload,{reload=true}={}){
     const parsed=parseBackupPayload(payload);
     const current=state();
-    const msg=`Confermi il ripristino del backup?\n\nTorneo nel file: ${parsed.state.rules?.name||'New Generation'}\nSquadre: ${(parsed.state.teams||[]).length}\nPartite: ${(parsed.state.matches||[]).length}\n\nLo stato attuale (${(current.teams||[]).length} squadre, ${(current.matches||[]).length} partite) verrà sostituito.`;
+    const msg=`Confermi il ripristino del backup?\n\nTorneo nel file: ${parsed.state.rules?.name||'Meeting Tournament'}\nSquadre: ${(parsed.state.teams||[]).length}\nPartite: ${(parsed.state.matches||[]).length}\n\nLo stato attuale (${(current.teams||[]).length} squadre, ${(current.matches||[]).length} partite) verrà sostituito.`;
     if(!confirm(msg))return false;
     save(parsed.state);
     if(reload)setTimeout(()=>location.reload(),400);
     return true;
   }
   function resetStorageAndState(){
-    try{Object.keys(localStorage).filter(k=>k.startsWith('new-generation-admin-state')||k.startsWith('new-generation-public-state')||k.startsWith('nexora-admin-state')||k.startsWith('nexora-public-state')).forEach(k=>localStorage.removeItem(k));}catch(e){}
+    try{Object.keys(localStorage).filter(k=>k.startsWith('meeting-tournament-admin-state')||k.startsWith('meeting-tournament-public-state')||k.startsWith('nexora-admin-state')||k.startsWith('nexora-public-state')).forEach(k=>localStorage.removeItem(k));}catch(e){}
     save(store.emptyState());
     location.reload();
   }
@@ -257,13 +257,13 @@
     const input=form.querySelector('input');
     const msg=form.querySelector('.title-edit-message');
     function authReady(){
-      const cfg=window.NEW_GENERATION_SUPABASE||{};
+      const cfg=window.MEETING_TOURNAMENT_SUPABASE||{};
       if(!(cfg.ENABLED&&cfg.URL&&cfg.ANON_KEY))return true;
-      return Boolean(window.NG_ADMIN_EMAIL_CACHE)&&!document.getElementById('ngLoginOverlay');
+      return Boolean(window.MT_ADMIN_EMAIL_CACHE)&&!document.getElementById('ngLoginOverlay');
     }
     function refreshVisibility(){edit.hidden=!authReady();}
     function closeEdit(){form.hidden=true;title.hidden=false;refreshVisibility();msg.textContent='';}
-    function openEdit(){syncTournamentTitleDisplay();const s=state();input.value=String(s.rules?.name||UI.siteTitle?.(s)||'New Generation');title.hidden=true;edit.hidden=true;form.hidden=false;msg.textContent='';setTimeout(()=>{input.focus();input.select();},0);}
+    function openEdit(){syncTournamentTitleDisplay();const s=state();input.value=String(s.rules?.name||UI.siteTitle?.(s)||'Meeting Tournament');title.hidden=true;edit.hidden=true;form.hidden=false;msg.textContent='';setTimeout(()=>{input.focus();input.select();},0);}
     edit.addEventListener('click',openEdit);
     form.querySelector('[data-cancel-title-edit]').addEventListener('click',closeEdit);
     input.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();closeEdit();}});

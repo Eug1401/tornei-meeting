@@ -1,5 +1,5 @@
 (function(){
-  const cfg = window.NEW_GENERATION_SUPABASE || {};
+  const cfg = window.MEETING_TOURNAMENT_SUPABASE || {};
   const isConfigured = Boolean(cfg.ENABLED && cfg.URL && cfg.ANON_KEY && !String(cfg.URL).includes('INSERISCI') && !String(cfg.ANON_KEY).includes('INSERISCI'));
   const store = window.NexoraStore;
   if (!store) return;
@@ -15,7 +15,7 @@
   const originalSave = store.save.bind(store);
 
   // Identificatore univoco di questa sessione browser, per evitare di applicare a noi stessi gli eventi realtime delle nostre stesse scritture.
-  const CLIENT_ID_KEY = 'new-generation-client-id-v1';
+  const CLIENT_ID_KEY = 'meeting-tournament-client-id-v1';
   function ensureClientId(){
     try{
       let id = sessionStorage.getItem(CLIENT_ID_KEY);
@@ -27,7 +27,7 @@
     }catch(_){ return 'c_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10); }
   }
   const CLIENT_ID = ensureClientId();
-  window.NG_CLIENT_ID = CLIENT_ID;
+  window.MT_CLIENT_ID = CLIENT_ID;
 
   let client = null;
   let remoteReady = false;
@@ -43,7 +43,7 @@
   let retryCount = 0;
   let realtimeChannel = null;
   let realtimeState = 'off'; // 'off' | 'connecting' | 'on' | 'reconnecting'
-  const PENDING_SAVE_KEY = 'new-generation-pending-remote-save-v1';
+  const PENDING_SAVE_KEY = 'meeting-tournament-pending-remote-save-v1';
 
   function readPersistedPending(){
     try{
@@ -372,23 +372,23 @@
       nameBtn.title = 'Imposta nome admin (visibile agli altri admin)';
       const refreshNameBtnLabel = () => {
         const custom = localStorage.getItem('ng-admin-label');
-        const email = window.NG_ADMIN_EMAIL_CACHE || '';
+        const email = window.MT_ADMIN_EMAIL_CACHE || '';
         const display = custom || (email ? email.split('@')[0] : 'Admin');
         nameBtn.textContent = '👤 ' + display;
       };
       refreshNameBtnLabel();
       nameBtn.addEventListener('click', () => {
-        const current = localStorage.getItem('ng-admin-label') || (window.NG_ADMIN_EMAIL_CACHE||'').split('@')[0] || '';
+        const current = localStorage.getItem('ng-admin-label') || (window.MT_ADMIN_EMAIL_CACHE||'').split('@')[0] || '';
         const next = prompt('Il tuo nome (visibile agli altri admin quando modifichi una partita):', current);
         if(next === null) return; // annullato
         const trimmed = String(next).trim().slice(0, 30);
         if(trimmed){ localStorage.setItem('ng-admin-label', trimmed); }
         else { localStorage.removeItem('ng-admin-label'); }
         refreshNameBtnLabel();
-        banner('Nome admin aggiornato: ' + (trimmed||(window.NG_ADMIN_EMAIL_CACHE||'').split('@')[0]||'Admin'), 'ok');
+        banner('Nome admin aggiornato: ' + (trimmed||(window.MT_ADMIN_EMAIL_CACHE||'').split('@')[0]||'Admin'), 'ok');
       });
       actions.appendChild(nameBtn);
-      // Espongo refresh callback per richiamarla quando NG_ADMIN_EMAIL_CACHE viene popolato
+      // Espongo refresh callback per richiamarla quando MT_ADMIN_EMAIL_CACHE viene popolato
       window.NG_REFRESH_ADMIN_NAME_BTN = refreshNameBtnLabel;
 
       const b = document.createElement('button');
@@ -466,7 +466,7 @@
     if(nameBtn) nameBtn.hidden = !session;
     if(!session){ showLoginOverlay(); banner('Effettua login admin per sincronizzare.', 'warn', {sticky:true}); return; }
     // Cache email admin per i lock atomici (visualizzata in "Questa partita è in modifica da X").
-    try{ window.NG_ADMIN_EMAIL_CACHE = session.user?.email || ''; }catch(_){}
+    try{ window.MT_ADMIN_EMAIL_CACHE = session.user?.email || ''; }catch(_){}
     // Refresh label del bottone Nome admin con email appena caricata
     try{ window.NG_REFRESH_ADMIN_NAME_BTN?.(); }catch(_){}
 
@@ -541,7 +541,7 @@
     if(!next) return false;
     // Anti-flicker: scarta payload stale (più vecchi di quello che abbiamo localmente)
     if(isStateStale(next)){
-      try{ console.log('[NG-Realtime] Skip stale state da', source, '(rev:', next._revision, '< local:', lastLocalRevision + ')'); }catch(_){}
+      try{ console.log('[MT-Realtime] Skip stale state da', source, '(rev:', next._revision, '< local:', lastLocalRevision + ')'); }catch(_){}
       return false;
     }
     const local = store.load('public');
@@ -557,7 +557,7 @@
     if(!next) return false;
     // Anti-flicker: scarta payload stale
     if(isStateStale(next)){
-      try{ console.log('[NG-Realtime] Skip stale admin state da', source, '(rev:', next._revision, '< local:', lastLocalRevision + ')'); }catch(_){}
+      try{ console.log('[MT-Realtime] Skip stale admin state da', source, '(rev:', next._revision, '< local:', lastLocalRevision + ')'); }catch(_){}
       return false;
     }
     // POLICY (v80): NON ignoriamo mai gli update remoti, anche se stiamo salvando localmente.
@@ -642,7 +642,7 @@
         const raw = payload.new && payload.new.data;
         if(!raw) return;
         if(raw._clientId && raw._clientId === CLIENT_ID) return;
-        try { console.log('[NG-Realtime] postgres_changes da', raw._clientId || 'unknown'); } catch(_){}
+        try { console.log('[MT-Realtime] postgres_changes da', raw._clientId || 'unknown'); } catch(_){}
         const next = store.normalizeState(raw);
         if(isPublic){
           if(publishPublicState(next, 'realtime')){
@@ -679,7 +679,7 @@
         if(!payload || !payload.data) return;
         // Echo check (extra safety)
         if(payload.clientId && payload.clientId === CLIENT_ID) return;
-        try { console.log('[NG-Realtime] broadcast HOT-PATH da', payload.clientId || 'unknown'); } catch(_){}
+        try { console.log('[MT-Realtime] broadcast HOT-PATH da', payload.clientId || 'unknown'); } catch(_){}
         const next = store.normalizeState(payload.data);
         if(isPublic){
           publishPublicState(next, 'broadcast');
@@ -719,7 +719,7 @@
         payload: { data: stateWithMeta, clientId: CLIENT_ID, revision: revToUse, ts: Date.now() }
       });
     }catch(err){
-      console.warn('[NG-Realtime] broadcast failed:', err);
+      console.warn('[MT-Realtime] broadcast failed:', err);
       return Promise.resolve(false);
     }
   }

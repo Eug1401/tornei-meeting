@@ -56,7 +56,7 @@
     const meta=parsed.payload?.meta||{};
     const exported=parsed.payload?.exportedAt?new Date(parsed.payload.exportedAt).toLocaleString('it-IT'):'Data non disponibile';
     const players=(state.teams||[]).reduce((sum,t)=>sum+(t.players||[]).length,0);
-    box.innerHTML=`<span class="pill">Backup valido</span><h3>${NexoraUI.esc(state.rules?.name||meta.tournamentName||'New Generation')}</h3><p class="muted">Esportato: ${NexoraUI.esc(exported)}</p><div class="mini-grid"><span><strong>${(state.teams||[]).length}</strong><br>Squadre</span><span><strong>${players}</strong><br>Giocatori</span><span><strong>${(state.matches||[]).length}</strong><br>Partite</span><span><strong>${(state.articles||[]).length}</strong><br>Articoli</span></div>`;
+    box.innerHTML=`<span class="pill">Backup valido</span><h3>${NexoraUI.esc(state.rules?.name||meta.tournamentName||'Meeting Tournament')}</h3><p class="muted">Esportato: ${NexoraUI.esc(exported)}</p><div class="mini-grid"><span><strong>${(state.teams||[]).length}</strong><br>Squadre</span><span><strong>${players}</strong><br>Giocatori</span><span><strong>${(state.matches||[]).length}</strong><br>Partite</span><span><strong>${(state.articles||[]).length}</strong><br>Articoli</span></div>`;
   }
   function resetBackupUi(){
     selectedBackupRaw='';

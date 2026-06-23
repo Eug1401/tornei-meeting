@@ -103,7 +103,7 @@
   function downloadBackup(){
     const s=A.state();
     const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),state:s},null,2)],{type:'application/json'});
-    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`new-generation-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href);
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`meeting-tournament-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href);
   }
   function importBackup(file){
     if(!file)return;
