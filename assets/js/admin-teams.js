@@ -50,7 +50,7 @@
  document.addEventListener('click',e=>{
   const clearAll=e.target.closest('[data-clear-all-staff]');
   if(clearAll){
-    if(confirm('Pulire presidente e allenatore di tutte le squadre? I roster, i loghi, il calendario e gli orari resteranno invariati. Se in Kings League un presidente era marcatore, i suoi gol saranno rimossi dal referto.')){
+    if(confirm('Pulire presidente e allenatore di tutte le squadre? I roster, i loghi, il calendario, gli orari e i risultati resteranno invariati.')){
       A.commit(s=>{(s.teams||[]).forEach(t=>{t.president=t.president||{id:store.uid('president'),name:''};t.president.name='';t.coach=t.coach||{name:''};t.coach.name='';});store.alignState(s);});
       render();
     }
@@ -60,7 +60,7 @@
   if(clearTeam){
     const teamId=clearTeam.dataset.clearTeamStaff;
     const team=store.getTeam(A.state(),teamId);
-    if(team&&confirm(`Pulire presidente e allenatore di ${team.name}? Il roster e il calendario resteranno invariati. Se il presidente era marcatore in Kings League, i suoi gol saranno rimossi dal referto.`)){
+    if(team&&confirm(`Pulire presidente e allenatore di ${team.name}? Il roster, il calendario e i risultati resteranno invariati.`)){
       A.commit(s=>{const t=store.getTeam(s,teamId);if(t){t.president=t.president||{id:store.uid('president'),name:''};t.president.name='';t.coach=t.coach||{name:''};t.coach.name='';}store.alignState(s);});
       render();
     }

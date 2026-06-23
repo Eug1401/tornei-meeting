@@ -8,6 +8,16 @@ create table if not exists public.app_state (
   updated_at timestamptz not null default now()
 );
 
+alter table public.app_state
+drop constraint if exists app_state_supported_tournament_format;
+
+alter table public.app_state
+add constraint app_state_supported_tournament_format
+check (
+  (data #>> '{rules,format}') is null
+  or (data #>> '{rules,format}') in ('groups_knockout', 'league_knockout')
+);
+
 alter table public.app_state enable row level security;
 
 drop policy if exists "public can read tournament" on public.app_state;
@@ -43,7 +53,7 @@ to authenticated
 using (id = 'main');
 
 insert into public.app_state (id, data)
-values ('main', '{"rules":{"name":"Coppa del Mondo"},"teams":[],"matches":[]}'::jsonb)
+values ('main', '{"rules":{"name":"Coppa del Mondo","format":"league_knockout"},"teams":[],"matches":[]}'::jsonb)
 on conflict (id) do nothing;
 
 -- Realtime: abilita gli aggiornamenti live lato pubblico.

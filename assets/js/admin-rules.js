@@ -1,6 +1,6 @@
 (function(){
   const store=NexoraStore, UI=NexoraUI, A=NexoraAdmin;
-  let competitions=[], groupConfigs=[], criteriaOrder=[];
+  let competitions=[], groupConfigs=[], criteriaOrder=[], regenerationBusy=false;
   const isTouchDevice=()=>window.matchMedia&&window.matchMedia('(pointer: coarse)').matches;
 
   function selectedPlayingDays(){return UI.$$('#playingDaysBox input[name="playingDays"]:checked').map(x=>Number(x.value));}
@@ -67,8 +67,8 @@
   function readGroupsFromDom(){const rows=UI.$$('#groupsEditor [data-group-index]');groupConfigs=rows.map((row,i)=>({name:row.querySelector('[data-group-field="name"]').value.trim()||`Girone ${String.fromCharCode(65+i)}`,size:row.querySelector('[data-group-field="size"]').value,qualifiers:row.querySelector('[data-group-field="qualifiers"]').value}));}
   function readCompetitionsFromDom(){const rows=UI.$$('#competitionsEditor [data-comp-id]');competitions=rows.map(row=>({id:row.dataset.compId,name:row.querySelector('[data-comp-field="name"]').value.trim()||'Playoff',startRank:row.querySelector('[data-comp-field="startRank"]').value,teams:row.querySelector('[data-comp-field="teams"]').value}));}
 
-  function fill(){const s=A.state(),r=s.rules;competitions=(r.eliminationCompetitions||[]).map(c=>({...c}));clampFinalCompetition();groupConfigs=(r.groupConfigs||store.defaultGroupConfigs()).map(g=>({...g}));criteriaOrder=store.normalizeStandingsCriteriaOrder?store.normalizeStandingsCriteriaOrder(r.standingsCriteriaOrder):[...(r.standingsCriteriaOrder||[])];UI.$('#ruleName').value=r.name;UI.$('#ruleFormat').value=store.FORMAT_LABELS[r.format]?r.format:'league_knockout';UI.$('#isKingsLeague').checked=!!r.isKingsLeague;UI.$('#fieldCount').value=r.fieldCount;UI.$('#groupFieldPolicy').value=r.groupFieldPolicy||'auto';UI.$('#oneDay').checked=!!r.oneDay;UI.$('#startDate').value=r.startDate;UI.$('#endDate').value=r.endDate;UI.$('#startTime').value=r.startTime;UI.$('#matchDuration').value=r.matchDuration;UI.$('#breakMinutes').value=r.breakMinutes;UI.$('#oneDayPauseEnabled').checked=!!r.oneDayPauseEnabled;UI.$('#oneDayPauseStart').value=r.oneDayPauseStart||'13:00';UI.$('#oneDayPauseDuration').value=r.oneDayPauseDuration||60;setPlayingDays(r.playingDays);renderGroupsEditor();renderCompetitionEditor();renderCriteriaEditor();toggle();}
-  function readInto(s){readCompetitionsFromDom();readGroupsFromDom();normalizeCriteria();const fd=new FormData(UI.$('#rulesForm'));const format=store.FORMAT_LABELS[fd.get('format')]?fd.get('format'):'league_knockout';const c=clampFinalCompetition();const totalQ=groupConfigs.reduce((sum,g)=>sum+(Number(g.qualifiers)||0),0);const leagueQualified=Number(c.teams)||Number(s.rules.playoffTeams)||4;s.rules={...s.rules,name:fd.get('name')?.trim()||'New Generation',format,isKingsLeague:Boolean(fd.get('isKingsLeague')),groupCount:format==='groups_knockout'?groupConfigs.length:2,groupConfigs:format==='groups_knockout'?groupConfigs:s.rules.groupConfigs,playoffTeams:format==='groups_knockout'?totalQ:leagueQualified,eliminationCompetitions:[{...c,name:c.name||'Playoff Oro',startRank:1,teams:leagueQualified}],fieldCount:Number(fd.get('fieldCount'))||1,groupFieldPolicy:(()=>{const p=fd.get('groupFieldPolicy')||'auto';if(p==='fixed_by_group'&&format!=='groups_knockout')return 'auto';if(p==='rotate_per_team'&&(Number(fd.get('fieldCount'))||1)<2)return 'auto';return p;})(),oneDay:Boolean(fd.get('oneDay')),startDate:fd.get('startDate')||'',endDate:fd.get('endDate')||'',startTime:fd.get('startTime')||'09:00',endTime:'',matchDuration:Number(fd.get('matchDuration'))||40,breakMinutes:Number(fd.get('breakMinutes'))||0,oneDayPauseEnabled:Boolean(fd.get('oneDayPauseEnabled')),oneDayPauseStart:fd.get('oneDayPauseStart')||'13:00',oneDayPauseDuration:Number(fd.get('oneDayPauseDuration'))||0,playingDays:selectedPlayingDays(),standingsCriteriaOrder:[...criteriaOrder]};delete s.rules['super'+'Cup'];}
+  function fill(){const s=A.state(),r=s.rules;competitions=(r.eliminationCompetitions||[]).map(c=>({...c}));clampFinalCompetition();groupConfigs=(r.groupConfigs||store.defaultGroupConfigs()).map(g=>({...g}));criteriaOrder=store.normalizeStandingsCriteriaOrder?store.normalizeStandingsCriteriaOrder(r.standingsCriteriaOrder):[...(r.standingsCriteriaOrder||[])];UI.$('#ruleName').value=r.name;UI.$('#ruleFormat').value=store.FORMAT_LABELS[r.format]?r.format:'league_knockout';UI.$('#fieldCount').value=r.fieldCount;UI.$('#groupFieldPolicy').value=r.groupFieldPolicy||'auto';UI.$('#oneDay').checked=!!r.oneDay;UI.$('#startDate').value=r.startDate;UI.$('#endDate').value=r.endDate;UI.$('#startTime').value=r.startTime;UI.$('#matchDuration').value=r.matchDuration;UI.$('#breakMinutes').value=r.breakMinutes;UI.$('#oneDayPauseEnabled').checked=!!r.oneDayPauseEnabled;UI.$('#oneDayPauseStart').value=r.oneDayPauseStart||'13:00';UI.$('#oneDayPauseDuration').value=r.oneDayPauseDuration||60;setPlayingDays(r.playingDays);renderGroupsEditor();renderCompetitionEditor();renderCriteriaEditor();toggle();}
+  function readInto(s){readCompetitionsFromDom();readGroupsFromDom();normalizeCriteria();const fd=new FormData(UI.$('#rulesForm'));const format=store.FORMAT_LABELS[fd.get('format')]?fd.get('format'):'league_knockout';const c=clampFinalCompetition();const totalQ=groupConfigs.reduce((sum,g)=>sum+(Number(g.qualifiers)||0),0);const leagueQualified=Number(c.teams)||Number(s.rules.playoffTeams)||4;s.rules={...s.rules,name:fd.get('name')?.trim()||'New Generation',format,groupCount:format==='groups_knockout'?groupConfigs.length:2,groupConfigs:format==='groups_knockout'?groupConfigs:s.rules.groupConfigs,playoffTeams:format==='groups_knockout'?totalQ:leagueQualified,eliminationCompetitions:[{...c,name:c.name||'Playoff Oro',startRank:1,teams:leagueQualified}],fieldCount:Number(fd.get('fieldCount'))||1,groupFieldPolicy:(()=>{const p=fd.get('groupFieldPolicy')||'auto';if(p==='fixed_by_group'&&format!=='groups_knockout')return 'auto';if(p==='rotate_per_team'&&(Number(fd.get('fieldCount'))||1)<2)return 'auto';return p;})(),oneDay:Boolean(fd.get('oneDay')),startDate:fd.get('startDate')||'',endDate:fd.get('endDate')||'',startTime:fd.get('startTime')||'09:00',endTime:'',matchDuration:Number(fd.get('matchDuration'))||40,breakMinutes:Number(fd.get('breakMinutes'))||0,oneDayPauseEnabled:Boolean(fd.get('oneDayPauseEnabled')),oneDayPauseStart:fd.get('oneDayPauseStart')||'13:00',oneDayPauseDuration:Number(fd.get('oneDayPauseDuration'))||0,playingDays:selectedPlayingDays(),standingsCriteriaOrder:[...criteriaOrder]};delete s.rules['super'+'Cup'];delete s.rules['is'+'K'+'ingsLeague'];}
   function currentDraftState(){const draft=JSON.parse(JSON.stringify(A.state()));readInto(draft);return store.normalizeState(draft);}
   function toggle(){const one=UI.$('#oneDay').checked,format=UI.$('#ruleFormat').value;UI.$$('.one-day-field').forEach(x=>x.style.display=one?'block':'none');const pauseControls=UI.$('#oneDayPauseControls');if(pauseControls)pauseControls.style.display=(one&&UI.$('#oneDayPauseEnabled')?.checked)?'grid':'none';UI.$$('.multi-day-field').forEach(x=>x.style.display=one?'none':'block');UI.$$('.groups-only').forEach(x=>x.style.display=format==='groups_knockout'?'block':'none');UI.$$('.league-ko-only').forEach(x=>x.style.display=format==='league_knockout'?'block':'none');const draft=currentDraftState();const fieldsNow=Number(draft.rules.fieldCount)||1;
     // Politica campi: visibile solo con almeno 2 campi (con 1 campo non c'è nulla da assegnare).
@@ -78,7 +78,7 @@
   function render(){const s=A.state();UI.$('#tournamentSummary').innerHTML=UI.rulesSummary(s);UI.$('#generatedCalendar').innerHTML=UI.matchList(s);const draft=currentDraftState();const plan=store.generationPlan(draft);UI.$('#generationPreview').innerHTML=`<div class="message ${plan.ok?'ok':'error'}">${UI.esc(plan.message)}</div>`;const est=plan.estimate;UI.$('#suggestedEndHint').textContent=(!draft.rules.oneDay&&est?.ok)?`Fine consigliata: ${est.suggestedEndDate}`:'';UI.$('#calendarAdvisor').innerHTML=est?`<div class="advisor-card"><strong>Consiglio calendario</strong><span>${UI.esc(est.message)}</span><span class="muted">Il calcolo considera formato, gironi, qualificate, campi disponibili, giorni di gioco e vincoli anti-sovrapposizione.</span></div>`:'';}
 
   document.addEventListener('DOMContentLoaded',()=>{fill();render();});
-  ['#oneDay','#ruleFormat','#isKingsLeague','#fieldCount','#groupFieldPolicy','#startDate','#endDate','#startTime','#matchDuration','#breakMinutes','#oneDayPauseEnabled','#oneDayPauseStart','#oneDayPauseDuration'].forEach(sel=>UI.$(sel)?.addEventListener('change',()=>{toggle();render();}));
+  ['#oneDay','#ruleFormat','#fieldCount','#groupFieldPolicy','#startDate','#endDate','#startTime','#matchDuration','#breakMinutes','#oneDayPauseEnabled','#oneDayPauseStart','#oneDayPauseDuration'].forEach(sel=>UI.$(sel)?.addEventListener('change',()=>{toggle();render();}));
   UI.$('#ruleFormat')?.addEventListener('change',()=>{renderCompetitionEditor();renderGroupsEditor();toggle();render();});
   UI.$$('#playingDaysBox input[name="playingDays"]').forEach(x=>x.addEventListener('change',()=>{toggle();render();}));
   UI.$('#groupsEditor')?.addEventListener('input',()=>{readGroupsFromDom();toggle();render();});
@@ -103,22 +103,28 @@
   UI.$('#rulesForm').addEventListener('submit',e=>{e.preventDefault();let draft=A.state();readInto(draft);const check=store.validateGeneration(draft);if(!check.ok){saveTournamentNameOnly();A.flash('#rulesMessage','Nome torneo salvato. Le altre regole non sono state applicate perché il calendario non è ancora valido: '+check.message,'error');fill();render();return;}let res;A.commit(s=>{readInto(s);res=store.generateCalendar(s,{preserveResults:true});});const type=res.ok?'ok':'error';const msg=res.ok?'Regole salvate, nome aggiornato, classifica aggiornata e calendario allineato. '+res.message:'Nome e regole salvate, ma il calendario non può essere aggiornato: '+res.message;A.flash('#rulesMessage',msg,type);fill();render();});
   UI.$('#generateCalendarBtn').addEventListener('click',()=>{const old=A.state();const hasReports=old.matches.some(m=>(m.goals&&m.goals.length)||(m.cards&&m.cards.length));if(hasReports&&!confirm('Rigenerare il calendario? I risultati/referti delle partite ancora compatibili verranno preservati, gli altri potrebbero essere rimossi.'))return;let res;A.commit(s=>{readInto(s);res=store.generateCalendar(s,{preserveResults:true});});A.flash('#rulesMessage',res.message,res.ok?'ok':'error');fill();render();});
   UI.$('#reshuffleCalendarBtn')?.addEventListener('click',function(){
+    if(regenerationBusy)return;
     const old=A.state();
     const hasReports=old.matches.some(m=>(m.goals&&m.goals.length)||(m.cards&&m.cards.length));
     const warning=hasReports
-      ? 'Rigenerare un calendario davvero diverso? I referti esistenti verranno rimossi perché cambiano ordine, slot e potenzialmente accoppiamenti.'
-      : 'Rigenerare un calendario davvero diverso mantenendo le regole attuali?';
+      ? 'Rigenerare il calendario da zero? Verranno conservati squadre, gironi e regole, ma referti, risultati, campi, date e orari verranno sostituiti dal nuovo calendario.'
+      : 'Rigenerare il calendario da zero mantenendo squadre, gironi e regole attuali?';
     if(!confirm(warning))return;
-    var res;
-    A.commit(function(s){
-      readInto(s);
-      s.rules.calendarVariantSeed=store.nextCalendarVariantSeed?store.nextCalendarVariantSeed():store.uid('calendar_variant');
-      // Non tocchiamo l'ordine anagrafico delle squadre e non cancelliamo i gironi manuali.
-      // La variante cambia il sorteggio/calendario tramite seed, ma resta riproducibile nello stato.
-      res=store.generateCalendar(s,{preserveResults:false});
-    });
-    A.flash('#rulesMessage',res.ok?'Calendario rigenerato con una variante nuova. '+res.message:res.message,res.ok?'ok':'error');
-    fill();render();
+    regenerationBusy=true;
+    this.disabled=true;
+    try{
+      const draft=JSON.parse(JSON.stringify(old));
+      readInto(draft);
+      draft.rules.calendarVariantSeed=store.nextCalendarVariantSeed?store.nextCalendarVariantSeed():store.uid('calendar_variant');
+      const res=store.generateCalendar(draft,{preserveResults:false});
+      if(!res.ok){A.flash('#rulesMessage','Calendario precedente mantenuto: '+res.message,'error');return;}
+      A.save(draft);
+      A.flash('#rulesMessage','Calendario rigenerato da zero. '+res.message,'ok');
+      fill();render();
+    }finally{
+      regenerationBusy=false;
+      this.disabled=false;
+    }
   });
 
   window.NexoraAdminRefresh=function(){try{fill();render();}catch(_){}};

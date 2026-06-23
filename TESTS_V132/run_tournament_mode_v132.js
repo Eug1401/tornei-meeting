@@ -58,8 +58,8 @@ function scoreMatch(state, match, home, away){
   const homeTeam = store.getTeam(state, match.homeTeamId);
   const awayTeam = store.getTeam(state, match.awayTeamId);
   if(!homeTeam || !awayTeam) return;
-  for(let i=0;i<home;i++) match.goals.push({id:`${match.id}_h_${i}`,playerId:homeTeam.players[0].id,weight:1});
-  for(let i=0;i<away;i++) match.goals.push({id:`${match.id}_a_${i}`,playerId:awayTeam.players[0].id,weight:1});
+  for(let i=0;i<home;i++) match.goals.push({id:`${match.id}_h_${i}`,playerId:homeTeam.players[0].id});
+  for(let i=0;i<away;i++) match.goals.push({id:`${match.id}_a_${i}`,playerId:awayTeam.players[0].id});
   match.status = 'played';
 }
 

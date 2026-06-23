@@ -38,7 +38,6 @@
     if(v==='live')return 'live';
     return 'scheduled';
   }
-  function isPresidentId(state,id){return Boolean(id&&state?.teams?.some(t=>t.president?.id===id));}
   function ownGoalValue(teamId){return `own_goal:${teamId||''}`;}
   function isOwnGoalValue(value){return String(value||'').startsWith('own_goal:');}
   function isOwnGoalEvent(g){return Boolean(g&&(g.type==='ownGoal'||g.ownGoal===true||isOwnGoalValue(g.playerId)));}
@@ -62,7 +61,7 @@
   function normalizeGoalEvent(g){
     const isOwn=isOwnGoalEvent(g);
     const teamId=isOwn?String(g.teamId||g.ownGoalTeamId||String(g.playerId||'').replace(/^own_goal:/,'')).trim():'';
-    return {id:g.id||uid('goal'),playerId:isOwn?ownGoalValue(teamId):(g.playerId||''),type:isOwn?'ownGoal':'goal',teamId:isOwn?teamId:'',weight:isOwn?1:(Number(g.weight)===2?2:1)};
+    return {id:g.id||uid('goal'),playerId:isOwn?ownGoalValue(teamId):(g.playerId||''),type:isOwn?'ownGoal':'goal',teamId:isOwn?teamId:''};
   }
   const defaultCompetitions=()=>[
     {id:'comp_oro',name:'Playoff Oro',startRank:1,teams:4}
@@ -88,12 +87,13 @@
   function standingsCriterionMeta(id){return STANDINGS_CRITERIA.find(c=>c.id===id)||STANDINGS_CRITERIA[0];}
   function normalizeHex(value, fallback){const v=String(value||'').trim();return /^#[0-9a-fA-F]{6}$/.test(v)?v:fallback;}
   function normalizeSite(site){const base=defaultSite();const out={...base,...(site||{})};out.title=String(out.title||base.title).trim().slice(0,80)||base.title;out.subtitle=String(out.subtitle||base.subtitle).trim().slice(0,160);out.logo=String(out.logo||'');out.primary=normalizeHex(out.primary,base.primary);out.accent=normalizeHex(out.accent,base.accent);out.surface=normalizeHex(out.surface,base.surface);out.radius=String(Math.max(8,Math.min(36,Number(out.radius)||24)));return out;}
-  function blankRules(){return {name:'Coppa del Mondo',format:'league_knockout',groupCount:2,groupConfigs:defaultGroupConfigs(),groupAssignments:{},playoffTeams:4,eliminationCompetitions:defaultCompetitions(),isKingsLeague:false,oneDay:false,fieldCount:1,startDate:'',endDate:'',startTime:'09:00',endTime:'18:00',matchDuration:40,breakMinutes:10,oneDayPauseEnabled:false,oneDayPauseStart:'13:00',oneDayPauseDuration:60,playingDays:[1,2,3,4,5,6,0],groupFieldPolicy:'auto',calendarVariantSeed:'',standingsCriteriaOrder:defaultStandingsCriteriaOrder()};}
+  function blankRules(){return {name:'Coppa del Mondo',format:'league_knockout',groupCount:2,groupConfigs:defaultGroupConfigs(),groupAssignments:{},playoffTeams:4,eliminationCompetitions:defaultCompetitions(),oneDay:false,fieldCount:1,startDate:'',endDate:'',startTime:'09:00',endTime:'18:00',matchDuration:40,breakMinutes:10,oneDayPauseEnabled:false,oneDayPauseStart:'13:00',oneDayPauseDuration:60,playingDays:[1,2,3,4,5,6,0],groupFieldPolicy:'auto',calendarVariantSeed:'',standingsCriteriaOrder:defaultStandingsCriteriaOrder()};}
   function emptyState(){return {rules:blankRules(),site:defaultSite(),teams:[],matches:[],articles:[],calendarSignature:''};}
   function normalizeRules(r){
     const base=blankRules();
     const out={...base,...(r||{})};
     out.format=SUPPORTED_FORMATS.has(out.format)?out.format:base.format;
+    delete out['is'+'K'+'ingsLeague'];
     if(!Array.isArray(out.eliminationCompetitions)||!out.eliminationCompetitions.length){
       out.eliminationCompetitions=[{id:'comp_oro',name:'Playoff Oro',startRank:1,teams:Number(r?.playoffTeams)||4}];
     }
@@ -101,7 +101,6 @@
     const firstCompetition=out.eliminationCompetitions.slice().sort((a,b)=>a.startRank-b.startRank||String(a.name).localeCompare(String(b.name),'it'))[0]||defaultCompetitions()[0];
     out.eliminationCompetitions=[{...firstCompetition,id:firstCompetition.id||'comp_oro',name:firstCompetition.name||'Playoff Oro',startRank:1,teams:Math.max(2,Math.floor(Number(firstCompetition.teams)||4))}];
     delete out['super'+'Cup'];
-    out.isKingsLeague=Boolean(out.isKingsLeague);
     out.groupCount=Math.max(2,Number(out.groupCount)||2);
     out.groupAssignments=out.groupAssignments&&typeof out.groupAssignments==='object'&&!Array.isArray(out.groupAssignments)?out.groupAssignments:{};
     if(!Array.isArray(out.groupConfigs)||!out.groupConfigs.length){out.groupConfigs=Array.from({length:out.groupCount},(_,i)=>({name:`Girone ${String.fromCharCode(65+i)}`,size:4,qualifiers:Math.min(2,4)}));}
@@ -264,15 +263,11 @@
   }
   function getTeam(state,id){return state.teams.find(t=>t.id===id);} 
   function getPlayer(state,id){for(const t of state.teams){const p=t.players.find(x=>x.id===id);if(p)return {...p,team:t,type:'player'};}return null;}
-  function getPresident(state,id){for(const t of state.teams){if(t.president?.id===id&&t.president?.name)return {...t.president,team:t,type:'president'};}return null;}
-  function getParticipant(state,id){return getPlayer(state,id)||getPresident(state,id);}
-  function playerTeamId(state,playerId){const x=getParticipant(state,playerId);return x?.team.id||'';}
+  function playerTeamId(state,playerId){const x=getPlayer(state,playerId);return x?.team.id||'';}
   function teamName(state,id,fallback='Da definire'){return getTeam(state,id)?.name||fallback;}
-  function playerName(state,id){const p=getParticipant(state,id);return p?(p.type==='president'?`Pres. ${p.name}`:p.name):'Persona rimossa';}
-  function isDoubleGoalEvent(g){return Number(g?.weight)===2;}
+  function playerName(state,id){const p=getPlayer(state,id);return p?p.name:'Persona rimossa';}
   function actualGoalCount(state,m,teamId){return (m.goals||[]).filter(g=>goalScoringTeamId(state,m,g)===teamId).length;}
-  function eventScoreWeight(state,g){return isOwnGoalEvent(g)?1:(isPresidentId(state,g?.playerId)?1:((state?.rules?.isKingsLeague&&isDoubleGoalEvent(g))?2:1));}
-  function matchGoals(state,m){let home=0,away=0;(m.goals||[]).forEach(g=>{const tid=goalScoringTeamId(state,m,g);const w=eventScoreWeight(state,g);if(tid===m.homeTeamId)home+=w;if(tid===m.awayTeamId)away+=w;});return {home,away};}
+  function matchGoals(state,m){let home=0,away=0;(m.goals||[]).forEach(g=>{const tid=goalScoringTeamId(state,m,g);if(tid===m.homeTeamId)home+=1;if(tid===m.awayTeamId)away+=1;});return {home,away};}
   function isLive(state,m){return m?.status==='live';}
   function hasGoals(state,m){const sc=matchGoals(state,m);return sc.home+sc.away>0;}
   function hasScore(state,m){
@@ -345,12 +340,12 @@
   function requiredSlotsForRound(roundMatches,rules){
     const fields=Math.max(1,Number(rules.fieldCount)||1);
     const base=Math.ceil(roundMatches.length/fields);
-    // Stima prudente: con garanzia Campo 1, le partite di girone che devono
-    // assegnare il Campo 1 possono occupare slot/giorni separati anche se ci sono
-    // altri campi liberi. Meglio stimare largo che promettere un calendario troppo corto.
+    // Stima prudente: con garanzia Campo 1, le partite della fase iniziale che
+    // devono assegnare Campo 1 possono occupare slot/giorni separati anche se ci
+    // sono altri campi liberi.
     if(groupField1GuaranteeActive(rules)){
-      const groupCount=roundMatches.filter(m=>m.phase==='group').length;
-      if(groupCount)return Math.max(base,groupCount);
+      const initialCount=roundMatches.filter(m=>isInitialPhaseMatch(m,rules)).length;
+      if(initialCount)return Math.max(base,initialCount);
     }
     return base;
   }
@@ -625,18 +620,24 @@
     return Object.fromEntries(groups.map((g,i)=>[g.name,i+1]));
   }
   function allowedFieldsForMatch(match,rules){
-    // Requisito fondamentale: nella fase a gironi ogni squadra deve giocare
-    // almeno una volta sul Campo 1. Per questo, se il torneo è a gironi e ci
-    // sono più campi, le partite del girone possono usare tutti i campi anche
-    // quando l'admin aveva scelto la mappatura girone → campo.
-    if(groupField1GuaranteeActive(rules)&&match.phase==='group')return fieldNumbers(rules);
+    // Requisito fondamentale: nella fase iniziale ogni squadra deve giocare
+    // almeno una volta sul Campo 1. Per questo, se ci sono più campi, le partite
+    // iniziali possono usare tutti i campi anche con mappatura girone -> campo.
+    if(groupField1GuaranteeActive(rules)&&isInitialPhaseMatch(match,rules))return fieldNumbers(rules);
     const fixed=groupFieldMap(rules);
     if(fixed&&match.phase==='group'&&match.groupName&&fixed[match.groupName])return [fixed[match.groupName]];
     return fieldNumbers(rules);
   }
   function groupField1GuaranteeActive(rules){
     rules=normalizeRules(rules);
-    return rules.format==='groups_knockout'&&Number(rules.fieldCount)>1;
+    return SUPPORTED_FORMATS.has(rules.format)&&Number(rules.fieldCount)>1;
+  }
+  function initialPhaseForRules(rules){
+    rules=normalizeRules(rules);
+    return rules.format==='groups_knockout'?'group':'league';
+  }
+  function isInitialPhaseMatch(match,rules){
+    return Boolean(match&&match.phase===initialPhaseForRules(rules));
   }
   function fieldNumbers(rules){
     const count=Math.max(1,Number(rules.fieldCount)||1);
@@ -645,8 +646,8 @@
   function groupFieldPolicyMessage(rules){
     const fixed=groupFieldMap(rules);
     if(groupField1GuaranteeActive(rules)){
-      const extra=fixed?' La priorità Campo 1 supera la mappatura girone → campo quando serve.':'';
-      return ' Garanzia Campo 1 attiva: ogni squadra della fase a gironi viene programmata almeno una volta sul Campo 1.'+extra;
+      const extra=fixed?' La priorità Campo 1 supera la mappatura girone -> campo quando serve.':'';
+      return ' Garanzia Campo 1 attiva: ogni squadra della fase iniziale viene programmata almeno una volta sul Campo 1.'+extra;
     }
     if(fixed)return ' Mappatura campi attiva: '+Object.entries(fixed).map(([g,f])=>`${g} → Campo ${f}`).join(' · ')+'.';
     if(rules&&rules.groupFieldPolicy==='rotate_per_team'&&Number(rules.fieldCount)>1)
@@ -709,14 +710,14 @@
   // Le fasi/roundIndex vengono pianificate in ordine, così un turno KO non viene calendarizzato prima del turno precedente.
 
   function needsGroupField1(match,teamFieldUse,rules){
-    if(!groupField1GuaranteeActive(rules)||match.phase!=='group')return false;
+    if(!groupField1GuaranteeActive(rules)||!isInitialPhaseMatch(match,rules))return false;
     return matchTeamIds(match).some(t=>!((teamFieldUse[t]||{})[1]));
   }
   function groupField1Audit(matches,rules){
     if(!groupField1GuaranteeActive(rules))return {ok:true,total:0,missing:[]};
     const all=new Set(), covered=new Set();
     (matches||[]).forEach(m=>{
-      if(m.phase!=='group')return;
+      if(!isInitialPhaseMatch(m,rules))return;
       const ids=matchTeamIds(m);
       ids.forEach(t=>all.add(t));
       if(fieldNoFromLabel(m.field)===1)ids.forEach(t=>covered.add(t));
@@ -729,10 +730,9 @@
   }
   function swapFields(a,b){const tmp=a.field;a.field=b.field;b.field=tmp;}
   function enforceField1Fallback(matches,rules){
-    // Backup post-scheduler: se dopo la generazione una squadra del girone non
-    // ha ancora Campo 1, prova a scambiare il campo con una partita dello stesso
-    // slot senza creare sovrapposizioni. La scelta primaria avviene già durante
-    // lo scheduling; questa funzione serve a correggere casi limite e vecchi dati.
+    // Backup post-scheduler: se dopo la generazione una squadra della fase
+    // iniziale non ha ancora Campo 1, prova a scambiare il campo con una partita
+    // dello stesso slot senza creare sovrapposizioni.
     if(!groupField1GuaranteeActive(rules))return {ok:true,total:0,missing:[]};
     let audit=groupField1Audit(matches,rules);
     if(audit.ok)return audit;
@@ -740,7 +740,7 @@
     (matches||[]).forEach(m=>{const k=groupSlotKey(m,rules);if(!bySlot.has(k))bySlot.set(k,[]);bySlot.get(k).push(m);});
     function counts(){
       const c={};
-      (matches||[]).forEach(m=>{if(m.phase==='group'&&fieldNoFromLabel(m.field)===1)matchTeamIds(m).forEach(t=>c[t]=(c[t]||0)+1);});
+      (matches||[]).forEach(m=>{if(isInitialPhaseMatch(m,rules)&&fieldNoFromLabel(m.field)===1)matchTeamIds(m).forEach(t=>c[t]=(c[t]||0)+1);});
       return c;
     }
     let guard=0;
@@ -748,7 +748,7 @@
       let changed=false;
       const c=counts();
       for(const tid of audit.missing){
-        const candidates=(matches||[]).filter(m=>m.phase==='group'&&matchTeamIds(m).includes(tid)&&fieldNoFromLabel(m.field)!==1);
+        const candidates=(matches||[]).filter(m=>isInitialPhaseMatch(m,rules)&&matchTeamIds(m).includes(tid)&&fieldNoFromLabel(m.field)!==1);
         for(const m of candidates){
           const slot=bySlot.get(groupSlotKey(m,rules))||[];
           const onOne=slot.find(x=>x!==m&&fieldNoFromLabel(x.field)===1);
@@ -943,7 +943,7 @@
   function validateGeneration(state){const raw=validateRawGenerationInput(state);if(!raw.ok)return raw;const r=normalizeRules(state.rules);const teams=state.teams.length;const min=minimumTeams(r);if(teams<min)return {ok:false,message:`Servono almeno ${min} squadre per ${FORMAT_LABELS[r.format]}. Inserite: ${teams}.`};if(Number(r.fieldCount||0)<1)return {ok:false,message:'Inserisci almeno 1 campo disponibile.'};if(!r.oneDay&&(!Array.isArray(r.playingDays)||!r.playingDays.length))return {ok:false,message:'Seleziona almeno un giorno della settimana in cui si può giocare.'};if(r.format==='groups_knockout'){const cfgs=r.groupConfigs||[];if(cfgs.length<2)return {ok:false,message:'Per gironi + eliminazione diretta servono almeno 2 gironi.'};if(r.groupFieldPolicy==='fixed_by_group'&&cfgs.length!==r.fieldCount)return {ok:false,message:`La modalità girone → campo richiede che il numero di gironi (${cfgs.length}) sia uguale al numero di campi (${r.fieldCount}).`};const totalSizes=cfgs.reduce((sum,g)=>sum+g.size,0);if(totalSizes!==teams)return {ok:false,message:`La somma delle squadre nei gironi deve essere uguale alle squadre iscritte. Configurate: ${totalSizes}, iscritte: ${teams}.`};for(const g of cfgs){if(g.size<2)return {ok:false,message:`${g.name}: servono almeno 2 squadre.`};if(!Number.isInteger(g.qualifiers)||g.qualifiers<0)return {ok:false,message:`${g.name}: qualificate non valide.`};if(g.qualifiers>g.size)return {ok:false,message:`${g.name}: non puoi qualificare ${g.qualifiers} squadre su ${g.size}.`};}const totalQ=cfgs.reduce((sum,g)=>sum+g.qualifiers,0);if(totalQ<2)return {ok:false,message:'Devono qualificarsi almeno 2 squadre complessive alla fase finale.'};if(totalQ>teams)return {ok:false,message:'Le qualificate alla fase finale non possono superare le squadre iscritte.'};return {ok:true,message:'Formato valido: gironi personalizzati + fase finale a eliminazione con eventuali BYE.'};}if(r.format==='league_knockout'){const cfg=validateCompetitionConfig(r,teams);if(!cfg.ok)return cfg;return {ok:true,message:'Formato valido: classifica unica + fase finale a eliminazione diretta con BYE deterministici quando necessari.'};}return {ok:false,message:'Formato torneo non riconosciuto.'};}
   function scheduleSignature(state){
     const r=normalizeRules(state.rules);
-    const rulesForSchedule={schema:'v140-final-formats',format:r.format,groupConfigs:r.groupConfigs,groupAssignments:r.groupAssignments,playoffTeams:r.playoffTeams,eliminationCompetitions:r.eliminationCompetitions,isKingsLeague:r.isKingsLeague,oneDay:r.oneDay,fieldCount:r.fieldCount,startDate:r.startDate,endDate:r.endDate,startTime:r.startTime,matchDuration:r.matchDuration,breakMinutes:r.breakMinutes,oneDayPauseEnabled:r.oneDayPauseEnabled,oneDayPauseStart:r.oneDayPauseStart,oneDayPauseDuration:r.oneDayPauseDuration,playingDays:r.playingDays,groupFieldPolicy:r.groupFieldPolicy,calendarVariantSeed:r.calendarVariantSeed};
+    const rulesForSchedule={schema:'v150-final-formats',format:r.format,groupConfigs:r.groupConfigs,groupAssignments:r.groupAssignments,playoffTeams:r.playoffTeams,eliminationCompetitions:r.eliminationCompetitions,oneDay:r.oneDay,fieldCount:r.fieldCount,startDate:r.startDate,endDate:r.endDate,startTime:r.startTime,matchDuration:r.matchDuration,breakMinutes:r.breakMinutes,oneDayPauseEnabled:r.oneDayPauseEnabled,oneDayPauseStart:r.oneDayPauseStart,oneDayPauseDuration:r.oneDayPauseDuration,playingDays:r.playingDays,groupFieldPolicy:r.groupFieldPolicy,calendarVariantSeed:r.calendarVariantSeed};
     const teams=(state.teams||[]).map(t=>({id:t.id}));
     return JSON.stringify({rules:rulesForSchedule,teams});
   }
@@ -993,7 +993,6 @@
       standings:calculateStandings(state).map(r=>({teamId:r.teamId,points:r.points,played:r.played,gf:r.goalsFor,ga:r.goalsAgainst,diff:r.diff})),
       groups:groupedStandings(state).map(g=>({name:g.name,completed:g.completed,rows:g.rows.map(r=>({teamId:r.teamId,points:r.points,played:r.played,gf:r.goalsFor,ga:r.goalsAgainst,diff:r.diff}))})),
       scorers:scorers(state).map(p=>({playerId:p.playerId,teamId:p.teamId,goals:p.goals,yellow:p.yellow,red:p.red,played:p.played})),
-      presidentScorers:presidentScorers(state).map(p=>({presidentId:p.presidentId,teamId:p.teamId,goals:p.goals})),
       stats:stats(state),
       bracket:bracketData(state)
     };
@@ -1004,7 +1003,6 @@
     const teamIds=new Set((state.teams||[]).map(t=>t.id));
     const playerIds=new Set();
     const goalParticipantIds=new Set();
-    const presidentIds=new Set();
     let removedEvents=0, fixedMatches=0, fixedAssignments=0, fixedStatuses=0, fixedEvents=0;
     (state.teams||[]).forEach(t=>{
       t.players=Array.isArray(t.players)?t.players:[];
@@ -1014,7 +1012,6 @@
       t.coach=(t.coach&&typeof t.coach==='object')?t.coach:{name:t.coachName||''};
       t.coach.name=String(t.coach.name||'').trim();
       t.players.forEach(p=>{playerIds.add(p.id);goalParticipantIds.add(p.id);});
-      if(t.president.name){presidentIds.add(t.president.id);if(state.rules.isKingsLeague)goalParticipantIds.add(t.president.id);}
     });
     const nextAssignments={};
     Object.entries(state.rules.groupAssignments||{}).forEach(([teamId,groupName])=>{
@@ -1034,11 +1031,11 @@
         if(isOwnGoalEvent(g)){
           const tid=ownGoalTeamId(state,m,g);
           if(!tid)return false;
-          g.teamId=tid;g.playerId=ownGoalValue(tid);g.weight=1;return true;
+          g.teamId=tid;g.playerId=ownGoalValue(tid);return true;
         }
         return g.playerId&&goalParticipantIds.has(g.playerId)&&playerBelongsToMatch(state,m,g.playerId);
-      }).map(g=>(isOwnGoalEvent(g)||presidentIds.has(g.playerId)||!state.rules.isKingsLeague)?{...g,weight:1}:g);
-      m.cards=m.cards.filter(c=>c.playerId&&playerIds.has(c.playerId)&&!presidentIds.has(c.playerId)&&playerBelongsToMatch(state,m,c.playerId)&&(c.type==='yellow'||c.type==='red'));
+      });
+      m.cards=m.cards.filter(c=>c.playerId&&playerIds.has(c.playerId)&&playerBelongsToMatch(state,m,c.playerId)&&(c.type==='yellow'||c.type==='red'));
       removedEvents+=beforeG-m.goals.length+beforeC-m.cards.length;
       fixedEvents+=beforeG-m.goals.length+beforeC-m.cards.length;
       if((m.goals.length||m.cards.length)&&m.status!=='played'&&m.status!=='live'){m.status='played';fixedStatuses++;}
@@ -1093,7 +1090,6 @@
     const issues=[];
     const teamIds=new Set((state.teams||[]).map(t=>t.id));
     const playerIds=new Set();
-    const presidentIds=new Set();
     const participantIds=new Set();
     const playerTeam=new Map();
     const teamNames=new Map();
@@ -1101,7 +1097,6 @@
       const nameKey=String(t.name||'').trim().toLowerCase();
       if(teamNames.has(nameKey))issues.push({severity:'warn',area:'Squadre',message:`Nome squadra duplicato: ${t.name}.`});
       teamNames.set(nameKey,t.id);
-      if(t.president?.id&&t.president?.name){presidentIds.add(t.president.id);if(state.rules.isKingsLeague)participantIds.add(t.president.id);}
       (t.players||[]).forEach(p=>{
         if(playerIds.has(p.id))issues.push({severity:'error',area:'Giocatori',message:`ID calciatore duplicato: ${p.name}.`});
         playerIds.add(p.id); participantIds.add(p.id); playerTeam.set(p.id,t.id);
@@ -1126,12 +1121,11 @@
           if(!ownGoalTeamId(state,m,g))issues.push({severity:'error',area:'Marcatori',message:`${m.round}: autogol non collegato a una squadra in campo.`});
           return;
         }
-        if(!participantIds.has(g.playerId))issues.push({severity:'error',area:'Marcatori',message:`${m.round}: gol assegnato a una persona inesistente.`});
+        if(!participantIds.has(g.playerId))issues.push({severity:'error',area:'Marcatori',message:`${m.round}: gol assegnato a un calciatore inesistente.`});
         else if(!playerBelongsToMatch(state,m,g.playerId))issues.push({severity:'error',area:'Marcatori',message:`${m.round}: ${playerName(state,g.playerId)} non appartiene alle squadre in campo.`});
       });
       (m.cards||[]).forEach(c=>{
-        if(!playerIds.has(c.playerId))issues.push({severity:'error',area:'Cartellini',message:`${m.round}: cartellino assegnato a un calciatore inesistente o a un presidente.`});
-        else if(presidentIds.has(c.playerId))issues.push({severity:'error',area:'Cartellini',message:`${m.round}: ${playerName(state,c.playerId)} è presidente e non può ricevere gialli o rossi.`});
+        if(!playerIds.has(c.playerId))issues.push({severity:'error',area:'Cartellini',message:`${m.round}: cartellino assegnato a un calciatore inesistente.`});
         else if(!playerBelongsToMatch(state,m,c.playerId))issues.push({severity:'error',area:'Cartellini',message:`${m.round}: ${playerName(state,c.playerId)} non appartiene alle squadre in campo.`});
       });
       ['Home','Away'].forEach(side=>{
@@ -1151,20 +1145,6 @@
       (state.rules.groupConfigs||[]).forEach(g=>{if(counts[g.name]&&counts[g.name]!==g.size)issues.push({severity:'warn',area:'Gironi',message:`${g.name}: assegnazioni manuali ${counts[g.name]}/${g.size}.`});});
     }
 
-    if(state.rules.isKingsLeague){
-      const playerGoalIds=new Set(); state.teams.forEach(t=>(t.players||[]).forEach(p=>playerGoalIds.add(p.id)));
-      const realPlayerGoals=(state.matches||[]).reduce((sum,m)=>sum+(m.goals||[]).filter(g=>playerGoalIds.has(g.playerId)).length,0);
-      const scorerGoals=scorers(state).reduce((sum,p)=>sum+p.goals,0);
-      const realPresidentGoals=(state.matches||[]).reduce((sum,m)=>sum+(m.goals||[]).filter(g=>isPresidentId(state,g.playerId)).length,0);
-      const presidentGoals=presidentScorers(state).reduce((sum,p)=>sum+p.goals,0);
-      if(realPlayerGoals!==scorerGoals)issues.push({severity:'error',area:'Kings League',message:'La classifica marcatori calciatori non coincide con i gol reali dei calciatori: i gol doppi valgono 1 per i marcatori.'});
-      if(realPresidentGoals!==presidentGoals)issues.push({severity:'error',area:'Kings League',message:'La classifica marcatori presidenti non coincide con i gol reali dei presidenti.'});
-    }else{
-      const nonKingsPresidentGoals=(state.matches||[]).reduce((sum,m)=>sum+(m.goals||[]).filter(g=>isPresidentId(state,g.playerId)).length,0);
-      const doubleGoalsOutsideKings=(state.matches||[]).reduce((sum,m)=>sum+(m.goals||[]).filter(g=>Number(g.weight)===2).length,0);
-      if(nonKingsPresidentGoals)issues.push({severity:'error',area:'Formato torneo',message:'I gol dei presidenti sono consentiti solo con Kings League attiva.'});
-      if(doubleGoalsOutsideKings)issues.push({severity:'warn',area:'Formato torneo',message:'Gol doppi rilevati fuori dalla Kings League: verranno conteggiati come gol normali.'});
-    }
     auditSchedule(state,issues);
     const snapshot=derivedSnapshot(state);
     return {ok:issues.filter(i=>i.severity==='error').length===0,issues,checkedAt:new Date().toISOString(),snapshot,message:issues.length?`${issues.length} controllo/i da verificare: ${issues.filter(i=>i.severity==='error').length} errori, ${issues.filter(i=>i.severity!=='error').length} avvisi.`:'Dati coerenti: tutte le viste derivano da regole, squadre, giocatori e referti aggiornati.'};
@@ -1290,7 +1270,7 @@
   function bracketData(state){autoResolveKnockout(state);const ko=state.matches.filter(m=>['knockout','playoff'].includes(m.phase)||m.bracketName);if(!ko.length)return {available:false,message:'Questo formato non prevede una fase a eliminazione diretta.',brackets:[]};const byName=new Map();ko.forEach(m=>{const name=m.bracketName||'Tabellone';if(!byName.has(name))byName.set(name,[]);byName.get(name).push(m);});const brackets=[...byName.entries()].map(([name,matches])=>{const rounds=new Map();matches.sort((a,b)=>a.bracketRoundIndex-b.bracketRoundIndex||a.bracketMatchIndex-b.bracketMatchIndex).forEach(m=>{const key=m.bracketRound||m.round;if(!rounds.has(key))rounds.set(key,[]);rounds.get(key).push(m);});return {name,rounds:[...rounds.entries()].map(([name,matches])=>({name,matches}))};});return {available:true,message:'Tabellone calcolato automaticamente. I placeholder diventano squadre reali appena la fase precedente è completata.',brackets};}
   function playerStats(state){
     const rows=[];
-    state.teams.forEach(t=>t.players.forEach(p=>rows.push({playerId:p.id,name:p.name,birthYear:p.birthYear||'',teamId:t.id,teamName:t.name,played:0,goals:0,scoreGoals:0,yellow:0,red:0,type:'player'})));
+    state.teams.forEach(t=>t.players.forEach(p=>rows.push({playerId:p.id,name:p.name,birthYear:p.birthYear||'',teamId:t.id,teamName:t.name,played:0,goals:0,yellow:0,red:0,type:'player'})));
     const map=Object.fromEntries(rows.map(r=>[r.playerId,r]));
     state.matches.forEach(m=>{
       // Le partite LIVE non contribuiscono alle statistiche giocatori: gol, cartellini e PG
@@ -1300,40 +1280,24 @@
       if(hasScore(state,m)){[m.homeTeamId,m.awayTeamId].forEach(tid=>{const team=getTeam(state,tid);team?.players.forEach(p=>{if(map[p.id])map[p.id].played++;});});}
       (m.goals||[]).forEach(g=>{
         if(map[g.playerId]){
-          map[g.playerId].goals+=1; // classifica marcatori calciatori: un gol reale vale sempre 1, anche se nel punteggio Kings League vale doppio
-          map[g.playerId].scoreGoals+=eventScoreWeight(state,g);
+          map[g.playerId].goals+=1;
         }
       });
       (m.cards||[]).forEach(c=>{if(map[c.playerId])map[c.playerId][c.type==='red'?'red':'yellow']++;});
     });
     return rows.sort((a,b)=>b.goals-a.goals||a.teamName.localeCompare(b.teamName)||a.name.localeCompare(b.name));
   }
-  function presidentStats(state){
-    const rows=[];
-    state.teams.forEach(t=>{if(t.president?.name)rows.push({presidentId:t.president.id,name:t.president.name,teamId:t.id,teamName:t.name,goals:0,scoreGoals:0,played:0,type:'president'});});
-    const map=Object.fromEntries(rows.map(r=>[r.presidentId,r]));
-    state.matches.forEach(m=>{
-      if(m.status==='live')return;
-      if(hasScore(state,m)){[m.homeTeamId,m.awayTeamId].forEach(tid=>{const team=getTeam(state,tid);if(team?.president?.id&&map[team.president.id])map[team.president.id].played++;});}
-      (m.goals||[]).forEach(g=>{if(map[g.playerId]){map[g.playerId].goals+=1;map[g.playerId].scoreGoals+=eventScoreWeight(state,g);}});
-    });
-    return rows.sort((a,b)=>b.goals-a.goals||a.teamName.localeCompare(b.teamName)||a.name.localeCompare(b.name));
-  }
   function scorers(state){return playerStats(state).filter(p=>p.goals>0).sort((a,b)=>b.goals-a.goals||a.name.localeCompare(b.name));}
-  function presidentScorers(state){return presidentStats(state).filter(p=>p.goals>0).sort((a,b)=>b.goals-a.goals||a.name.localeCompare(b.name));}
   function stats(state){
     // Le partite LIVE non vengono ancora contate nei totali globali (gol, cartellini):
     // sono pre-classifica. Solo quando passano a 'played' diventano definitive.
     const consolidated = state.matches.filter(m=>m.status!=='live');
     const actualGoals=consolidated.reduce((s,m)=>s+(m.goals||[]).length,0);
-    const scoreGoals=consolidated.reduce((s,m)=>s+(m.goals||[]).reduce((a,g)=>a+eventScoreWeight(state,g),0),0);
     return {
       teams:state.teams.length,
       players:state.teams.reduce((s,t)=>s+t.players.length,0),
-      presidents:state.teams.filter(t=>t.president?.name).length,
       matches:state.matches.length,
       goals:actualGoals,
-      scoreGoals,
       yellow:consolidated.reduce((s,m)=>s+(m.cards||[]).filter(c=>c.type==='yellow').length,0),
       red:consolidated.reduce((s,m)=>s+(m.cards||[]).filter(c=>c.type==='red').length,0),
       articles:(state.articles||[]).length
@@ -1356,11 +1320,11 @@
     (state.matches||[]).forEach(m=>{
       ng += (m.goals||[]).length;
       nc += (m.cards||[]).length;
-      const gSig=(m.goals||[]).map(g=>`${g.playerId||''}:${g.teamId||''}:${g.type||''}:${g.weight||1}`).join(';');
+      const gSig=(m.goals||[]).map(g=>`${g.playerId||''}:${g.teamId||''}:${g.type||''}`).join(';');
       st += (m.status||'')+(m.homeTeamId||'')+(m.awayTeamId||'')+gSig+(m.penalties?`${m.penalties.home}-${m.penalties.away}`:'');
     });
     // Solo i campi delle regole che influenzano standings/bracket
-    const rf=`${r.format}|${r.isKingsLeague}|${r.playoffTeams}|${(r.standingsCriteriaOrder||[]).join(',')}|${(r.groupConfigs||[]).map(g=>`${g.name}:${g.size}:${g.qualifiers}`).join('|')}`;
+    const rf=`${r.format}|${r.playoffTeams}|${(r.standingsCriteriaOrder||[]).join(',')}|${(r.groupConfigs||[]).map(g=>`${g.name}:${g.size}:${g.qualifiers}`).join('|')}`;
     return `${(state.teams||[]).length}|${(state.matches||[]).length}|${ng}|${nc}|${st}|${rf}`;
   }
   function memo(fn,key){
@@ -1388,14 +1352,12 @@
   // quindi memoizzare anche solo per la stessa render-pass è già un gain enorme.
   const memoCalculateStandings = memo(calculateStandings,'standings');
   const memoPlayerStats = memo(playerStats,'playerStats');
-  const memoPresidentStats = memo(presidentStats,'presidentStats');
   const memoScorers = memo(scorers,'scorers');
-  const memoPresidentScorers = memo(presidentScorers,'presidentScorers');
   const memoBracketData = memo(bracketData,'bracketData');
   const memoGroupStandings = memo(groupStandings,'groupStandings');
   const memoGroupedStandings = memo(groupedStandings,'groupedStandings');
   const memoStats = memo(stats,'stats');
 
   function nextCalendarVariantSeed(){return uid('calendar_variant');}
-  window.NexoraStore={ADMIN_KEY,PUBLIC_KEY,FORMAT_LABELS,SUPPORTED_FORMATS:[...SUPPORTED_FORMATS],PHASE_LABELS,FORMAT_HELP,STANDINGS_CRITERIA,nextCalendarVariantSeed,defaultStandingsCriteriaOrder,normalizeStandingsCriteriaOrder,standingsCriterionMeta,uid,blankRules,defaultGroupConfigs,defaultSite,normalizeSite,emptyState,normalizeState,readPendingRemoteState,newestAdminLocalState,publicCacheState,withoutHeavyMedia,mergeMissingMedia,eventScoreWeight,load,save,alignState,repairState,auditDataState,derivedSnapshot,integrityReport,getTeam,getPlayer,getPresident,getParticipant,isPresidentId,ownGoalValue,isOwnGoalValue,isOwnGoalEvent,ownGoalTeamId,goalScoringTeamId,goalEventTeamId,goalLabel,teamName,playerName,scoreText,matchGoals,actualGoalCount,hasScore,hasGoals,isPlayed,isLive,matchStatusInfo,normalizeJerseyNumber,normalizePenalties,isKnockoutPhase,penaltyWinnerId,winnerId,minimumTeams,plannedGroups,groupAssignmentsFromMatches,validateGroupAssignments,serpentineAssignments,randomAssignments,generateCalendar,ensureFreshCalendar,isCalendarFresh,scheduleSignature,validateGeneration,validateCompetitionConfig,generationPlan,mainStandingsPhase,autoResolveKnockout,bracketData:memoBracketData,sortedCompetitions,seedEntrantsHighLow,allowedDateList,weekdayLabels,suggestEndDateForMatches,oneDayCalendarPauseEvent,groupFieldMap,allowedFieldsForMatch,groupFieldPolicyMessage,deriveFingerprint,selectors:{calculateStandings:memoCalculateStandings,groupStandings:memoGroupStandings,groupNames,groupedStandings:memoGroupedStandings,hasGroupStage,playerStats:memoPlayerStats,presidentStats:memoPresidentStats,scorers:memoScorers,presidentScorers:memoPresidentScorers,stats:memoStats,phases,rounds,bracketData:memoBracketData,articles}};
+  window.NexoraStore={ADMIN_KEY,PUBLIC_KEY,FORMAT_LABELS,SUPPORTED_FORMATS:[...SUPPORTED_FORMATS],PHASE_LABELS,FORMAT_HELP,STANDINGS_CRITERIA,nextCalendarVariantSeed,defaultStandingsCriteriaOrder,normalizeStandingsCriteriaOrder,standingsCriterionMeta,uid,blankRules,defaultGroupConfigs,defaultSite,normalizeSite,emptyState,normalizeState,readPendingRemoteState,newestAdminLocalState,publicCacheState,withoutHeavyMedia,mergeMissingMedia,load,save,alignState,repairState,auditDataState,derivedSnapshot,integrityReport,getTeam,getPlayer,ownGoalValue,isOwnGoalValue,isOwnGoalEvent,ownGoalTeamId,goalScoringTeamId,goalEventTeamId,goalLabel,teamName,playerName,scoreText,matchGoals,actualGoalCount,hasScore,hasGoals,isPlayed,isLive,matchStatusInfo,normalizeJerseyNumber,normalizePenalties,isKnockoutPhase,penaltyWinnerId,winnerId,minimumTeams,plannedGroups,groupAssignmentsFromMatches,validateGroupAssignments,serpentineAssignments,randomAssignments,generateCalendar,ensureFreshCalendar,isCalendarFresh,scheduleSignature,validateGeneration,validateCompetitionConfig,generationPlan,mainStandingsPhase,autoResolveKnockout,bracketData:memoBracketData,sortedCompetitions,seedEntrantsHighLow,allowedDateList,weekdayLabels,suggestEndDateForMatches,oneDayCalendarPauseEvent,groupFieldMap,allowedFieldsForMatch,groupFieldPolicyMessage,deriveFingerprint,selectors:{calculateStandings:memoCalculateStandings,groupStandings:memoGroupStandings,groupNames,groupedStandings:memoGroupedStandings,hasGroupStage,playerStats:memoPlayerStats,scorers:memoScorers,stats:memoStats,phases,rounds,bracketData:memoBracketData,articles}};
 })();

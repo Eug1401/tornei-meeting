@@ -57,7 +57,7 @@
  function teamStatsSummary(s,t){
    const matches=(s.matches||[]).filter(m=>m.homeTeamId===t.id||m.awayTeamId===t.id);
    const played=matches.filter(m=>m.status==='played').length;
-   const goals=(s.matches||[]).reduce((acc,m)=>acc+(m.goals||[]).filter(g=>store.getParticipant(s,g.playerId)?.team?.id===t.id).length,0);
+   const goals=(s.matches||[]).reduce((acc,m)=>acc+(m.goals||[]).filter(g=>store.getPlayer(s,g.playerId)?.team?.id===t.id).length,0);
    return `${(t.players||[]).length} giocatori · ${played}/${matches.length} partite · ${goals} gol`;
  }
  function clearTeamRoster(teamId){

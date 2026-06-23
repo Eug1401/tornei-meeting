@@ -7410,3 +7410,41 @@ button,.btn,a[data-tab],summary,.flow-pick-btn,.match-action-card{
     padding:11px 12px!important;
   }
 }
+
+.share-toolbar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
+  margin:10px 0 14px;
+}
+.share-toolbar .btn{
+  min-height:38px;
+  white-space:normal;
+  text-align:center;
+}
+.group-standings-menu{
+  align-items:flex-end;
+}
+.group-standings-menu .share-toolbar{
+  margin:0;
+  flex:1 1 260px;
+}
+.bracket-share-toolbar{
+  justify-content:flex-end;
+  margin-bottom:12px;
+}
+@media(max-width:720px){
+  .share-toolbar{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:8px;
+  }
+  .share-toolbar .btn{
+    width:100%;
+    justify-content:center;
+  }
+  .bracket-share-toolbar{
+    justify-content:stretch;
+  }
+}

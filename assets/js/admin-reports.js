@@ -54,7 +54,7 @@
    UI.$('#adminStandings').innerHTML=store.selectors.hasGroupStage(s)?UI.groupStandingsTables(s,standingsGroup):UI.standingsTable(standingsRowsForMainTable(s),s);
    const filter=UI.$('#adminPlayerTeamFilter');
    if(filter){filter.innerHTML=teamFilterOptions(s,playerTeamFilter);if(playerTeamFilter&&!s.teams.some(t=>t.id===playerTeamFilter))playerTeamFilter='';}
-   UI.$('#adminPlayers').innerHTML=UI.playerStatsTable(filteredPlayerStats(s))+(s.rules.isKingsLeague?'<div class="mini-section-title margin-top"><h3>Presidenti marcatori</h3></div>'+UI.presidentStatsTable(store.selectors.presidentScorers(s).slice(0,15)):'');
+    UI.$('#adminPlayers').innerHTML=UI.playerStatsTable(filteredPlayerStats(s));
    UI.$('#adminCalendar').innerHTML=UI.matchList(s);
    UI.$('#adminBracket').innerHTML=UI.bracketMarkup(s);
  }
@@ -165,16 +165,9 @@
    addFooter(doc,s); doc.save(pdfName(s,'classifica'));
  }
  async function pdfScorers(){
-   const s=currentPdfState(), logos=await preloadTeamLogos(s); const {doc}=await baseDoc(s,'Classifica marcatori · Top 15','Calciatori e, in modalità Kings League, classifica presidenti separata nello stesso PDF.','p');
+    const s=currentPdfState(), logos=await preloadTeamLogos(s); const {doc}=await baseDoc(s,'Classifica marcatori · Top 15','Calciatori ordinati per gol segnati, con squadra, presenze e cartellini.','p');
    const rows=store.selectors.scorers(s).slice(0,15).map((p,i)=>({...p,rank:i+1,player:p.name,team:p.teamName,year:p.birthYear||'-'}));
    doc.autoTable({...tableTheme(),startY:58,columns:[{header:'#',dataKey:'rank'},{header:'Calciatore',dataKey:'player'},{header:'Anno',dataKey:'year'},{header:'Squadra',dataKey:'team'},{header:'Gol',dataKey:'goals'},{header:'PG',dataKey:'played'},{header:'Gialli',dataKey:'yellow'},{header:'Rossi',dataKey:'red'}],body:rows.length?rows:[{rank:'-',player:'Nessun marcatore disponibile',year:'-',team:'-',goals:'-',played:'-',yellow:'-',red:'-',teamId:''}],columnStyles:{0:{halign:'center',cellWidth:10},1:{cellWidth:52,fontStyle:'bold'},2:{halign:'center',cellWidth:18},3:{cellWidth:54},4:{halign:'center',fontStyle:'bold'},5:{halign:'center'},6:{halign:'center'},7:{halign:'center'}},didParseCell:function(data){if(data.section==='body'&&data.column.index===3){data.cell.styles.cellPadding={top:2.1,right:2.1,bottom:2.1,left:10};}},didDrawCell:function(data){if(data.section==='body'&&data.column.index===3){const r=rows[data.row.index];if(r)drawLogo(data.doc,logos[r.teamId],data.cell.x+1.6,data.cell.y+1.4,6.2,r.teamName);}}});
-   if(s.rules?.isKingsLeague){
-     let y=(doc.lastAutoTable?.finalY||58)+12;
-     const pres=store.selectors.presidentScorers(s).map((p,i)=>({...p,rank:i+1,president:p.name,team:p.teamName}));
-     if(y>235){doc.addPage();y=58;}
-     setRgb(doc,'setTextColor',PDF_COLORS.ink);doc.setFont('helvetica','bold');doc.setFontSize(12);doc.text('Classifica marcatori presidenti',12,y);
-     doc.autoTable({...tableTheme(),startY:y+4,columns:[{header:'#',dataKey:'rank'},{header:'Presidente',dataKey:'president'},{header:'Squadra',dataKey:'team'},{header:'Gol',dataKey:'goals'},{header:'PG',dataKey:'played'}],body:pres.length?pres:[{rank:'-',president:'Nessun gol presidente disponibile',team:'-',goals:'-',played:'-',teamId:''}],columnStyles:{0:{halign:'center',cellWidth:10},1:{cellWidth:62,fontStyle:'bold'},2:{cellWidth:62},3:{halign:'center',fontStyle:'bold'},4:{halign:'center'}},didParseCell:function(data){if(data.section==='body'&&data.column.index===2){data.cell.styles.cellPadding={top:2.1,right:2.1,bottom:2.1,left:10};}},didDrawCell:function(data){if(data.section==='body'&&data.column.index===2){const r=pres[data.row.index];if(r)drawLogo(data.doc,logos[r.teamId],data.cell.x+1.6,data.cell.y+1.4,6.2,r.teamName);}}});
-   }
    addFooter(doc,s); doc.save(pdfName(s,'marcatori-top-15'));
  }
  async function pdfGroups(){
@@ -212,7 +205,7 @@
      doc.setFont('helvetica','bold');doc.setFontSize(7.6);doc.text(String(score),x+w-5.7,y+6.4,{align:'center'});
    }
  }
- function drawBracketCard(doc,s,logos,m,roundName,x,y,w,h){
+  function drawBracketCard(doc,s,logos,m,roundName,x,y,w,h){
    const done=store.hasScore(s,m)||m.status==='played';
    setRgb(doc,'setFillColor',[255,255,255]);
    setRgb(doc,'setDrawColor',[255,176,95]);
@@ -229,11 +222,86 @@
      setRgb(doc,'setTextColor',PDF_COLORS.muted);doc.setFont('helvetica','normal');doc.setFontSize(5.4);
      doc.text(`d.c.r. ${p.home}-${p.away}`,x+w-3,y+h-2.7,{align:'right'});
    }
-   setRgb(doc,'setFillColor',done?[229,255,238]:[241,246,255]);
-   setRgb(doc,'setTextColor',done?[20,112,55]:PDF_COLORS.blue);
-   doc.roundedRect(x+2,y+h-5.2,18,3.6,1.7,1.7,'F');doc.setFont('helvetica','bold');doc.setFontSize(4.8);doc.text(done?'GIOCATA':'DA GIOCARE',x+11,y+h-2.6,{align:'center'});
- }
- function drawBracketPage(doc,s,logos,bracket,logo,addNewPage=true){
+    setRgb(doc,'setFillColor',done?[229,255,238]:[241,246,255]);
+    setRgb(doc,'setTextColor',done?[20,112,55]:PDF_COLORS.blue);
+    doc.roundedRect(x+2,y+h-5.2,18,3.6,1.7,1.7,'F');doc.setFont('helvetica','bold');doc.setFontSize(4.8);doc.text(done?'GIOCATA':'DA GIOCARE',x+11,y+h-2.6,{align:'center'});
+  }
+  function bracketOnePageLayout(bracket){
+    const rounds=bracket.rounds||[];
+    const maxMatches=Math.max(1,...rounds.map(r=>(r.matches||[]).length));
+    const cardW=64, cardH=27, colGap=16, rowGap=9, left=14, top=52, right=14, bottom=24;
+    const pageW=Math.max(297,left+right+rounds.length*cardW+Math.max(0,rounds.length-1)*colGap);
+    const pageH=Math.max(210,top+bottom+maxMatches*cardH+Math.max(0,maxMatches-1)*rowGap);
+    return {pageW,pageH,cardW,cardH,colGap,rowGap,left,top,right,bottom};
+  }
+  function cleanPdfText(value,fallback='Da definire'){const text=String(value??'').trim();return (!text||text==='null'||text==='undefined')?fallback:text;}
+  function bracketTeamText(s,m,side){const id=side==='home'?m.homeTeamId:m.awayTeamId;const label=side==='home'?m.homeLabel||m.sourceHome:m.awayLabel||m.sourceAway;return cleanPdfText(store.teamName(s,id,label||'Da definire'));}
+  function drawOnePageTeam(doc,s,logos,m,side,x,y,w,h){
+    const id=side==='home'?m.homeTeamId:m.awayTeamId;
+    const name=bracketTeamText(s,m,side);
+    const sc=store.matchGoals(s,m);
+    const has=store.hasScore(s,m)||m.status==='played';
+    const win=has&&store.winnerId(s,m)===id&&id;
+    const score=has?(side==='home'?sc.home:sc.away):'-';
+    setRgb(doc,'setFillColor',win?[255,247,237]:[255,255,255]);setRgb(doc,'setDrawColor',win?PDF_COLORS.gold:[221,231,245]);
+    doc.roundedRect(x,y,w,h,2.2,2.2,'FD');
+    drawLogo(doc,logos[id],x+2,y+1.5,6.5,name);
+    setRgb(doc,'setTextColor',PDF_COLORS.ink);doc.setFont('helvetica',win?'bold':'normal');doc.setFontSize(6.5);doc.text(name,x+10,y+5.9,{maxWidth:w-20});
+    setRgb(doc,'setFillColor',win?PDF_COLORS.gold:[238,245,255]);setRgb(doc,'setTextColor',win?PDF_COLORS.ink:PDF_COLORS.blue);
+    doc.roundedRect(x+w-9,y+1.4,7.2,h-2.8,1.8,1.8,'F');doc.setFont('helvetica','bold');doc.setFontSize(6.7);doc.text(String(score),x+w-5.4,y+5.9,{align:'center'});
+  }
+  function drawBracketOnePage(doc,s,logos,bracket,logo,layout){
+    const l=layout||bracketOnePageLayout(bracket);
+    const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight();
+    setRgb(doc,'setFillColor',[250,252,255]);doc.rect(0,0,w,h,'F');
+    setRgb(doc,'setFillColor',[255,255,255]);doc.roundedRect(10,8,w-20,31,5,5,'F');
+    setRgb(doc,'setDrawColor',[219,229,244]);doc.roundedRect(10,8,w-20,31,5,5,'S');
+    drawLogo(doc,logo,16,14,15,s.rules?.name||'NG');
+    setRgb(doc,'setTextColor',PDF_COLORS.ink);doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text(cleanPdfText(s.rules?.name,'Torneo'),36,18,{maxWidth:w-110});
+    doc.setFontSize(9);doc.text(`Tabellone - ${cleanPdfText(bracket.name,'Fase finale')}`,36,27,{maxWidth:w-110});
+    setRgb(doc,'setTextColor',PDF_COLORS.muted);doc.setFont('helvetica','normal');doc.setFontSize(7);
+    doc.text(`${store.FORMAT_LABELS[s.rules?.format]||'Formato torneo'} · ${today()}`,36,34,{maxWidth:w-110});
+    const rounds=bracket.rounds||[];
+    const positions=[];
+    rounds.forEach((round,ri)=>{
+      const x=l.left+ri*(l.cardW+l.colGap);
+      const matches=round.matches||[];
+      const available=h-l.top-l.bottom-10;
+      const step=matches.length>1?Math.min(l.cardH+l.rowGap,available/(matches.length-1)):0;
+      const total=matches.length>1?step*(matches.length-1)+l.cardH:l.cardH;
+      const startY=l.top+Math.max(0,(available-total)/2);
+      positions[ri]=matches.map((m,mi)=>({x,y:startY+mi*step,w:l.cardW,h:l.cardH,mid:startY+mi*step+l.cardH/2,match:m,roundName:round.name}));
+    });
+    setRgb(doc,'setDrawColor',[255,176,95]);doc.setLineWidth(.35);
+    for(let ri=0;ri<positions.length-1;ri++){
+      const curr=positions[ri],next=positions[ri+1];
+      next.forEach((n,j)=>{
+        const a=curr[j*2],b=curr[j*2+1],xMid=(a?a.x+a.w:b?b.x+b.w:n.x)-0+l.colGap*.48;
+        if(a)doc.line(a.x+a.w,a.mid,xMid,a.mid);
+        if(b)doc.line(b.x+b.w,b.mid,xMid,b.mid);
+        if(a&&b)doc.line(xMid,a.mid,xMid,b.mid);
+        doc.line(xMid,n.mid,n.x,n.mid);
+      });
+    }
+    rounds.forEach((round,ri)=>{
+      const x=l.left+ri*(l.cardW+l.colGap);
+      setRgb(doc,'setFillColor',[238,245,255]);setRgb(doc,'setDrawColor',[219,229,244]);doc.roundedRect(x,l.top-13,l.cardW,8.5,2,2,'FD');
+      setRgb(doc,'setTextColor',PDF_COLORS.ink);doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text(cleanPdfText(round.name,`Turno ${ri+1}`),x+l.cardW/2,l.top-7.4,{align:'center',maxWidth:l.cardW-3});
+      (positions[ri]||[]).forEach(pos=>{
+        const m=pos.match,done=store.hasScore(s,m)||m.status==='played';
+        setRgb(doc,'setFillColor',[255,255,255]);setRgb(doc,'setDrawColor',[219,229,244]);doc.roundedRect(pos.x,pos.y,pos.w,pos.h,3,3,'FD');
+        setRgb(doc,'setTextColor',PDF_COLORS.muted);doc.setFont('helvetica','normal');doc.setFontSize(5.4);
+        doc.text(`${cleanPdfText(m.field,'Campo da definire')} · ${cleanPdfText(UI.fmtDate(m),'Data da definire')}`,pos.x+2,pos.y+4.6,{maxWidth:pos.w-4});
+        drawOnePageTeam(doc,s,logos,m,'home',pos.x+2,pos.y+6.5,pos.w-4,8.4);
+        drawOnePageTeam(doc,s,logos,m,'away',pos.x+2,pos.y+16,pos.w-4,8.4);
+        const p=store.normalizePenalties?store.normalizePenalties(m.penalties):m.penalties;
+        setRgb(doc,'setTextColor',done?[20,112,55]:PDF_COLORS.blue);doc.setFont('helvetica','bold');doc.setFontSize(4.8);
+        doc.text(done?'GIOCATA':'DA GIOCARE',pos.x+2,pos.y+pos.h-1.9);
+        if(p&&done){setRgb(doc,'setTextColor',PDF_COLORS.muted);doc.text(`d.c.r. ${p.home}-${p.away}`,pos.x+pos.w-2,pos.y+pos.h-1.9,{align:'right'});}
+      });
+    });
+  }
+  function drawBracketPage(doc,s,logos,bracket,logo,addNewPage=true){
    if(addNewPage)doc.addPage('a4','landscape');
    drawHeader(doc,s,`Tabellone · ${bracket.name}`,'Percorso finale con accoppiamenti, risultati e avanzamento verso la finale.',logo);
    const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight();
@@ -289,38 +357,16 @@
    }
  }
 
- function drawDenseBracketPages(doc,s,logos,bracket,logo,addNewPage=true){
-   if(addNewPage)doc.addPage('a4','landscape');
-   const rounds=bracket.rounds||[];
-   let pageStarted=false;
-   function newPage(title){if(pageStarted)doc.addPage('a4','landscape');pageStarted=true;drawHeader(doc,s,title,'Tabellone fase finale in layout sportivo anti-sovrapposizione: turni separati, card leggibili, colori blu/arancio.',logo);}
-   newPage(`Tabellone · ${bracket.name}`);
-   const w=doc.internal.pageSize.getWidth();
-   const left=12, topStart=58, colGap=8, cardGap=6;
-   const cardW=(w-left*2-colGap)/2;
-   let y=topStart;
-   rounds.forEach((round,ri)=>{
-     const cards=round.matches||[];
-     const needed=12+Math.ceil(Math.max(cards.length,1)/2)*(32+cardGap)+6;
-     if(y+needed>188){newPage(`Tabellone · ${bracket.name}`);y=topStart;}
-     setRgb(doc,'setFillColor',PDF_COLORS.ink);setRgb(doc,'setDrawColor',PDF_COLORS.gold);doc.roundedRect(left,y,w-left*2,9,3,3,'FD');
-     setRgb(doc,'setTextColor',PDF_COLORS.gold2);doc.setFont('helvetica','bold');doc.setFontSize(8.6);doc.text(String(round.name),left+4,y+6.2,{maxWidth:w-left*2-8});
-     y+=13;
-     if(!cards.length){setRgb(doc,'setTextColor',PDF_COLORS.muted);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text('Nessuna partita in questo turno.',left,y+6);y+=18;return;}
-     cards.forEach((m,mi)=>{
-       const col=mi%2,row=Math.floor(mi/2);const x=left+col*(cardW+colGap);const cy=y+row*(32+cardGap);
-       drawBracketCard(doc,s,logos,m,round.name,x,cy,cardW,32);
-     });
-     y+=Math.ceil(cards.length/2)*(32+cardGap)+8;
-   });
- }
- async function pdfBracket(){
-   const s=currentPdfState(), logos=await preloadTeamLogos(s); const {doc,logo}=await baseDoc(s,'Tabellone fase finale','Grafica tabellone con squadre, placeholder e risultati.','l');
-   const data=store.bracketData(s);
-   if(!data.available){doc.autoTable({...tableTheme(),startY:58,head:[['Info']],body:[[data.message||'Nessun tabellone disponibile.']]});}
-   else {data.brackets.forEach((b,i)=>{const maxMatches=Math.max(...(b.rounds||[]).map(r=>(r.matches||[]).length),0); if(maxMatches>4)drawDenseBracketPages(doc,s,logos,b,logo,i>0); else drawBracketPage(doc,s,logos,b,logo,i>0);});}
-   addFooter(doc,s); doc.save(pdfName(s,'tabellone-fase-finale'));
- }
+  async function pdfBracket(){
+    const s=currentPdfState(), logos=await preloadTeamLogos(s), logo=await dataUrlFromImage(BRAND_LOGO);
+    const data=store.bracketData(s);
+    const {jsPDF}=window.jspdf;
+    const firstLayout=bracketOnePageLayout(data.available&&data.brackets.length?data.brackets[0]:{rounds:[]});
+    const doc=new jsPDF({orientation:'l',unit:'mm',format:[firstLayout.pageW,firstLayout.pageH],compress:true});
+    if(!data.available||!data.brackets.length){drawBracketOnePage(doc,s,logos,{name:'Fase finale',rounds:[]},logo,firstLayout);doc.autoTable({...tableTheme(),startY:58,head:[['Info']],body:[[data.message||'Nessun tabellone disponibile.']]});}
+    else {data.brackets.forEach((b,i)=>{const layout=bracketOnePageLayout(b);if(i>0)doc.addPage([layout.pageW,layout.pageH],'l');drawBracketOnePage(doc,s,logos,b,logo,layout);});}
+    addFooter(doc,s); doc.save(pdfName(s,'tabellone-fase-finale'));
+  }
  async function runPdf(kind){
    try{if(!toolsReady()){toast('Librerie PDF non disponibili. Controlla la connessione e ricarica la pagina.','error');return;}toast('Genero il PDF e avvio il download…');
      if(kind==='standings')await pdfStandings(); else if(kind==='scorers')await pdfScorers(); else if(kind==='groups')await pdfGroups(); else if(kind==='bracket')await pdfBracket(); else await pdfCalendar();
