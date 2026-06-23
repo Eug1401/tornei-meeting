@@ -729,13 +729,74 @@
     return rules.oneDay?`${match.date||''}|${match.time||''}`:`${match.date||''}|GIORNO`;
   }
   function swapFields(a,b){const tmp=a.field;a.field=b.field;b.field=tmp;}
-  function enforceField1Fallback(matches,rules){
-    // Backup post-scheduler: se dopo la generazione una squadra della fase
-    // iniziale non ha ancora Campo 1, prova a scambiare il campo con una partita
-    // dello stesso slot senza creare sovrapposizioni.
-    if(!groupField1GuaranteeActive(rules))return {ok:true,total:0,missing:[]};
+  function exhaustiveField1Assignments(matches,rules){
+    if(!groupField1GuaranteeActive(rules))return {ok:true,total:0,missing:[],exhausted:true,exploredAssignments:0};
     let audit=groupField1Audit(matches,rules);
-    if(audit.ok)return audit;
+    if(audit.ok)return {...audit,exhausted:true,exploredAssignments:0};
+    const teams=[...new Set((matches||[]).filter(m=>isInitialPhaseMatch(m,rules)).flatMap(matchTeamIds))];
+    if(teams.length>22)return {...audit,exhausted:false,exploredAssignments:0,capped:true};
+    const teamIndex=Object.fromEntries(teams.map((id,i)=>[id,i]));
+    const bySlot=new Map();
+    (matches||[]).forEach(m=>{const k=groupSlotKey(m,rules);if(!bySlot.has(k))bySlot.set(k,[]);bySlot.get(k).push(m);});
+    const slots=[];
+    let exploredAssignments=0;
+    function enumerateSlotOptions(slotMatches){
+      const initial=slotMatches.filter(m=>isInitialPhaseMatch(m,rules));
+      if(!initial.length)return [{assignments:[],mask:0}];
+      const busy=new Set(slotMatches.filter(m=>!isInitialPhaseMatch(m,rules)).map(m=>fieldNoFromLabel(m.field)).filter(Boolean));
+      const options=[];
+      function rec(i,used,assignments,mask){
+        if(i>=initial.length){options.push({assignments:[...assignments],mask});return;}
+        const m=initial[i];
+        const candidates=allowedFieldsForMatch(m,rules).filter(f=>!busy.has(f)&&!used.has(f));
+        if(!candidates.length)return;
+        candidates.forEach(field=>{
+          used.add(field);
+          assignments.push([m,field]);
+          const addMask=field===1?matchTeamIds(m).reduce((maskAcc,t)=>maskAcc|(1<<teamIndex[t]),0):0;
+          rec(i+1,used,assignments,mask|addMask);
+          assignments.pop();
+          used.delete(field);
+        });
+      }
+      rec(0,new Set(),[],0);
+      exploredAssignments+=options.length;
+      return options.length?options:[{assignments:[],mask:0}];
+    }
+    bySlot.forEach(slotMatches=>slots.push(enumerateSlotOptions(slotMatches)));
+    let dp=new Map([[0,{prev:null,opt:null}]]);
+    const layers=[];
+    slots.forEach((options,slotIndex)=>{
+      const next=new Map();
+      dp.forEach((entry,mask)=>{
+        options.forEach((opt,optIndex)=>{
+          const nextMask=mask|opt.mask;
+          if(!next.has(nextMask))next.set(nextMask,{prev:mask,opt:optIndex,slotIndex});
+        });
+      });
+      dp=next;
+      layers[slotIndex]=dp;
+    });
+    let bestMask=0,bestCovered=-1;
+    dp.forEach((_,mask)=>{const covered=mask.toString(2).replace(/0/g,'').length;if(covered>bestCovered){bestCovered=covered;bestMask=mask;}});
+    const chosen=new Array(slots.length);
+    let cursor=bestMask;
+    for(let i=slots.length-1;i>=0;i--){
+      const entry=layers[i]?.get(cursor);
+      if(!entry)break;
+      chosen[i]=slots[i][entry.opt]||slots[i][0];
+      cursor=entry.prev??0;
+    }
+    chosen.forEach(opt=>(opt?.assignments||[]).forEach(([m,field])=>{m.field=`Campo ${field}`;}));
+    audit=groupField1Audit(matches,rules);
+    return {...audit,exhausted:true,exploredAssignments};
+  }
+  function enforceField1Fallback(matches,rules){
+    // Backup post-scheduler: prima prova scambi locali; poi esaurisce tutte le
+    // assegnazioni campo possibili negli slot generati, senza sovrapposizioni.
+    if(!groupField1GuaranteeActive(rules))return {ok:true,total:0,missing:[],exhausted:true,exploredAssignments:0};
+    let audit=groupField1Audit(matches,rules);
+    if(audit.ok)return {...audit,exhausted:true,exploredAssignments:0};
     const bySlot=new Map();
     (matches||[]).forEach(m=>{const k=groupSlotKey(m,rules);if(!bySlot.has(k))bySlot.set(k,[]);bySlot.get(k).push(m);});
     function counts(){
@@ -763,15 +824,41 @@
       audit=groupField1Audit(matches,rules);
       if(!changed)break;
     }
+    audit=exhaustiveField1Assignments(matches,rules);
     return audit;
   }
+  function field1ResultPayload(audit,rules,extra={}){
+    const missing=audit?.missing||[];
+    const base={
+      ...audit,
+      ok:false,
+      code:'FIELD1_STRICT_UNSATISFIABLE',
+      requiresField1FallbackConfirmation:true,
+      field1RelaxationAvailable:missing.length<=1||extra.allowRelaxedRetry,
+      field1MissingTeamIds:[...missing],
+      field1Audit:{...audit},
+      message:`Calendario rigoroso Campo 1 non completabile: dopo aver esaurito ${audit?.exploredAssignments||0} combinazioni utili, ${missing.length} squadra/e della fase iniziale restano senza Campo 1. Puoi annullare senza salvare modifiche oppure continuare accettando al massimo una squadra senza Campo 1.`
+    };
+    return {...base,...extra};
+  }
+  function finalizeField1Audit(matches,rules,options={}){
+    if(Math.max(1,Number(rules.fieldCount)||1)<=1)return {ok:true,total:0,missing:[],field1Audit:{ok:true,total:0,missing:[]}};
+    const audit=enforceField1Fallback(matches,rules);
+    if(audit.ok)return {ok:true,...audit,field1Audit:{...audit},field1MissingTeamIds:[]};
+    const missing=audit.missing||[];
+    if(options.allowField1Fallback===true&&missing.length<=1){
+      return {...audit,ok:true,strictOk:false,field1Relaxed:true,field1Audit:{...audit},field1MissingTeamIds:[...missing]};
+    }
+    return field1ResultPayload(audit,rules);
+  }
 
-  function scheduleMatches(matches,rules){
+  function scheduleMatches(matches,rules,options={}){
     const fields=Math.max(1,Number(rules.fieldCount)||1);
     const duration=Math.max(5,Number(rules.matchDuration)||40);
     const breakMinutes=Math.max(0,Number(rules.breakMinutes)||0);
     const step=duration+breakMinutes;
     const groups=matchesByRoundIndex(matches);
+    const allowField1Fallback=options.allowField1Fallback===true;
 
     const rotateFields=fields>1&&!groupFieldMap(rules);
     const teamFieldUse={};
@@ -791,7 +878,7 @@
         let maxSlotUsedInRound=earliestSlot-1;
         for(const match of roundMatches){
           const teams=matchTeamIds(match);
-          let placed=false;
+          let placed=false,blockedOnlyByField1=false;
           for(let slot=earliestSlot;slot<estimatedSlots&&!placed;slot++){
             const dt=new Date(start.getTime()+slot*step*60000);
             const dayMinutes=dt.getHours()*60+dt.getMinutes();
@@ -804,8 +891,11 @@
               // Se una delle due squadre non ha ancora giocato sul Campo 1, questa
               // partita aspetta il primo slot in cui il Campo 1 è libero. Così il
               // requisito non dipende da correzioni successive o da fortuna.
-              if(!freeFields.includes(1))continue;
-              freeFields=[1];
+              if(freeFields.includes(1))freeFields=[1];
+              else{
+                blockedOnlyByField1=true;
+                if(!allowField1Fallback)continue;
+              }
             }
             if(!freeFields.length)continue;
             // Con rotazione attiva scegliamo il campo che bilancia l'uso per squadra,
@@ -822,16 +912,20 @@
             maxSlotUsed=Math.max(maxSlotUsed,slot);
             placed=true;
           }
-          if(!placed)return {ok:false,message:'Calendario impossibile: non riesco a collocare tutte le partite senza sovrapposizioni di campo/squadra. Aumenta campi o riduci durata/pausa.'};
+          if(!placed){
+            if(blockedOnlyByField1&&!allowField1Fallback)return field1ResultPayload(groupField1Audit(matches,rules),rules,{allowRelaxedRetry:true});
+            return {ok:false,message:'Calendario impossibile: non riesco a collocare tutte le partite senza sovrapposizioni di campo/squadra. Aumenta campi o riduci durata/pausa.'};
+          }
         }
         earliestSlot=maxSlotUsedInRound+1;
       }
       const end=new Date(start.getTime()+Math.max(0,maxSlotUsed)*step*60000+duration*60000);
       const pauseText=pause?` Pausa programmata alle ${pause.startTime} per ${pause.duration} min inserita nel calendario.`:'';
-      const f1=fields>1?enforceField1Fallback(matches,rules):{ok:true,total:0,missing:[]};
-      if(!f1.ok)return {ok:false,message:`Calendario impossibile: non riesco a garantire almeno una partita sul Campo 1 per tutte le squadre dei gironi. Mancanti: ${f1.missing.length}. Aumenta la durata del torneo o consenti più slot di gioco.`};
+      const f1=finalizeField1Audit(matches,rules,{allowField1Fallback});
+      if(!f1.ok)return f1;
       const f1Text=f1.total?` Garanzia Campo 1 verificata per ${f1.covered}/${f1.total} squadre dei gironi.`:'';
-      return {ok:true,calculatedEndTime:end.toTimeString().slice(0,5),message:`Calendario generato: ${matches.length} partite in un giorno su ${fields} campi. Fine stimata: ${end.toTimeString().slice(0,5)}.${pauseText} Nessuna squadra gioca in contemporanea e nessun campo è sovrapposto.${groupFieldPolicyMessage(rules)}${f1Text}`};
+      const relaxedText=f1.field1Relaxed?' Eccezione Campo 1 applicata: una squadra resta senza Campo 1 nella fase iniziale.':'';
+      return {ok:true,...f1,calculatedEndTime:end.toTimeString().slice(0,5),message:`Calendario generato: ${matches.length} partite in un giorno su ${fields} campi. Fine stimata: ${end.toTimeString().slice(0,5)}.${pauseText} Nessuna squadra gioca in contemporanea e nessun campo è sovrapposto.${groupFieldPolicyMessage(rules)}${f1Text}${relaxedText}`};
     }
 
     if(!rules.startDate||!rules.endDate)return {ok:false,message:'Per tornei su più giorni indica data inizio e data fine.'};
@@ -848,15 +942,18 @@
       let maxDayUsed=earliestDay-1;
       for(const match of orderedMatches){
         const teams=matchTeamIds(match);
-        let placed=false;
+        let placed=false,blockedOnlyByField1=false;
         for(let day=earliestDay;day<allowedDates.length&&!placed;day++){
           // Nei tornei lunghi una squadra non deve disputare due partite nello stesso giorno.
           if(teams.some(t=>dayTeams[day].has(t)))continue;
           // Campi candidati: ammessi e liberi in questa data.
           let freeFields=allowedFieldsForMatch(match,rules).filter(field=>!dayFieldBusy[day].has(field));
           if(needsGroupField1(match,teamFieldUse,rules)){
-            if(!freeFields.includes(1))continue;
-            freeFields=[1];
+            if(freeFields.includes(1))freeFields=[1];
+            else{
+              blockedOnlyByField1=true;
+              if(!allowField1Fallback)continue;
+            }
           }
           if(!freeFields.length)continue;
           const field=freeFields.length===1?freeFields[0]:(rotateFields?pickRotatedField(freeFields,teams,teamFieldUse):freeFields[0]);
@@ -871,6 +968,7 @@
           placed=true;
         }
         if(!placed){
+          if(blockedOnlyByField1&&!allowField1Fallback)return field1ResultPayload(groupField1Audit(matches,rules),rules,{allowRelaxedRetry:true});
           const estimate=suggestEndDateForMatches(matches,rules);
           const extra=estimate.ok?` Data fine consigliata: ${estimate.suggestedEndDate}.`:'';
           return {ok:false,message:`Calendario impossibile tra ${rules.startDate} e ${rules.endDate} nei giorni selezionati (${weekdayLabels(rules.playingDays)}): non ci sono abbastanza giorni/campi per evitare sovrapposizioni e doppie partite della stessa squadra nello stesso giorno.${extra}`};
@@ -883,11 +981,12 @@
       }
     }
 
-    const f1=fields>1?enforceField1Fallback(matches,rules):{ok:true,total:0,missing:[]};
-    if(!f1.ok)return {ok:false,message:`Calendario impossibile: non riesco a garantire almeno una partita sul Campo 1 per tutte le squadre dei gironi. Mancanti: ${f1.missing.length}. Estendi il periodo o aggiungi date giocabili.`};
+    const f1=finalizeField1Audit(matches,rules,{allowField1Fallback});
+    if(!f1.ok)return f1;
     const usedDays=[...new Set(matches.map(m=>m.date).filter(Boolean))].length;
     const f1Text=f1.total?` Garanzia Campo 1 verificata per ${f1.covered}/${f1.total} squadre dei gironi.`:'';
-    return {ok:true,message:`Calendario generato su ${usedDays} date di gioco tra ${rules.startDate} e ${rules.endDate} (${weekdayLabels(rules.playingDays)}). Nessuna squadra gioca due volte nello stesso giorno e nessun campo è sovrapposto.${groupFieldPolicyMessage(rules)}${f1Text}`};
+    const relaxedText=f1.field1Relaxed?' Eccezione Campo 1 applicata: una squadra resta senza Campo 1 nella fase iniziale.':'';
+    return {ok:true,...f1,message:`Calendario generato su ${usedDays} date di gioco tra ${rules.startDate} e ${rules.endDate} (${weekdayLabels(rules.playingDays)}). Nessuna squadra gioca due volte nello stesso giorno e nessun campo è sovrapposto.${groupFieldPolicyMessage(rules)}${f1Text}${relaxedText}`};
   }
 
   function rawInteger(value){
@@ -974,7 +1073,37 @@
     return kept;
   }
   function isCalendarFresh(state){return Boolean(state.matches&&state.matches.length&&state.calendarSignature&&state.calendarSignature===scheduleSignature(state));}
-  function generateCalendar(state,options={}){state.rules=normalizeRules(state.rules);const v=validateGeneration(state);if(!v.ok){state.calendarSignature='';return v;}const oldMatches=Array.isArray(state.matches)?state.matches:[];const matches=buildMatches(state);const s=scheduleMatches(matches,state.rules);if(!s.ok){state.calendarSignature='';return s;}const kept=options.preserveResults!==false?preserveMatchData(matches,oldMatches):0;state.matches=matches;autoResolveKnockout(state);state.calendarSignature=scheduleSignature(state);return {...s,preservedMatches:kept,message:s.message+(kept?` Risultati/referti preservati su ${kept} partite rimaste compatibili.`:'')};}
+  function decorateField1Teams(result,state){
+    const ids=result?.field1MissingTeamIds||result?.missing||[];
+    if(!ids.length)return result;
+    const names=ids.map(id=>teamName(state,id,id));
+    const suffix=' Squadra/e senza Campo 1: '+names.join(', ')+'.';
+    return {...result,field1MissingTeamNames:names,message:String(result.message||'')+suffix};
+  }
+  function generateCalendar(state,options={}){
+    state.rules=normalizeRules(state.rules);
+    const v=validateGeneration(state);
+    if(!v.ok){state.calendarSignature='';return v;}
+    const oldMatches=Array.isArray(state.matches)?state.matches:[];
+    const allowField1Fallback=options.allowField1Fallback===true;
+    const matches=buildMatches(state);
+    let s=decorateField1Teams(scheduleMatches(matches,state.rules,{allowField1Fallback}),state);
+    if(!s.ok&&!allowField1Fallback&&!s.requiresField1FallbackConfirmation&&groupField1GuaranteeActive(state.rules)){
+      const relaxedProbeMatches=buildMatches(state);
+      const relaxedProbe=decorateField1Teams(scheduleMatches(relaxedProbeMatches,state.rules,{allowField1Fallback:true}),state);
+      if(relaxedProbe.ok){
+        const audit=relaxedProbe.field1Audit||groupField1Audit(relaxedProbeMatches,state.rules);
+        const missing=audit.missing||[];
+        s=decorateField1Teams(field1ResultPayload(audit,state.rules,{allowRelaxedRetry:true,relaxedProbeOk:true,field1RelaxedPreview:{ok:true,missing:[...missing]},message:`Calendario rigoroso Campo 1 non completabile dopo l'esaurimento dei tentativi utili. La generazione rilassata può completare il calendario e lascia ${missing.length} squadra/e senza Campo 1 nella fase iniziale. Puoi annullare senza salvare oppure continuare con il piano rilassato.`}),state);
+      }
+    }
+    if(!s.ok){state.calendarSignature='';return s;}
+    const kept=options.preserveResults!==false?preserveMatchData(matches,oldMatches):0;
+    state.matches=matches;
+    autoResolveKnockout(state);
+    state.calendarSignature=scheduleSignature(state);
+    return {...s,preservedMatches:kept,message:s.message+(kept?` Risultati/referti preservati su ${kept} partite rimaste compatibili.`:'')};
+  }
   function ensureFreshCalendar(state){if(isCalendarFresh(state))return {ok:true,message:'Calendario già aggiornato.',changed:false};const before=(state.matches||[]).length;const res=generateCalendar(state,{preserveResults:true});return {...res,changed:res.ok,previousMatches:before};}
 
   function playerBelongsToMatch(state,m,playerId){const tid=playerTeamId(state,playerId);return Boolean(tid&&(tid===m.homeTeamId||tid===m.awayTeamId));}
@@ -1359,5 +1488,5 @@
   const memoStats = memo(stats,'stats');
 
   function nextCalendarVariantSeed(){return uid('calendar_variant');}
-  window.NexoraStore={ADMIN_KEY,PUBLIC_KEY,FORMAT_LABELS,SUPPORTED_FORMATS:[...SUPPORTED_FORMATS],PHASE_LABELS,FORMAT_HELP,STANDINGS_CRITERIA,nextCalendarVariantSeed,defaultStandingsCriteriaOrder,normalizeStandingsCriteriaOrder,standingsCriterionMeta,uid,blankRules,defaultGroupConfigs,defaultSite,normalizeSite,emptyState,normalizeState,readPendingRemoteState,newestAdminLocalState,publicCacheState,withoutHeavyMedia,mergeMissingMedia,load,save,alignState,repairState,auditDataState,derivedSnapshot,integrityReport,getTeam,getPlayer,ownGoalValue,isOwnGoalValue,isOwnGoalEvent,ownGoalTeamId,goalScoringTeamId,goalEventTeamId,goalLabel,teamName,playerName,scoreText,matchGoals,actualGoalCount,hasScore,hasGoals,isPlayed,isLive,matchStatusInfo,normalizeJerseyNumber,normalizePenalties,isKnockoutPhase,penaltyWinnerId,winnerId,minimumTeams,plannedGroups,groupAssignmentsFromMatches,validateGroupAssignments,serpentineAssignments,randomAssignments,generateCalendar,ensureFreshCalendar,isCalendarFresh,scheduleSignature,validateGeneration,validateCompetitionConfig,generationPlan,mainStandingsPhase,autoResolveKnockout,bracketData:memoBracketData,sortedCompetitions,seedEntrantsHighLow,allowedDateList,weekdayLabels,suggestEndDateForMatches,oneDayCalendarPauseEvent,groupFieldMap,allowedFieldsForMatch,groupFieldPolicyMessage,deriveFingerprint,selectors:{calculateStandings:memoCalculateStandings,groupStandings:memoGroupStandings,groupNames,groupedStandings:memoGroupedStandings,hasGroupStage,playerStats:memoPlayerStats,scorers:memoScorers,stats:memoStats,phases,rounds,bracketData:memoBracketData,articles}};
+  window.NexoraStore={ADMIN_KEY,PUBLIC_KEY,FORMAT_LABELS,SUPPORTED_FORMATS:[...SUPPORTED_FORMATS],PHASE_LABELS,FORMAT_HELP,STANDINGS_CRITERIA,nextCalendarVariantSeed,defaultStandingsCriteriaOrder,normalizeStandingsCriteriaOrder,standingsCriterionMeta,uid,blankRules,defaultGroupConfigs,defaultSite,normalizeSite,emptyState,normalizeState,readPendingRemoteState,newestAdminLocalState,publicCacheState,withoutHeavyMedia,mergeMissingMedia,load,save,alignState,repairState,auditDataState,derivedSnapshot,integrityReport,getTeam,getPlayer,ownGoalValue,isOwnGoalValue,isOwnGoalEvent,ownGoalTeamId,goalScoringTeamId,goalEventTeamId,goalLabel,teamName,playerName,scoreText,matchGoals,actualGoalCount,hasScore,hasGoals,isPlayed,isLive,matchStatusInfo,normalizeJerseyNumber,normalizePenalties,isKnockoutPhase,penaltyWinnerId,winnerId,minimumTeams,plannedGroups,groupAssignmentsFromMatches,validateGroupAssignments,serpentineAssignments,randomAssignments,generateCalendar,ensureFreshCalendar,isCalendarFresh,scheduleSignature,validateGeneration,validateCompetitionConfig,generationPlan,mainStandingsPhase,autoResolveKnockout,bracketData:memoBracketData,sortedCompetitions,seedEntrantsHighLow,allowedDateList,weekdayLabels,suggestEndDateForMatches,oneDayCalendarPauseEvent,groupFieldMap,allowedFieldsForMatch,groupFieldPolicyMessage,field1Audit:groupField1Audit,deriveFingerprint,selectors:{calculateStandings:memoCalculateStandings,groupStandings:memoGroupStandings,groupNames,groupedStandings:memoGroupedStandings,hasGroupStage,playerStats:memoPlayerStats,scorers:memoScorers,stats:memoStats,phases,rounds,bracketData:memoBracketData,articles}};
 })();

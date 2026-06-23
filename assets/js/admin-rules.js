@@ -100,8 +100,34 @@
   document.addEventListener('dragleave',e=>{e.target.closest('[data-criterion-index]')?.classList.remove('drop-active');});
   document.addEventListener('drop',e=>{const row=e.target.closest('[data-criterion-index]');if(!row||isTouchDevice())return;e.preventDefault();row.classList.remove('drop-active');const from=Number(e.dataTransfer.getData('text/plain'));const to=Number(row.dataset.criterionIndex);moveCriterion(from,to);});
 
-  UI.$('#rulesForm').addEventListener('submit',e=>{e.preventDefault();let draft=A.state();readInto(draft);const check=store.validateGeneration(draft);if(!check.ok){saveTournamentNameOnly();A.flash('#rulesMessage','Nome torneo salvato. Le altre regole non sono state applicate perché il calendario non è ancora valido: '+check.message,'error');fill();render();return;}let res;A.commit(s=>{readInto(s);res=store.generateCalendar(s,{preserveResults:true});});const type=res.ok?'ok':'error';const msg=res.ok?'Regole salvate, nome aggiornato, classifica aggiornata e calendario allineato. '+res.message:'Nome e regole salvate, ma il calendario non può essere aggiornato: '+res.message;A.flash('#rulesMessage',msg,type);fill();render();});
-  UI.$('#generateCalendarBtn').addEventListener('click',()=>{const old=A.state();const hasReports=old.matches.some(m=>(m.goals&&m.goals.length)||(m.cards&&m.cards.length));if(hasReports&&!confirm('Rigenerare il calendario? I risultati/referti delle partite ancora compatibili verranno preservati, gli altri potrebbero essere rimossi.'))return;let res;A.commit(s=>{readInto(s);res=store.generateCalendar(s,{preserveResults:true});});A.flash('#rulesMessage',res.message,res.ok?'ok':'error');fill();render();});
+  function setGenerationBusy(on){
+    regenerationBusy=on;
+    UI.$$('#rulesForm button[type="submit"], #generateCalendarBtn, #reshuffleCalendarBtn').forEach(btn=>{btn.disabled=on;});
+  }
+  function field1FallbackPrompt(res){
+    const missingCount=(res.field1MissingTeamIds||[]).length;
+    const names=(res.field1MissingTeamNames||[]).join(', ')||(missingCount?`${missingCount} squadra/e`:'nessuna nel piano rilassato');
+    return `${res.message||'La garanzia Campo 1 non è completabile in modalità rigorosa.'}\n\nVuoi continuare con la generazione rilassata? Verrà accettata al massimo una squadra senza Campo 1 nella fase iniziale.\n\nSquadra/e coinvolte: ${names}\n\nOK = Continua. Annulla = non salva modifiche incomplete.`;
+  }
+  function generateOnDraft({preserveResults=true,variantSeed=false}={}){
+    const draft=currentDraftState();
+    if(variantSeed)draft.rules.calendarVariantSeed=store.nextCalendarVariantSeed?store.nextCalendarVariantSeed():store.uid('calendar_variant');
+    const check=store.validateGeneration(draft);
+    if(!check.ok)return {ok:false,validationFailed:true,message:check.message};
+    let res=store.generateCalendar(draft,{preserveResults,allowField1Fallback:false});
+    if(res.requiresField1FallbackConfirmation){
+      console.info('[calendar] Campo 1 strict exhausted',res.field1Audit||res);
+      if(!confirm(field1FallbackPrompt(res)))return {ok:false,cancelled:true,message:'Operazione annullata: nessuna modifica incompleta è stata salvata.'};
+      res=store.generateCalendar(draft,{preserveResults,allowField1Fallback:true});
+      console.info('[calendar] Campo 1 relaxed result',res.field1Audit||res);
+    }
+    if(!res.ok)return res;
+    A.save(draft);
+    return res;
+  }
+
+  UI.$('#rulesForm').addEventListener('submit',e=>{e.preventDefault();if(regenerationBusy)return;setGenerationBusy(true);try{const draft=currentDraftState();const check=store.validateGeneration(draft);if(!check.ok){saveTournamentNameOnly();A.flash('#rulesMessage','Nome torneo salvato. Le altre regole non sono state applicate perché il calendario non è ancora valido: '+check.message,'error');fill();render();return;}const res=generateOnDraft({preserveResults:true});if(res.cancelled){A.flash('#rulesMessage',res.message,'error');return;}const type=res.ok?'ok':'error';const msg=res.ok?'Regole salvate, nome aggiornato, classifica aggiornata e calendario allineato. '+res.message:'Modifiche non salvate: il calendario non può essere aggiornato. '+res.message;A.flash('#rulesMessage',msg,type);if(res.ok){fill();render();}}finally{setGenerationBusy(false);}});
+  UI.$('#generateCalendarBtn').addEventListener('click',()=>{if(regenerationBusy)return;const old=A.state();const hasReports=old.matches.some(m=>(m.goals&&m.goals.length)||(m.cards&&m.cards.length));if(hasReports&&!confirm('Rigenerare il calendario? I risultati/referti delle partite ancora compatibili verranno preservati, gli altri potrebbero essere rimossi.'))return;setGenerationBusy(true);try{const res=generateOnDraft({preserveResults:true});A.flash('#rulesMessage',res.message,res.ok?'ok':'error');if(res.ok){fill();render();}}finally{setGenerationBusy(false);}});
   UI.$('#reshuffleCalendarBtn')?.addEventListener('click',function(){
     if(regenerationBusy)return;
     const old=A.state();
@@ -110,20 +136,14 @@
       ? 'Rigenerare il calendario da zero? Verranno conservati squadre, gironi e regole, ma referti, risultati, campi, date e orari verranno sostituiti dal nuovo calendario.'
       : 'Rigenerare il calendario da zero mantenendo squadre, gironi e regole attuali?';
     if(!confirm(warning))return;
-    regenerationBusy=true;
-    this.disabled=true;
+    setGenerationBusy(true);
     try{
-      const draft=JSON.parse(JSON.stringify(old));
-      readInto(draft);
-      draft.rules.calendarVariantSeed=store.nextCalendarVariantSeed?store.nextCalendarVariantSeed():store.uid('calendar_variant');
-      const res=store.generateCalendar(draft,{preserveResults:false});
+      const res=generateOnDraft({preserveResults:false,variantSeed:true});
       if(!res.ok){A.flash('#rulesMessage','Calendario precedente mantenuto: '+res.message,'error');return;}
-      A.save(draft);
       A.flash('#rulesMessage','Calendario rigenerato da zero. '+res.message,'ok');
       fill();render();
     }finally{
-      regenerationBusy=false;
-      this.disabled=false;
+      setGenerationBusy(false);
     }
   });
 

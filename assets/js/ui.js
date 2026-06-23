@@ -29,7 +29,7 @@
       const p=store.normalizePenalties?store.normalizePenalties(m.penalties):m.penalties;
       if(p)pBadge=`<div class="fixture-penalty-row"><span>d.c.r.</span><strong>${p.home} - ${p.away}</strong></div>`;
     }
-    return `<article class="match-card public-fixture-card ${clickable?'clickable':''} ${isLive?'is-live-card':''}" ${clickable?`data-match-detail="${m.id}" role="button" tabindex="0" aria-label="Apri dettaglio ${esc(home)} contro ${esc(away)}"`:''}><div class="match-card-head"><span class="pill">${esc(store.PHASE_LABELS[m.phase]||m.phase)} · ${esc(m.round)}</span><span class="score-badge match-status-badge ${status.cls}" role="status" aria-label="Stato partita: ${esc(status.label)}">${isLive?'🔴 ':''}${esc(status.label)}</span></div><div class="fixture-scoreline"><div class="fixture-team home">${logo(homeT,false)}<strong>${esc(home)}</strong></div><div class="fixture-center ${centerCls}"><strong>${showScore?`${score.home} - ${score.away}`:'VS'}</strong></div><div class="fixture-team away">${logo(awayT,false)}<strong>${esc(away)}</strong></div></div>${pBadge}<div class="fixture-meta-row"><span>🗓️ ${fmtDate(m)}</span><span>📍 ${esc(m.field||'Campo da definire')}</span><span>👤 ${esc(m.referee||'Arbitro da definire')}</span></div><div class="fixture-events"><span>⚽ ${goals?esc(goals):'nessun marcatore'}</span><span>🟨 ${yellow?esc(yellow):'nessuno'}</span><span>🟥 ${red?esc(red):'nessuno'}</span></div></article>`;}
+    return `<article class="match-card public-fixture-card ${clickable?'clickable':''} ${isLive?'is-live-card':''}" ${clickable?`data-match-detail="${m.id}" role="button" tabindex="0" aria-label="Apri dettaglio ${esc(home)} contro ${esc(away)}"`:''}><div class="match-card-head"><span class="pill">${esc(store.PHASE_LABELS[m.phase]||m.phase)} · ${esc(m.round)}</span><span class="score-badge match-status-badge ${status.cls}" role="status" aria-label="Stato partita: ${esc(status.label)}">${isLive?'🔴 ':''}${esc(status.label)}</span></div><div class="fixture-scoreline"><div class="fixture-team home" ${m.homeTeamId?`data-team-id="${esc(m.homeTeamId)}"`:''}>${logo(homeT,false)}<strong>${esc(home)}</strong></div><div class="fixture-center ${centerCls}"><strong>${showScore?`${score.home} - ${score.away}`:'VS'}</strong></div><div class="fixture-team away" ${m.awayTeamId?`data-team-id="${esc(m.awayTeamId)}"`:''}>${logo(awayT,false)}<strong>${esc(away)}</strong></div></div>${pBadge}<div class="fixture-meta-row"><span>🗓️ ${fmtDate(m)}</span><span>📍 ${esc(m.field||'Campo da definire')}</span><span>👤 ${esc(m.referee||'Arbitro da definire')}</span></div><div class="fixture-events"><span>⚽ ${goals?esc(goals):'nessun marcatore'}</span><span>🟨 ${yellow?esc(yellow):'nessuno'}</span><span>🟥 ${red?esc(red):'nessuno'}</span></div></article>`;}
   function pauseCard(event){return `<article class="match-card pause-card"><div class="match-top"><span class="pill">Pausa torneo</span><span class="score-badge">${esc(event.duration)} min</span></div><div class="match-teams"><div class="team-inline"><div class="team-logo-fallback"><span></span></div><h3>${esc(event.label||'Pausa programmata')}</h3></div></div><p class="muted">${esc(event.date)} · ${esc(event.time)} · Nessuna partita programmata in questo intervallo.</p><div class="event-lines"><p>☕ <strong>Intervallo:</strong> pausa inserita automaticamente nel calendario del torneo giornaliero.</p></div></article>`;}
   function matchList(state,matches=state.matches,clickable=false){
     const list=[...(matches||[])];
@@ -40,8 +40,9 @@
     items.sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.time).localeCompare(String(b.time))||(a.type==='pause'?-1:1));
     return items.length?items.map(item=>item.type==='pause'?pauseCard(item.event):matchCard(state,item.match,clickable)).join(''):'<div class="empty">Nessuna partita disponibile.</div>';
   }
-  function teamGrid(state){
+  function teamGrid(state,opts={}){
     if(!state.teams.length)return '<div class="empty">Nessuna squadra.</div>';
+    const showFavorite=opts&&opts.showFavorite===true;
     return `<div class="team-disclosure-list">${state.teams.map((t,i)=>{
       const staff=[];
       if(t.president?.name)staff.push(`<span><strong>Presidente</strong>${esc(t.president.name)}</span>`);
@@ -50,7 +51,7 @@
       return `<details class="ng-disclosure team-disclosure" data-team-id="${esc(t.id)}" ${i===0?'':''}>
         <summary class="ng-disclosure-summary">
           <span class="disclosure-main">${logo(t,false)}<span><strong>${esc(t.name)}</strong><small>${(t.players||[]).length} calciatori${t.president?.name?` · Presidente: ${esc(t.president.name)}`:''}</small></span></span>
-          <span class="disclosure-actions"><button class="btn small favorite-team-btn" type="button" data-favorite-placeholder="${esc(t.id)}">☆ Segui</button><span class="disclosure-action">Apri scheda</span></span>
+          <span class="disclosure-actions">${showFavorite?`<button class="btn small favorite-team-btn" type="button" data-favorite-placeholder="${esc(t.id)}">☆ Segui</button>`:''}<span class="disclosure-action">Apri scheda</span></span>
         </summary>
         <div class="ng-disclosure-body team-profile-body">
           <div class="team-profile-hero">${logo(t,true)}<div><h3>${esc(t.name)}</h3><p class="muted">Scheda squadra, staff tecnico e rosa completa.</p></div></div>
@@ -76,6 +77,10 @@
       const label=side==='home'?match.homeLabel:match.awayLabel;
       return esc(store.teamName(state,id,label||'Da definire'));
     }
+    function teamAttr(match,side){
+      const id=side==='home'?match.homeTeamId:match.awayTeamId;
+      return id?` data-team-id="${esc(id)}"`:'';
+    }
     function resultClass(match,side){
       const wid=store.winnerId(state,match);
       const id=side==='home'?match.homeTeamId:match.awayTeamId;
@@ -95,7 +100,7 @@
       const pBadge=penaltyBadge(m);
       return `<article class="bracket-list-match bracket-detail-trigger" data-match-detail="${esc(m.id)}" role="button" tabindex="0" aria-label="Apri dettaglio ${teamText(m,'home')} contro ${teamText(m,'away')}">
         <div class="bracket-list-meta"><span>${esc(m.round)}</span><strong>${sc}</strong></div>
-        <div class="bracket-list-teams"><span class="${resultClass(m,'home')}">${teamText(m,'home')}</span><em>vs</em><span class="${resultClass(m,'away')}">${teamText(m,'away')}</span></div>
+        <div class="bracket-list-teams"><span class="${resultClass(m,'home')}"${teamAttr(m,'home')}>${teamText(m,'home')}</span><em>vs</em><span class="${resultClass(m,'away')}"${teamAttr(m,'away')}>${teamText(m,'away')}</span></div>
         ${pBadge}
         <div class="bracket-list-footer"><small>${esc(m.field||'Campo da definire')} · ${esc(fmtDate(m))}</small><span>${status}</span></div>
       </article>`;
@@ -112,8 +117,8 @@
                 ${round.matches.map(m=>`
                   <article class="bracket-match bracket-detail-trigger" data-match-detail="${esc(m.id)}" role="button" tabindex="0" aria-label="Apri dettaglio ${teamText(m,'home')} contro ${teamText(m,'away')}">
                     <div class="bracket-match-head"><span class="bracket-meta">${esc(m.round)}</span><span class="bracket-open-hint">Dettaglio</span></div>
-                    <div class="bracket-team ${resultClass(m,'home')}">${teamLabel(m,'home')}<strong>${store.hasScore(state,m)?store.matchGoals(state,m).home:''}</strong></div>
-                    <div class="bracket-team ${resultClass(m,'away')}">${teamLabel(m,'away')}<strong>${store.hasScore(state,m)?store.matchGoals(state,m).away:''}</strong></div>
+                    <div class="bracket-team ${resultClass(m,'home')}"${teamAttr(m,'home')}>${teamLabel(m,'home')}<strong>${store.hasScore(state,m)?store.matchGoals(state,m).home:''}</strong></div>
+                    <div class="bracket-team ${resultClass(m,'away')}"${teamAttr(m,'away')}>${teamLabel(m,'away')}<strong>${store.hasScore(state,m)?store.matchGoals(state,m).away:''}</strong></div>
                     ${penaltyBadge(m)}
                     <small>${esc(m.field||'Campo da definire')} · ${esc(fmtDate(m))}</small>
                   </article>`).join('')}

@@ -1212,8 +1212,10 @@ body.modal-open{overflow:hidden;}
 .favorite-team-btn.active{background:linear-gradient(135deg,#fff176,#ff7a18);color:#171006;border-color:transparent;box-shadow:0 0 0 3px rgba(255,224,112,.12);}
 .favorite-team-btn{white-space:nowrap;}
 .is-favorite-team{box-shadow:inset 4px 0 0 rgba(255,224,112,.95),0 0 0 1px rgba(255,224,112,.24)!important;background:linear-gradient(90deg,rgba(255,224,112,.12),rgba(255,255,255,.02))!important;}
-tr.is-favorite-team td:first-child{position:relative;}
-tr.is-favorite-team td:first-child:before{content:'★';position:absolute;left:5px;top:50%;transform:translateY(-50%);color:#ffe070;font-size:.8rem;}
+.favorite-inline-badge{display:inline-flex;align-items:center;justify-content:center;gap:4px;width:max-content;max-width:100%;margin-left:8px;padding:4px 8px;border-radius:999px;background:rgba(255,224,112,.18);color:#ffe070;border:1px solid rgba(255,224,112,.36);font-size:.68rem;font-weight:950;line-height:1;text-transform:uppercase;letter-spacing:.04em;vertical-align:middle;white-space:nowrap;}
+.fixture-team .favorite-inline-badge,.public-score-team .favorite-inline-badge,.bracket-team .favorite-inline-badge,.bracket-list-teams .favorite-inline-badge{margin-left:6px;flex:0 0 auto;}
+.team-inline .favorite-inline-badge{margin-left:8px;}
+tr.is-favorite-team td:first-child:before{content:none;}
 .is-favorite-match{outline:2px solid rgba(255,224,112,.45);box-shadow:0 0 0 5px rgba(255,224,112,.08)!important;}
 .is-favorite-match:before{content:'★ La tua squadra';display:inline-flex;align-self:flex-start;margin:0 0 8px;padding:6px 10px;border-radius:999px;background:rgba(255,224,112,.16);color:#ffe070;border:1px solid rgba(255,224,112,.32);font-weight:950;font-size:.74rem;text-transform:uppercase;letter-spacing:.04em;}
 .disclosure-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
