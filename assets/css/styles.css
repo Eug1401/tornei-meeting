@@ -8092,3 +8092,229 @@ body.public-page .public-match-modal .public-score-team .team-logo-fallback{
     font-size:clamp(1.05rem,6vw,1.45rem)!important;
   }
 }
+
+/* ================================================================
+   v173 - Risultato perfettamente centrato e auto-fit senza overflow
+   ================================================================ */
+body.public-page .public-match-modal .public-scoreboard{
+  grid-template-columns:minmax(0,1fr) minmax(170px,210px) minmax(0,1fr)!important;
+}
+body.public-page .public-match-modal .public-score-center{
+  container-type:inline-size;
+  overflow:hidden!important;
+  padding-inline:clamp(12px,1.5vw,18px)!important;
+}
+body.public-page .public-match-modal .public-score-center>.public-score-value{
+  --match-score-size:clamp(2.1rem,4.15vw,3.15rem);
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)!important;
+  align-items:center!important;
+  justify-items:stretch!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  column-gap:clamp(6px,.75vw,10px)!important;
+  font-size:var(--match-score-size)!important;
+  line-height:1!important;
+  font-variant-numeric:tabular-nums lining-nums;
+}
+body.public-page .public-match-modal .public-score-center>.public-score-value .public-score-number{
+  display:block!important;
+  min-width:0!important;
+  width:100%!important;
+  max-width:100%!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  white-space:nowrap!important;
+  font:inherit!important;
+  line-height:1!important;
+  letter-spacing:-.045em!important;
+  text-overflow:clip!important;
+}
+body.public-page .public-match-modal .public-score-center>.public-score-value .public-score-number.is-home{
+  justify-self:stretch!important;
+  text-align:right!important;
+}
+body.public-page .public-match-modal .public-score-center>.public-score-value .public-score-number.is-away{
+  justify-self:stretch!important;
+  text-align:left!important;
+}
+body.public-page .public-match-modal .public-score-center>.public-score-value em{
+  display:block!important;
+  width:1ch!important;
+  min-width:1ch!important;
+  margin:0!important;
+  padding:0!important;
+  text-align:center!important;
+  font-size:.42em!important;
+  line-height:1!important;
+}
+body.public-page .public-match-modal .public-score-center.is-score-wide>.public-score-value,
+body.public-page .public-match-modal .public-score-center.is-score-extra-wide>.public-score-value{
+  --match-score-size:clamp(1.65rem,3.35vw,2.55rem);
+}
+@media(max-width:720px){
+  body.public-page .public-match-modal .public-scoreboard{
+    grid-template-columns:minmax(0,1fr) minmax(96px,124px) minmax(0,1fr)!important;
+  }
+  body.public-page .public-match-modal .public-score-center{
+    padding-inline:7px!important;
+  }
+  body.public-page .public-match-modal .public-score-center>.public-score-value{
+    --match-score-size:clamp(1.35rem,5.8vw,1.85rem);
+    column-gap:3px!important;
+  }
+  body.public-page .public-match-modal .public-score-center.is-score-wide>.public-score-value,
+  body.public-page .public-match-modal .public-score-center.is-score-extra-wide>.public-score-value{
+    --match-score-size:clamp(1rem,4.7vw,1.45rem);
+  }
+}
+@media(max-width:520px){
+  body.public-page .public-match-modal .public-scoreboard{
+    grid-template-columns:1fr!important;
+  }
+  body.public-page .public-match-modal .public-score-center{
+    width:min(100%,240px)!important;
+    min-height:92px!important;
+    justify-self:center!important;
+    padding-inline:18px!important;
+  }
+  body.public-page .public-match-modal .public-score-center>.public-score-value{
+    --match-score-size:clamp(2rem,11vw,3rem);
+    column-gap:8px!important;
+  }
+  body.public-page .public-match-modal .public-score-center.is-score-wide>.public-score-value,
+  body.public-page .public-match-modal .public-score-center.is-score-extra-wide>.public-score-value{
+    --match-score-size:clamp(1.45rem,8vw,2.15rem);
+  }
+}
+/* v173.1: le cifre ereditano sempre la dimensione calcolata dal contenitore. */
+body.public-page .public-match-modal .public-score-center>.public-score-value span.public-score-number{
+  font-size:1em!important;
+  font-family:Arial,sans-serif!important;
+  font-weight:950!important;
+  font-style:normal!important;
+}
+
+
+/* ================================================================
+   v174 - dettaglio partita perfettamente scorrevole e score centrato
+   ================================================================ */
+body.public-page .public-match-modal{
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  align-items:center!important;
+}
+body.public-page .public-match-modal .public-match-modal-content{
+  display:flex!important;
+  flex-direction:column!important;
+  width:min(980px,calc(100vw - 28px))!important;
+  max-height:min(92dvh,980px)!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+body.public-page .public-match-modal .match-modal-toolbar{
+  flex:0 0 auto!important;
+}
+body.public-page .public-match-modal #matchModalBody{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+body.public-page .public-match-modal .public-scoreboard{
+  grid-template-columns:minmax(0,1fr) clamp(176px,20vw,224px) minmax(0,1fr)!important;
+  align-items:stretch!important;
+}
+body.public-page .public-match-modal .public-score-center{
+  place-self:stretch!important;
+  justify-items:center!important;
+  align-content:center!important;
+  overflow:hidden!important;
+}
+body.public-page .public-match-modal .public-score-center>.public-score-value{
+  --match-score-size:clamp(2rem,4vw,3.05rem);
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)!important;
+  align-items:center!important;
+  justify-items:stretch!important;
+  width:min(100%,190px)!important;
+  min-width:0!important;
+  max-width:100%!important;
+  margin:0 auto!important;
+  column-gap:clamp(4px,.6vw,8px)!important;
+  font-size:var(--match-score-size)!important;
+  line-height:1!important;
+  font-variant-numeric:tabular-nums lining-nums!important;
+}
+body.public-page .public-match-modal .public-score-center>.public-score-value .public-score-number{
+  display:block!important;
+  min-width:0!important;
+  width:100%!important;
+  overflow:hidden!important;
+  white-space:nowrap!important;
+  text-overflow:clip!important;
+  font-size:1em!important;
+  font-family:Arial,sans-serif!important;
+  font-weight:950!important;
+  line-height:.92!important;
+  letter-spacing:-.05em!important;
+}
+body.public-page .public-match-modal .public-score-center>.public-score-value .public-score-number.is-home{text-align:right!important;}
+body.public-page .public-match-modal .public-score-center>.public-score-value .public-score-number.is-away{text-align:left!important;}
+body.public-page .public-match-modal .public-score-center>.public-score-value em{
+  display:block!important;
+  width:1ch!important;
+  min-width:1ch!important;
+  font-size:.42em!important;
+  text-align:center!important;
+  line-height:1!important;
+}
+body.public-page .public-match-modal .public-score-team img.team-logo{
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  filter:drop-shadow(0 12px 18px rgba(0,0,0,.34))!important;
+}
+@media(max-width:720px){
+  body.public-page .public-match-modal .public-match-modal-content{
+    width:100vw!important;
+    height:100dvh!important;
+    max-height:none!important;
+    border-radius:0!important;
+  }
+  body.public-page .public-match-modal #matchModalBody{
+    padding-bottom:calc(22px + env(safe-area-inset-bottom))!important;
+  }
+  body.public-page .public-match-modal .public-scoreboard{
+    grid-template-columns:minmax(0,1fr) clamp(104px,26vw,132px) minmax(0,1fr)!important;
+  }
+  body.public-page .public-match-modal .public-score-center>.public-score-value{
+    width:min(100%,118px)!important;
+    --match-score-size:clamp(1.25rem,5vw,1.75rem);
+    column-gap:3px!important;
+  }
+}
+@media(max-width:520px){
+  body.public-page .public-match-modal .public-scoreboard{
+    grid-template-columns:1fr!important;
+  }
+  body.public-page .public-match-modal .public-score-center{
+    width:min(100%,248px)!important;
+    min-height:92px!important;
+    justify-self:center!important;
+    margin-inline:auto!important;
+  }
+  body.public-page .public-match-modal .public-score-center>.public-score-value{
+    width:min(100%,180px)!important;
+    --match-score-size:clamp(1.75rem,10vw,2.7rem);
+    column-gap:8px!important;
+  }
+}

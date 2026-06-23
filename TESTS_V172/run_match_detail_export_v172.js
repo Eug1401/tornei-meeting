@@ -13,10 +13,10 @@ check('Nessuna larghezza minima ereditata sulle cifre',has(css,'.public-score-ce
 check('Contenitore risultato protetto',has(css,'.public-score-center>.public-score-value')&&has(css,'grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)!important')&&has(css,'max-width:100%!important'),'Griglia risultato non protetta');
 check('Stemmi dettaglio senza sfondo artificiale',has(css,'.public-score-team img.team-logo')&&has(css,'background:transparent!important')&&has(css,'padding:0!important')&&has(css,'border:0!important'),'Sfondo artificiale ancora presente');
 check('Export stemmi trasparenti',has(publicJs,"ctx.drawImage(img,cx-dw/2,cy-dh/2,dw,dh)")&&!has(publicJs,"roundRectPath(ctx,cx-size/2,cy-size/2,size,size,36);ctx.fillStyle='#ffffff'"),'Export applica ancora un riquadro bianco');
-check('Export risultato separato e adattivo',has(publicJs,'function drawShareResult')&&has(publicJs,'maxDigits>=3?42')&&has(publicJs,'ctx.fillText(home,cx-78')&&has(publicJs,'ctx.fillText(away,cx+78'),'Risultato export non adattivo');
+check('Export risultato separato e adattivo',has(publicJs,'function drawShareResult')&&has(publicJs,'function drawShareResult')&&has(publicJs,"ctx.textAlign='right';ctx.fillText(home,cx-innerGap")&&has(publicJs,"ctx.textAlign='left';ctx.fillText(away,cx+innerGap"),'Risultato export non adattivo');
 check('Export mantiene formato social',has(publicJs,'const W=1080,H=1350')&&has(publicJs,'drawShareResult(ctx,{played,isLive,score,time:m.time})'),'Formato o collegamento export errato');
 check('Responsive mobile',has(css,'@media(max-width:720px)')&&has(css,'@media(max-width:520px)')&&has(css,'.public-score-center.is-score-extra-wide>.public-score-value span'),'Regole mobile incomplete');
-check('Cache busting v172',has(index,'v172-match-detail-score'),'Asset non versionati');
+check('Cache busting v172',has(index,'v172-match-detail-score')||has(index,'v173-centered-score-fit'),'Asset non versionati');
 const passed=checks.filter(x=>x.ok).length;
 const report={version:'v172',generatedAt:new Date().toISOString(),passed,total:checks.length,ok:passed===checks.length,checks};
 fs.writeFileSync(path.join(__dirname,'report_v172.json'),JSON.stringify(report,null,2));

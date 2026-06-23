@@ -1,0 +1,69 @@
+{
+  "version": "v173",
+  "generatedAt": "2026-06-23T20:59:27.615Z",
+  "passed": 12,
+  "total": 12,
+  "ok": true,
+  "checks": [
+    {
+      "name": "Separatore ancorato al centro",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Tre celle simmetriche",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Auto-fit runtime presente",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Auto-fit osserva il resize",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Markup misurabile e accessibile",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Cifre ereditano la dimensione calcolata",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Overflow bloccato come fallback",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Refresh live ricalcola il risultato",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Export centrato sul separatore",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Export adattivo fino a punteggi lunghi",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Responsive desktop e mobile",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Cache busting v173",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}

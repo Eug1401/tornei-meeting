@@ -1,0 +1,26 @@
+{
+  "version": "v173",
+  "environment": "Chromium headless con CSS e funzione auto-fit reali",
+  "viewport": "1175x760",
+  "score_10_1": {
+    "separatorOffsetFromCardCenterPx": 0,
+    "homeOverflow": false,
+    "awayOverflow": false,
+    "computedFontSizePx": 26,
+    "homeAlignment": "right",
+    "awayAlignment": "left"
+  },
+  "score_100_2": {
+    "separatorOffsetFromCardCenterPx": 0,
+    "homeOverflow": false,
+    "awayOverflow": false,
+    "computedFontSizePx": 17
+  },
+  "score_123456_2": {
+    "separatorOffsetFromCardCenterPx": 0,
+    "homeOverflow": false,
+    "awayOverflow": false,
+    "computedFontSizePx": 8
+  },
+  "ok": true
+}

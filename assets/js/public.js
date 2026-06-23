@@ -807,11 +807,13 @@
       ctx.fillStyle='#ffffff';ctx.fillText(label,cx,y+126,w-34);return;
     }
     const home=String(score?.home??0),away=String(score?.away??0),maxDigits=Math.max(home.length,away.length);
-    let size=maxDigits>=3?42:(maxDigits===2?54:72);
-    const cellW=94;
-    while(size>34){ctx.font=`950 ${size}px Arial`;if(Math.max(ctx.measureText(home).width,ctx.measureText(away).width)<=cellW)break;size-=2;}
-    ctx.fillStyle='#ffffff';ctx.font=`950 ${size}px Arial`;ctx.textBaseline='middle';ctx.fillText(home,cx-78,y+122,cellW);ctx.fillText(away,cx+78,y+122,cellW);
-    ctx.fillStyle='#ffb05f';ctx.font='950 28px Arial';ctx.fillText('–',cx,y+121,34);ctx.textBaseline='alphabetic';
+    let size=maxDigits>=4?34:(maxDigits===3?42:(maxDigits===2?52:68));
+    const cellW=112,innerGap=27,baseline=y+122;
+    while(size>16){ctx.font=`950 ${size}px Arial`;if(Math.max(ctx.measureText(home).width,ctx.measureText(away).width)<=cellW)break;size-=2;}
+    ctx.fillStyle='#ffffff';ctx.font=`950 ${size}px Arial`;ctx.textBaseline='middle';
+    ctx.textAlign='right';ctx.fillText(home,cx-innerGap,baseline,cellW);
+    ctx.textAlign='left';ctx.fillText(away,cx+innerGap,baseline,cellW);
+    ctx.fillStyle='#ffb05f';ctx.font='950 28px Arial';ctx.textAlign='center';ctx.fillText('–',cx,baseline,34);ctx.textBaseline='alphabetic';
   }
   async function buildMatchShareImage(m){
     const homeT=store.getTeam(state,m.homeTeamId),awayT=store.getTeam(state,m.awayTeamId);
@@ -897,7 +899,7 @@
         <div class="public-match-hero-top"><span class="pill">${UI.esc(subtitle||'Partita')}</span><span class="score-badge match-status-badge ${status.cls}" role="status">${isLive?'🔴 ':''}${UI.esc(status.label)}</span></div>
         <div class="public-scoreboard">
           <div class="public-score-team public-score-home">${UI.logo(homeT,false)}<span class="public-team-role">Casa</span><strong title="${UI.esc(home)}">${UI.esc(home)}</strong></div>
-          <div class="public-score-center ${centerCls} ${scoreWidthCls}"><small>${showScore?'Risultato':'Orario'}</small>${showScore?`<div class="public-score-value"><span>${score.home}</span><em aria-hidden="true">–</em><span>${score.away}</span></div>`:`<strong>${UI.esc(m.time||'Da definire')}</strong>`}</div>
+          <div class="public-score-center ${centerCls} ${scoreWidthCls}"><small>${showScore?'Risultato':'Orario'}</small>${showScore?`<div class="public-score-value" data-score-fit aria-label="Risultato ${UI.esc(score.home)} a ${UI.esc(score.away)}"><span class="public-score-number is-home" data-score-home>${UI.esc(score.home)}</span><em aria-hidden="true">–</em><span class="public-score-number is-away" data-score-away>${UI.esc(score.away)}</span></div>`:`<strong>${UI.esc(m.time||'Da definire')}</strong>`}</div>
           <div class="public-score-team public-score-away">${UI.logo(awayT,false)}<span class="public-team-role">Ospite</span><strong title="${UI.esc(away)}">${UI.esc(away)}</strong></div>
         </div>
         <div class="public-match-kickoff"><small>Data e ora</small><strong>${UI.esc(UI.fmtDate(m))}</strong></div>
@@ -913,7 +915,55 @@
       ${isLive?'<div class="public-match-actions"><small class="muted live-share-note">⛔ La condivisione immagine sarà disponibile a partita conclusa.</small></div>':`<div class="public-match-actions"><button class="btn primary" type="button" data-share-match="${UI.esc(m.id)}">Condividi immagine</button></div>`}
     </article>`;
   }
-  function showMatch(id){const m=state.matches.find(x=>x.id===id);if(!m)return;const modal=$('#matchModal');const home=store.teamName(state,m.homeTeamId,m.homeLabel),away=store.teamName(state,m.awayTeamId,m.awayLabel);const title=$('#matchModalTitle');if(title)title.textContent=`${home} vs ${away}`;$('#matchModalBody').innerHTML=publicMatchDetailMarkup(m);modal.classList.remove('is-closing');modal.classList.add('public-match-modal');modal.classList.add('open');document.body.classList.add('modal-open');setTimeout(()=>$('#closeModal')?.focus(),0);}
+  let matchScoreResizeObserver=null,matchScoreFitFrame=0;
+  function fitPublicMatchScore(root=document){
+    const value=root?.querySelector?.('[data-score-fit]');
+    if(!value)return;
+    const home=value.querySelector('[data-score-home]'),away=value.querySelector('[data-score-away]'),sep=value.querySelector('em');
+    if(!home||!away||!sep)return;
+    value.style.removeProperty('--match-score-size');
+    home.style.removeProperty('max-width');
+    away.style.removeProperty('max-width');
+    const styles=getComputedStyle(value);
+    const maxSize=parseFloat(styles.fontSize)||48;
+    let size=maxSize;
+    const gap=parseFloat(styles.columnGap)||parseFloat(styles.gap)||0;
+    const apply=()=>value.style.setProperty('--match-score-size',`${Math.max(9,size)}px`);
+    apply();
+    const setSideWidth=()=>{
+      const valueRect=value.getBoundingClientRect();
+      const sepRect=sep.getBoundingClientRect();
+      const free=Math.max(24,valueRect.width-sepRect.width-gap*2);
+      const side=Math.max(12,Math.floor(free/2));
+      home.style.maxWidth=`${side}px`;
+      away.style.maxWidth=`${side}px`;
+      return side;
+    };
+    let side=setSideWidth();
+    const fits=()=>home.scrollWidth<=side+1&&away.scrollWidth<=side+1&&value.scrollWidth<=value.clientWidth+1;
+    while(size>9&&!fits()){
+      size-=1;
+      apply();
+      side=setSideWidth();
+    }
+    value.dataset.scoreFitted='true';
+  }
+  function schedulePublicMatchScoreFit(root=document){
+    cancelAnimationFrame(matchScoreFitFrame);
+    matchScoreFitFrame=requestAnimationFrame(()=>fitPublicMatchScore(root));
+  }
+  function watchPublicMatchScore(root=document){
+    matchScoreResizeObserver?.disconnect();
+    const value=root?.querySelector?.('[data-score-fit]');
+    if(!value)return;
+    schedulePublicMatchScoreFit(root);
+    if('ResizeObserver' in window){
+      matchScoreResizeObserver=new ResizeObserver(()=>schedulePublicMatchScoreFit(root));
+      matchScoreResizeObserver.observe(value.closest('.public-score-center')||value);
+    }
+  }
+  window.addEventListener('resize',()=>schedulePublicMatchScoreFit($('#matchModalBody')),{passive:true});
+  function showMatch(id){const m=state.matches.find(x=>x.id===id);if(!m)return;const modal=$('#matchModal');const home=store.teamName(state,m.homeTeamId,m.homeLabel),away=store.teamName(state,m.awayTeamId,m.awayLabel);const title=$('#matchModalTitle');if(title)title.textContent=`${home} vs ${away}`;const body=$('#matchModalBody');body.innerHTML=publicMatchDetailMarkup(m);body.scrollTop=0;modal.scrollTop=0;modal.classList.remove('is-closing');modal.classList.add('public-match-modal');modal.classList.add('open');document.body.classList.add('modal-open');watchPublicMatchScore(body);setTimeout(()=>$('#closeModal')?.focus(),0);}
   let lastArticleTrigger=null;
   function ensureArticleModal(){
     let modal=$('#articleModal');
@@ -1229,6 +1279,7 @@
     if(_matchCloseTimer){clearTimeout(_matchCloseTimer);_matchCloseTimer=null;}
     openMatchModalId='';
     _lastMatchModalHtml='';
+    matchScoreResizeObserver?.disconnect();
     document.body.classList.remove('modal-open');
     if(!modal.classList.contains('open')){modal.classList.remove('public-match-modal','is-closing');return;}
     modal.classList.add('is-closing');
@@ -1244,7 +1295,7 @@
       const m=state.matches.find(x=>x.id===openMatchModalId);
       if(m){
         const html=publicMatchDetailMarkup(m);
-        if(html!==_lastMatchModalHtml){$('#matchModalBody').innerHTML=html;_lastMatchModalHtml=html;}
+        if(html!==_lastMatchModalHtml){const body=$('#matchModalBody');body.innerHTML=html;_lastMatchModalHtml=html;watchPublicMatchScore(body);}
       } else { matchModal.classList.remove('open'); matchModal.classList.remove('public-match-modal'); document.body.classList.remove('modal-open'); openMatchModalId=''; _lastMatchModalHtml=''; }
     } else if(!openMatchModalId){_lastMatchModalHtml='';}
     const teamModal=$('#teamModal');

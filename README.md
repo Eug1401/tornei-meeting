@@ -45,7 +45,7 @@ Le modalità standalone rimosse non sono esposte nella UI e vengono respinte dal
 - Articoli pubblici con create/edit/delete, immagine principale compressa e validazioni su testo/file.
 - Schede squadra pubbliche con statistiche per fase.
 - Squadra preferita persistente, con riepilogo in Home, evidenziazione in classifica e Partite e indicatore nella sezione Squadre.
-- Export social della singola partita e dettaglio partita responsive con palette ufficiale.
+- Export social della singola partita e dettaglio partita responsive con palette ufficiale, risultato centrato sul separatore e auto-fit anti-overflow.
 - Reset con snapshot JSON versionato e PDF finale prima dell'azzeramento.
 - Sincronizzazione Supabase lato client, se configurata.
 
@@ -69,6 +69,7 @@ node TESTS_V160/run_prompt4_calendar_bracket_favorite_v160.js
 node TESTS_V170/run_favorite_match_visual_v170.js
 node TESTS_V171/run_favorite_team_list_v171.js
 node TESTS_V172/run_match_detail_export_v172.js
+node TESTS_V173/run_centered_score_fit_v173.js
 ```
 
 `TESTS_V128` e `TESTS_V130` sono stati rimossi perché coprivano modalità e combinazioni non più supportate.

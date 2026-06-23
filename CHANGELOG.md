@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-06-23 · Risultato centrato e auto-fit v173
+
+### Modificato
+
+- Il risultato del dettaglio partita usa ora due celle simmetriche: punteggio casa allineato verso il centro, separatore bloccato esattamente al centro e punteggio ospite allineato verso il centro.
+- Aggiunto un auto-fit runtime basato sulle dimensioni reali del riquadro, con ricalcolo su resize, cambio orientamento e aggiornamenti live.
+- L'export social applica lo stesso criterio di centratura sul separatore e riduce automaticamente la dimensione dei punteggi lunghi.
+
+### Verificato
+
+- `10–1`, `100–2` e un caso estremo `123456–2`: separatore con scostamento 0 px dal centro e nessun overflow.
+- Suite `TESTS_V173/run_centered_score_fit_v173.js`: 12/12 controlli superati.
+
+
 ## 2026-06-23 · Preferita visibile nelle Squadre v171
 
 ### Aggiunto

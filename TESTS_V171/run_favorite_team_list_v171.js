@@ -22,7 +22,7 @@ check('Evidenziazione limitata al contenitore Squadre',has(css,'body.public-page
 check('Layout mobile protetto',has(css,'@media(max-width:760px)')&&has(css,'#publicTeams .favorite-team-marker')&&has(css,'min-height:46px!important'),'Regole mobile assenti');
 check('Palette coerente con il sito',has(css,'inset 5px 0 0 #ff7a18')&&has(css,'rgba(31,99,255,.16)'),'Palette indicatore non coerente');
 check('Aggiornamento immediato al cambio',has(publicJs,'function refreshFavoriteViews()')&&has(publicJs,'decorateFavoriteUI();'),'Cambio preferita non aggiorna la sezione Squadre');
-check('Cache busting v171',/v17(?:1-favorite-team-list|2-match-detail-score)/.test(index),'Versione asset non aggiornata');
+check('Cache busting v171',/v17(?:1-favorite-team-list|2-match-detail-score|3-centered-score-fit)/.test(index),'Versione asset non aggiornata');
 
 const passed=checks.filter(x=>x.ok).length;
 const report={version:'v171',generatedAt:new Date().toISOString(),passed,total:checks.length,ok:passed===checks.length,checks};

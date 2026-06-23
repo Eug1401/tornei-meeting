@@ -62,3 +62,15 @@
 | `TESTS_V170/*`, `TESTS_V171/*` | Compatibilità delle suite precedenti con la nuova versione asset. |
 | `TESTS_V172/*` | Suite dedicata al dettaglio e all'export partita. |
 | `CHANGELOG.md`, `TEST_REPORT.md`, `README.md` | Documentazione aggiornata. |
+
+
+## Aggiornamento v173 · Risultato centrato e anti-overflow
+
+| File | Modifica |
+| --- | --- |
+| `assets/js/public.js` | Auto-fit del punteggio su misure reali, ricalcolo con `ResizeObserver`, riallineamento casa/separatore/ospite e export centrato. |
+| `assets/css/styles.css` | Celle simmetriche, allineamento interno dei punteggi, dimensioni responsive e fallback anti-overflow. |
+| `index.html` | Cache busting asset v173. |
+| `TESTS_V170/*`, `TESTS_V171/*`, `TESTS_V172/*` | Compatibilità cache ed export con la versione corrente. |
+| `TESTS_V173/*` | Suite statica e report Chromium dedicati alla centratura e all'auto-fit. |
+| `CHANGELOG.md`, `TEST_REPORT.md`, `README.md` | Documentazione aggiornata. |
