@@ -1,0 +1,59 @@
+{
+  "version": "v172",
+  "generatedAt": "2026-06-23T20:37:38.784Z",
+  "passed": 10,
+  "total": 10,
+  "ok": true,
+  "checks": [
+    {
+      "name": "Markup risultato dedicato",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Punteggi a più cifre gestiti",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Nessuna larghezza minima ereditata sulle cifre",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Contenitore risultato protetto",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Stemmi dettaglio senza sfondo artificiale",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Export stemmi trasparenti",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Export risultato separato e adattivo",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Export mantiene formato social",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Responsive mobile",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Cache busting v172",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}

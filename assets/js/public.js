@@ -789,9 +789,29 @@
     lines.forEach((line,i)=>ctx.fillText(line,cx,y+i*lineH,maxWidth));ctx.textBaseline='alphabetic';return lines.length*lineH;
   }
   function drawShareLogo(ctx,img,cx,cy,size,label){
-    roundRectPath(ctx,cx-size/2,cy-size/2,size,size,36);ctx.fillStyle='#ffffff';ctx.fill();ctx.strokeStyle='rgba(255,122,24,.55)';ctx.lineWidth=4;ctx.stroke();
-    if(img){const pad=Math.round(size*.13),inner=size-pad*2,ar=(img.naturalWidth||img.width||1)/(img.naturalHeight||img.height||1),dw=ar>=1?inner:inner*ar,dh=ar>=1?inner/ar:inner;ctx.drawImage(img,cx-inner/2+(inner-dw)/2,cy-inner/2+(inner-dh)/2,dw,dh);}
-    else{ctx.fillStyle='#08245a';ctx.font=`900 ${Math.round(size*.28)}px Arial, sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(label||'?').slice(0,2).toUpperCase(),cx,cy);ctx.textBaseline='alphabetic';}
+    if(img){
+      const inner=Math.round(size*.92),ar=(img.naturalWidth||img.width||1)/(img.naturalHeight||img.height||1),dw=ar>=1?inner:inner*ar,dh=ar>=1?inner/ar:inner;
+      ctx.save();ctx.shadowColor='rgba(0,0,0,.42)';ctx.shadowBlur=24;ctx.shadowOffsetY=10;ctx.drawImage(img,cx-dw/2,cy-dh/2,dw,dh);ctx.restore();
+      return;
+    }
+    roundRectPath(ctx,cx-size/2,cy-size/2,size,size,Math.round(size*.24));ctx.fillStyle='rgba(255,255,255,.08)';ctx.fill();ctx.strokeStyle='rgba(255,255,255,.18)';ctx.lineWidth=3;ctx.stroke();
+    ctx.fillStyle='#ffffff';ctx.font=`900 ${Math.round(size*.28)}px Arial, sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(label||'?').slice(0,2).toUpperCase(),cx,cy);ctx.textBaseline='alphabetic';
+  }
+  function drawShareResult(ctx,{played,isLive,score,time}){
+    const x=394,y=414,w=292,h=188,cx=x+w/2;
+    roundRectPath(ctx,x,y,w,h,34);ctx.fillStyle='#06132d';ctx.fill();ctx.strokeStyle='rgba(255,122,24,.72)';ctx.lineWidth=3;ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,.64)';ctx.font='900 16px Arial';ctx.textAlign='center';ctx.fillText(played?'RISULTATO':isLive?'IN CORSO':'ORARIO',cx,y+43);
+    if(!played&&!isLive){
+      let size=56,label=String(time||'DA DEFINIRE').toUpperCase();
+      while(size>28){ctx.font=`950 ${size}px Arial`;if(ctx.measureText(label).width<=w-34)break;size-=2;}
+      ctx.fillStyle='#ffffff';ctx.fillText(label,cx,y+126,w-34);return;
+    }
+    const home=String(score?.home??0),away=String(score?.away??0),maxDigits=Math.max(home.length,away.length);
+    let size=maxDigits>=3?42:(maxDigits===2?54:72);
+    const cellW=94;
+    while(size>34){ctx.font=`950 ${size}px Arial`;if(Math.max(ctx.measureText(home).width,ctx.measureText(away).width)<=cellW)break;size-=2;}
+    ctx.fillStyle='#ffffff';ctx.font=`950 ${size}px Arial`;ctx.textBaseline='middle';ctx.fillText(home,cx-78,y+122,cellW);ctx.fillText(away,cx+78,y+122,cellW);
+    ctx.fillStyle='#ffb05f';ctx.font='950 28px Arial';ctx.fillText('–',cx,y+121,34);ctx.textBaseline='alphabetic';
   }
   async function buildMatchShareImage(m){
     const homeT=store.getTeam(state,m.homeTeamId),awayT=store.getTeam(state,m.awayTeamId);
@@ -826,9 +846,7 @@
     drawCenteredTextBlock(ctx,home,289,615,360,142,{fontSize:48,minSize:24,maxLines:3});
     drawCenteredTextBlock(ctx,away,791,615,360,142,{fontSize:48,minSize:24,maxLines:3});
 
-    roundRectPath(ctx,402,414,276,180,34);ctx.fillStyle='#06132d';ctx.fill();ctx.strokeStyle='rgba(255,122,24,.72)';ctx.lineWidth=3;ctx.stroke();
-    ctx.fillStyle='rgba(255,255,255,.64)';ctx.font='900 16px Arial';ctx.textAlign='center';ctx.fillText(played?'RISULTATO':isLive?'IN CORSO':'ORARIO',540,456);
-    ctx.fillStyle='#ffffff';ctx.font=played?'950 72px Arial':'950 56px Arial';ctx.fillText(played?`${score.home}  -  ${score.away}`:(m.time||'DA DEFINIRE'),540,535,240);
+    drawShareResult(ctx,{played,isLive,score,time:m.time});
 
     roundRectPath(ctx,104,842,872,92,24);ctx.fillStyle='rgba(255,255,255,.08)';ctx.fill();ctx.strokeStyle='rgba(255,255,255,.11)';ctx.lineWidth=1.5;ctx.stroke();
     ctx.fillStyle='#ffb05f';ctx.font='900 18px Arial';ctx.textAlign='center';ctx.fillText('DATA E ORA',540,875);
@@ -866,6 +884,8 @@
     if(groupName&&round.includes(groupName))round=round.replace(groupName,'').replace(/^[\s·:\-–—]+/,'').replace(/[\s·:\-–—]+$/,'').trim();
     const subtitle=[phaseLabel,groupName,round].filter(Boolean).join(' · ');
     const centerCls=isLive?'is-live':(played?'is-played':'is-pending');
+    const scoreLength=showScore?Math.max(String(score.home??0).length,String(score.away??0).length):0;
+    const scoreWidthCls=scoreLength>2?'is-score-extra-wide':(scoreLength>1?'is-score-wide':'');
     let pBlock='';
     if(showScore&&score.home===score.away&&store.isKnockoutPhase&&store.isKnockoutPhase(m)&&m.penalties){
       const p=store.normalizePenalties?store.normalizePenalties(m.penalties):m.penalties;
@@ -877,7 +897,7 @@
         <div class="public-match-hero-top"><span class="pill">${UI.esc(subtitle||'Partita')}</span><span class="score-badge match-status-badge ${status.cls}" role="status">${isLive?'🔴 ':''}${UI.esc(status.label)}</span></div>
         <div class="public-scoreboard">
           <div class="public-score-team public-score-home">${UI.logo(homeT,false)}<span class="public-team-role">Casa</span><strong title="${UI.esc(home)}">${UI.esc(home)}</strong></div>
-          <div class="public-score-center ${centerCls}"><small>${showScore?'Risultato':'Orario'}</small>${showScore?`<div><span>${score.home}</span><em aria-hidden="true">-</em><span>${score.away}</span></div>`:`<strong>${UI.esc(m.time||'Da definire')}</strong>`}</div>
+          <div class="public-score-center ${centerCls} ${scoreWidthCls}"><small>${showScore?'Risultato':'Orario'}</small>${showScore?`<div class="public-score-value"><span>${score.home}</span><em aria-hidden="true">–</em><span>${score.away}</span></div>`:`<strong>${UI.esc(m.time||'Da definire')}</strong>`}</div>
           <div class="public-score-team public-score-away">${UI.logo(awayT,false)}<span class="public-team-role">Ospite</span><strong title="${UI.esc(away)}">${UI.esc(away)}</strong></div>
         </div>
         <div class="public-match-kickoff"><small>Data e ora</small><strong>${UI.esc(UI.fmtDate(m))}</strong></div>

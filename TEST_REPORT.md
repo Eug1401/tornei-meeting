@@ -18,6 +18,7 @@ Data verifica: 2026-06-23.
 | `TESTS_V160/run_prompt4_calendar_bracket_favorite_v160.js` | Calendario, tabellone e perimetro aggiornato della preferita | Pass: 31, Fail: 0 |
 | `TESTS_V170/run_favorite_match_visual_v170.js` | Squadra preferita, export social e dettaglio partita responsive | Pass: 22, Fail: 0 |
 | `TESTS_V171/run_favorite_team_list_v171.js` | Indicatore preferita nella sezione Squadre, cambio/rimozione e responsive | Pass: 11, Fail: 0 |
+| `TESTS_V172/run_match_detail_export_v172.js` | Contenimento risultato, stemmi trasparenti ed export partita adattivo | Pass: 10, Fail: 0 |
 
 ## Controlli Manuali
 
@@ -27,6 +28,8 @@ Data verifica: 2026-06-23.
 - Reset: snapshot JSON e PDF finale sono obbligatori nel dialog.
 - Browser Chromium: selezione/cambio/rimozione preferita, indicatore nella sezione Squadre, responsive 430 px e desktop 1440 px.
 - Export partita: PNG reale 1080×1350, circa 1,2 MB, senza errori o overflow con nomi lunghi.
+
+- Export partita v172: rendering Canvas verificato con risultato a due cifre (`2–12`), senza tagli o compressione anomala.
 
 ## Limiti
 

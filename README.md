@@ -68,6 +68,7 @@ node TESTS_V150/run_kings_share_calendar_v150.js
 node TESTS_V160/run_prompt4_calendar_bracket_favorite_v160.js
 node TESTS_V170/run_favorite_match_visual_v170.js
 node TESTS_V171/run_favorite_team_list_v171.js
+node TESTS_V172/run_match_detail_export_v172.js
 ```
 
 `TESTS_V128` e `TESTS_V130` sono stati rimossi perché coprivano modalità e combinazioni non più supportate.

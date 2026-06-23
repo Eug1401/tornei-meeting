@@ -50,3 +50,15 @@
 | `index.html` | Cache busting asset v171. |
 | `TESTS_V170/run_favorite_match_visual_v170.js` | Cache busting compatibile con la versione corrente. |
 | `TESTS_V171/*` | Suite e report browser dedicati alla nuova indicazione. |
+
+
+## Aggiornamento v172 · Risultato e stemmi partita
+
+| File | Modifica |
+| --- | --- |
+| `assets/js/public.js` | Risultato adattivo nel dettaglio, nuovo disegno del punteggio export e stemmi esportati senza riquadro artificiale. |
+| `assets/css/styles.css` | Griglia anti-overflow per punteggi a una, due o più cifre e stemmi trasparenti nel dettaglio. |
+| `index.html` | Cache busting asset v172. |
+| `TESTS_V170/*`, `TESTS_V171/*` | Compatibilità delle suite precedenti con la nuova versione asset. |
+| `TESTS_V172/*` | Suite dedicata al dettaglio e all'export partita. |
+| `CHANGELOG.md`, `TEST_REPORT.md`, `README.md` | Documentazione aggiornata. |

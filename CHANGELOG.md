@@ -61,3 +61,9 @@
 - UI per fasce KO aggiuntive e Supercoppa.
 - Helper PDF testuale inutilizzato `createTextPdf`.
 - Test/report storici riferiti a modalità rimosse.
+
+## v172 - Risultato dettaglio ed export partita
+- Corretto il blocco risultato nella scheda partita: cifre sempre contenute, anche con punteggi a più cifre.
+- Rimossi sfondo, bordo e padding artificiali dagli stemmi nel dettaglio partita; i file trasparenti ora vengono mostrati senza riquadro.
+- Aggiornato l'export social con stemmi senza fondale aggiunto e risultato disegnato in celle separate, ridimensionato automaticamente.
+- Allineato il linguaggio visivo dell'export alla scheda dettaglio su desktop e mobile.

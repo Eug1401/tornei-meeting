@@ -33,7 +33,7 @@ check('Scheda partita con linguaggio visuale condiviso',has(publicJs,'match-visu
 check('Scheda partita responsive',has(css,'@media(max-width:720px)')&&has(css,'@media(max-width:520px)')&&has(css,'.public-scoreboard{grid-template-columns:1fr!important'),'Breakpoint dettaglio assenti');
 check('Nomi lunghi leggibili nella scheda',has(css,'-webkit-line-clamp:3')&&has(css,'overflow-wrap:anywhere'),'Protezione overflow nomi assente');
 check('Accessibilità di selezione e stato',has(publicJs,'aria-label="Seleziona la squadra preferita"')&&has(publicJs,'role="status"')&&has(css,':focus-visible'),'Attributi accessibili incompleti');
-check('Cache busting aggiornato',/v17(?:0-favorite-match-refresh|1-favorite-team-list)/.test(index),'Versione asset non aggiornata');
+check('Cache busting aggiornato',/v17(?:0-favorite-match-refresh|1-favorite-team-list|2-match-detail-score)/.test(index),'Versione asset non aggiornata');
 
 const passed=checks.filter(x=>x.ok).length;
 const report={version:'v170',generatedAt:new Date().toISOString(),passed,total:checks.length,ok:passed===checks.length,checks};
