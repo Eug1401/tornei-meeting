@@ -1,0 +1,33 @@
+const fs=require('fs');
+const path=require('path');
+const crypto=require('crypto');
+const root=path.resolve(__dirname,'..');
+const css=fs.readFileSync(path.join(root,'assets/css/styles.css'),'utf8');
+const publicJs=fs.readFileSync(path.join(root,'assets/js/public.js'),'utf8');
+const index=fs.readFileSync(path.join(root,'index.html'),'utf8');
+const marker='v175 - Dettaglio partita responsive';
+const v175=css.slice(css.indexOf(marker));
+const checks=[];
+function check(name,condition,detail=''){checks.push({name,ok:Boolean(condition),detail:condition?'':detail});if(!condition)process.exitCode=1;}
+function has(text,needle){return text.includes(needle);}
+check('Sezione CSS v175 presente',css.indexOf(marker)>=0,'Manca il blocco finale dedicato alla correzione');
+check('Scoreboard con colonne laterali simmetriche',has(v175,'grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)!important'),'La colonna centrale non è geometricamente indipendente dai nomi');
+check('Mobile sempre su tre colonne',has(v175,'grid-template-columns:minmax(0,1fr) clamp(90px,28vw,126px) minmax(0,1fr)!important')&&has(v175,'grid-template-columns:minmax(0,1fr) clamp(88px,28vw,112px) minmax(0,1fr)!important'),'Manca la griglia mobile a tre colonne');
+check('Nessun impilamento mobile nel blocco v175',!has(v175,'.public-scoreboard{\n    grid-template-columns:1fr!important'),'Il nuovo override reintroduce una colonna singola');
+check('Risultato su una riga',has(v175,'.public-score-center>.public-score-value')&&has(v175,'white-space:nowrap!important'),'Il risultato può andare a capo');
+check('Punteggi multi-cifra adattivi',has(v175,'--match-score-size:clamp(1.25rem,6.2vw,1.72rem)')&&has(v175,'.is-score-extra-wide>.public-score-value'),'Mancano dimensioni responsive per punteggi larghi');
+check('Stemmi uniformi e responsive',has(v175,'width:clamp(42px,12vw,52px)!important')&&has(v175,'height:clamp(42px,12vw,52px)!important')&&has(v175,'object-fit:contain!important'),'Dimensioni stemmi non uniformi');
+check('Corpo modale unico scroll verticale',has(v175,'#matchModalBody')&&has(v175,'overflow-y:auto!important')&&has(v175,'overflow-x:hidden!important')&&has(v175,'scrollbar-gutter:stable'),'Scroll modale incompleto');
+check('Toolbar e Chiudi fuori dallo scroll',has(v175,'.match-modal-toolbar')&&has(v175,'flex:0 0 auto!important')&&has(v175,'grid-template-columns:minmax(0,1fr) auto!important'),'Pulsante Chiudi non protetto');
+check('Informazioni secondarie auto-fit',has(v175,'grid-template-columns:repeat(auto-fit,minmax(150px,1fr))!important')&&has(v175,'grid-template-columns:repeat(auto-fit,minmax(132px,1fr))!important'),'Card secondarie non responsive');
+check('Testi lunghi senza troncamento',has(v175,'overflow-wrap:anywhere!important')&&has(v175,'-webkit-line-clamp:unset!important')&&has(v175,'overflow:visible!important'),'Nomi lunghi ancora troncabili');
+check('Protezione scroll orizzontale pagina',has(v175,'overflow-x:clip')&&has(v175,'max-width:100%'),'Manca la protezione anti-scroll orizzontale');
+check('Cache busting v175',has(index,'v175-match-detail-responsive'),'Asset non versionati');
+const publicHash=crypto.createHash('sha256').update(publicJs).digest('hex');
+check('Logica public.js ed export invariata',publicHash==='95dda56c7ccfe75239a4aaac7d15e3ae44bcaf471907e15047ec26c371225779','public.js è cambiato: verificare possibili regressioni export');
+check('Export mantiene formato esistente',has(publicJs,'const W=1080,H=1350')&&has(publicJs,'drawShareResult(ctx,{played,isLive,score,time:m.time})'),'Formato o chiamata export modificati');
+const passed=checks.filter(x=>x.ok).length;
+const report={version:'v175',generatedAt:new Date().toISOString(),passed,total:checks.length,ok:passed===checks.length,checks};
+fs.writeFileSync(path.join(__dirname,'report_v175.json'),JSON.stringify(report,null,2));
+checks.forEach(c=>console.log(`${c.ok?'PASS':'FAIL'} | ${c.name}${c.detail?' | '+c.detail:''}`));
+console.log(`\n${passed}/${checks.length} controlli superati`);

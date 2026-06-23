@@ -74,3 +74,15 @@
 | `TESTS_V170/*`, `TESTS_V171/*`, `TESTS_V172/*` | Compatibilità cache ed export con la versione corrente. |
 | `TESTS_V173/*` | Suite statica e report Chromium dedicati alla centratura e all'auto-fit. |
 | `CHANGELOG.md`, `TEST_REPORT.md`, `README.md` | Documentazione aggiornata. |
+
+
+## Aggiornamento v175 · Dettaglio partita responsive
+
+| File | Modifica |
+| --- | --- |
+| `assets/css/styles.css` | Override finale responsive per scoreboard a tre colonne, punteggi multi-cifra, scroll interno della modale, card informative e testi lunghi. |
+| `index.html` | Cache busting asset `v175-match-detail-responsive`. |
+| `TESTS_V175/*` | Suite statica, test Chromium multi-viewport e relativi report. |
+| `CHANGELOG.md`, `TEST_REPORT.md`, `VERSIONE_AGGIORNATA_V175.md` | Documentazione della correzione e delle verifiche. |
+
+La logica JavaScript di `assets/js/public.js`, inclusa l’esportazione immagine, non è stata modificata.

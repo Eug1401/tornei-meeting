@@ -1,0 +1,84 @@
+{
+  "version": "v175",
+  "generatedAt": "2026-06-23T21:26:18.039Z",
+  "passed": 15,
+  "total": 15,
+  "ok": true,
+  "checks": [
+    {
+      "name": "Sezione CSS v175 presente",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Scoreboard con colonne laterali simmetriche",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Mobile sempre su tre colonne",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Nessun impilamento mobile nel blocco v175",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Risultato su una riga",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Punteggi multi-cifra adattivi",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Stemmi uniformi e responsive",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Corpo modale unico scroll verticale",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Toolbar e Chiudi fuori dallo scroll",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Informazioni secondarie auto-fit",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Testi lunghi senza troncamento",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Protezione scroll orizzontale pagina",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Cache busting v175",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Logica public.js ed export invariata",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Export mantiene formato esistente",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}

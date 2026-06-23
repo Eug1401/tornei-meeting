@@ -36,3 +36,13 @@ Data verifica: 2026-06-23.
 ## Limiti
 
 Non sono state eseguite modifiche backend perché non esiste un backend server nel progetto.
+
+
+## Verifica v175 · Dettaglio partita responsive
+
+- Test statico: `node TESTS_V175/run_match_detail_responsive_v175.js` → **15/15 PASS**.
+- Test browser: `python3 TESTS_V175/run_browser_v175.py` → **15/15 PASS**.
+- Viewport: 320×640, 375×700, 430×760, 768×800, 1280×900.
+- Risultati: `10 - 1`, `12 - 10`, `20 - 15`.
+- Controlli: stessa riga su mobile, centro geometrico con scostamento 0 px, nessun taglio del risultato, nessun overflow orizzontale, scroll verticale interno e pulsante `Chiudi` visibile.
+- Integrità export: hash di `assets/js/public.js` invariato rispetto al progetto ricevuto.

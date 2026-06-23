@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-06-23 · Dettaglio partita responsive v175
+
+### Modificato
+
+- La scoreboard della modale usa sempre tre colonne simmetriche: squadra di casa, risultato e squadra ospite.
+- Il risultato resta su una sola riga e supporta punteggi a due cifre come `10 - 1`, `12 - 10` e `20 - 15`.
+- Sotto i 520 px stemmi e risultato non vengono più impilati, ma rimangono sulla stessa riga con dimensioni responsive.
+- Il corpo della modale è l’unica area scorrevole; toolbar e pulsante `Chiudi` restano sempre accessibili.
+- Card informative, pannelli marcatori e testi lunghi usano griglie auto-fit e wrapping senza troncamenti.
+- Aggiunta protezione contro lo scroll orizzontale della pagina.
+
+### Non modificato
+
+- La logica e il formato dell’export immagine sono rimasti invariati.
+
+### Verificato
+
+- Chromium reale a 320, 375, 430, 768 e 1280 px.
+- Tre punteggi per ogni viewport: `10 - 1`, `12 - 10`, `20 - 15`.
+- Suite statica: 15/15 controlli superati.
+- Suite browser: 15/15 combinazioni superate senza overflow o disallineamenti.
+
 ## 2026-06-23 · Risultato centrato e auto-fit v173
 
 ### Modificato
