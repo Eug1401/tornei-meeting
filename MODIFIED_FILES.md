@@ -27,3 +27,26 @@
 - `REPORT_PART_1_TOURNAMENT.md`
 - `REPORT_PART_2_UI_UX.md`
 - `REPORT_PART_3_LIVE_DATA.md`
+
+
+## Aggiornamento v170 · Squadra preferita e partita
+
+| File | Modifica |
+| --- | --- |
+| `assets/js/public.js` | Preferenza persistente e circoscritta, dashboard Home, highlight classifica/Partite, nuovo export social e nuovo dettaglio partita. |
+| `assets/js/ui.js` | Rimosso il controllo preferita dal componente condiviso delle squadre. |
+| `assets/css/styles.css` | Stili responsive per dashboard preferita, highlight non invasivi e visual partita arancio/blu. |
+| `index.html` | Cache busting asset v170. |
+| `TESTS_V160/run_prompt4_calendar_bracket_favorite_v160.js` | Aspettative aggiornate al nuovo perimetro della preferita. |
+| `TESTS_V170/*` | Suite e report dedicati alla nuova funzionalità. |
+
+
+## Aggiornamento v171 · Preferita nella sezione Squadre
+
+| File | Modifica |
+| --- | --- |
+| `assets/js/public.js` | Decorazione dinamica della scheda preferita, ripristino al cambio/rimozione e etichetta accessibile. |
+| `assets/css/styles.css` | Bordo e azione preferita responsive, circoscritti a `#publicTeams`. |
+| `index.html` | Cache busting asset v171. |
+| `TESTS_V170/run_favorite_match_visual_v170.js` | Cache busting compatibile con la versione corrente. |
+| `TESTS_V171/*` | Suite e report browser dedicati alla nuova indicazione. |

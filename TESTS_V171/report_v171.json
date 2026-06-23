@@ -1,0 +1,64 @@
+{
+  "version": "v171",
+  "generatedAt": "2026-06-23T19:44:48.244Z",
+  "passed": 11,
+  "total": 11,
+  "ok": true,
+  "checks": [
+    {
+      "name": "Indicatore nella sezione Squadre",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Nessun nuovo controllo di selezione in Squadre",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Nome e struttura squadra non modificati",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Cambio preferita ripristina la squadra precedente",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Rimozione preferita elimina lo stato visivo",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Accessibilità del riepilogo squadra",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Evidenziazione limitata al contenitore Squadre",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Layout mobile protetto",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Palette coerente con il sito",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Aggiornamento immediato al cambio",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Cache busting v171",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}

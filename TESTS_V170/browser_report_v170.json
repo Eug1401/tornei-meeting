@@ -1,0 +1,74 @@
+{
+  "version": "v170",
+  "environment": "Chromium via Chrome DevTools Protocol, risorse incorporate per il test locale",
+  "viewports": {
+    "desktop": "1440x1100",
+    "mobile": "430x900"
+  },
+  "favoriteStates": {
+    "selected": {
+      "card": true,
+      "selected": "t3",
+      "next": 1,
+      "last": 1,
+      "standing": [
+        "t3"
+      ],
+      "matches": [
+        "m2",
+        "m3"
+      ],
+      "teamControls": 0,
+      "searchControls": 0,
+      "bracketFav": 0
+    },
+    "changed": {
+      "selected": "t2",
+      "standing": [
+        "t2"
+      ],
+      "matches": [
+        "m1",
+        "m4"
+      ],
+      "storage": "t2",
+      "teamsUnchanged": true
+    },
+    "removed": {
+      "empty": true,
+      "standing": 0,
+      "matches": 0,
+      "storage": null
+    }
+  },
+  "matchDetail": {
+    "desktop": {
+      "open": true,
+      "title": "Atletico Nuova Generazione vs Sporting Città di Genzano e Castelli Romani",
+      "brand": "Coppa Meeting Test",
+      "teams": [
+        "Atletico Nuova Generazione",
+        "Sporting Città di Genzano e Castelli Romani"
+      ],
+      "center": "ORARIO\n19:15",
+      "grid": "339px 190px 339px",
+      "overflow": true
+    },
+    "mobile": {
+      "grid": "378px",
+      "modalWidth": 430,
+      "viewport": 430,
+      "overflow": true
+    }
+  },
+  "matchExport": {
+    "canvas": "1080x1350",
+    "blob": {
+      "size": 1220838,
+      "type": "image/png"
+    },
+    "filename": "coppa-meeting-test-giornata-2.png",
+    "alerts": []
+  },
+  "ok": true
+}

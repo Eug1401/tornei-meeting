@@ -40,9 +40,8 @@
     items.sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.time).localeCompare(String(b.time))||(a.type==='pause'?-1:1));
     return items.length?items.map(item=>item.type==='pause'?pauseCard(item.event):matchCard(state,item.match,clickable)).join(''):'<div class="empty">Nessuna partita disponibile.</div>';
   }
-  function teamGrid(state,opts={}){
+  function teamGrid(state){
     if(!state.teams.length)return '<div class="empty">Nessuna squadra.</div>';
-    const showFavorite=opts&&opts.showFavorite===true;
     return `<div class="team-disclosure-list">${state.teams.map((t,i)=>{
       const staff=[];
       if(t.president?.name)staff.push(`<span><strong>Presidente</strong>${esc(t.president.name)}</span>`);
@@ -51,7 +50,7 @@
       return `<details class="ng-disclosure team-disclosure" data-team-id="${esc(t.id)}" ${i===0?'':''}>
         <summary class="ng-disclosure-summary">
           <span class="disclosure-main">${logo(t,false)}<span><strong>${esc(t.name)}</strong><small>${(t.players||[]).length} calciatori${t.president?.name?` · Presidente: ${esc(t.president.name)}`:''}</small></span></span>
-          <span class="disclosure-actions">${showFavorite?`<button class="btn small favorite-team-btn" type="button" data-favorite-placeholder="${esc(t.id)}">☆ Segui</button>`:''}<span class="disclosure-action">Apri scheda</span></span>
+          <span class="disclosure-actions"><span class="disclosure-action">Apri scheda</span></span>
         </summary>
         <div class="ng-disclosure-body team-profile-body">
           <div class="team-profile-hero">${logo(t,true)}<div><h3>${esc(t.name)}</h3><p class="muted">Scheda squadra, staff tecnico e rosa completa.</p></div></div>

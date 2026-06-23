@@ -78,13 +78,8 @@
   }
   function persistFavoriteTeamId(){try{const key=favoriteStorageKey();favoriteTeamId?localStorage.setItem(key,favoriteTeamId):localStorage.removeItem(key);}catch(_){}}
   function invalidateFavoriteDependentViews(){
-    // La squadra preferita è stato locale, non fa parte dello stato torneo.
-    // Per questo bisogna invalidare esplicitamente le cache di rendering,
-    // altrimenti il pulsante "×" svuota il localStorage ma la dashboard resta uguale.
-    _lastRenderFP='';
+    // La preferenza è locale e aggiorna esclusivamente Home, classifica e Partite.
     _lastHomeFP='';
-    _lastTeamsFingerprint='';
-    if(statusFilter==='favorite'&&!favoriteTeamId) statusFilter='';
   }
   function sanitizeFavoriteTeam(){
     syncFavoriteForTournament();
@@ -94,28 +89,30 @@
       invalidateFavoriteDependentViews();
     }
   }
-  function setFavoriteTeam(teamId){
-    favoriteTeamId=teamId||'';
-    persistFavoriteTeamId();
+  function refreshFavoriteViews(){
     invalidateFavoriteDependentViews();
-    render({force:true});
+    renderFavoriteHome();
+    decorateFavoriteUI();
+  }
+  function setFavoriteTeam(teamId){
+    const next=String(teamId||'');
+    favoriteTeamId=next&&store.getTeam(state,next)?next:'';
+    persistFavoriteTeamId();
+    refreshFavoriteViews();
   }
   function clearFavoriteTeam(){
     favoriteTeamId='';
     persistFavoriteTeamId();
-    invalidateFavoriteDependentViews();
-    render({force:true});
+    refreshFavoriteViews();
   }
-  function isFavoriteTeam(teamId){return !!favoriteTeamId&&teamId===favoriteTeamId;}
-  function favoriteButton(teamId,label='Segui squadra'){
-    const fav=isFavoriteTeam(teamId);
-    return `<button class="btn small favorite-team-btn ${fav?'active':''}" type="button" data-favorite-team="${UI.esc(teamId)}" aria-pressed="${fav?'true':'false'}">${fav?'★ Preferita':'☆ '+UI.esc(label)}</button>`;
+  function favoriteTeamOptions(selected=''){
+    return '<option value="">Nessuna squadra</option>'+state.teams.map(t=>`<option value="${UI.esc(t.id)}" ${t.id===selected?'selected':''}>${UI.esc(t.name)}</option>`).join('');
   }
   function teamFilterOptions(selected){return '<option value="">Tutte le squadre</option>'+state.teams.map(t=>`<option value="${t.id}" ${t.id===selected?'selected':''}>${UI.esc(t.name)}</option>`).join('');}
   function localTodayIso(){const d=new Date();const m=String(d.getMonth()+1).padStart(2,'0');const day=String(d.getDate()).padStart(2,'0');return `${d.getFullYear()}-${m}-${day}`;}
   function isMatchPlayed(m){return store.hasScore(state,m)||m.status==='played';}
   function isTodayMatch(m){return !!m.date&&String(m.date)===localTodayIso();}
-  function filteredMatches(){return state.matches.filter(m=>(!phaseFilter||m.phase===phaseFilter)&&(!roundFilter||m.round===roundFilter)&&(!teamFilter||m.homeTeamId===teamFilter||m.awayTeamId===teamFilter)&&(!statusFilter||statusFilter==='all'||(statusFilter==='played'&&isMatchPlayed(m))||(statusFilter==='pending'&&!isMatchPlayed(m))||(statusFilter==='today'&&isTodayMatch(m))||(statusFilter==='favorite'&&favoriteTeamId&&(m.homeTeamId===favoriteTeamId||m.awayTeamId===favoriteTeamId))));}
+  function filteredMatches(){return state.matches.filter(m=>(!phaseFilter||m.phase===phaseFilter)&&(!roundFilter||m.round===roundFilter)&&(!teamFilter||m.homeTeamId===teamFilter||m.awayTeamId===teamFilter)&&(!statusFilter||statusFilter==='all'||(statusFilter==='played'&&isMatchPlayed(m))||(statusFilter==='pending'&&!isMatchPlayed(m))||(statusFilter==='today'&&isTodayMatch(m))));}
   function filteredPlayerStats(){let rows=store.selectors.playerStats(state);if(playerTeamFilter)return rows.filter(p=>p.teamId===playerTeamFilter);return rows.filter(p=>p.goals>0).slice(0,10);}
   function renderFilters(){const phases=store.selectors.phases(state);$('#publicPhaseFilter').innerHTML='<option value="">Tutte le fasi</option>'+phases.map(p=>`<option value="${p}" ${p===phaseFilter?'selected':''}>${UI.esc(store.PHASE_LABELS[p]||p)}</option>`).join('');const rounds=store.selectors.rounds(state);$('#publicRoundFilter').innerHTML='<option value="">Tutte le giornate/turni</option>'+rounds.map(r=>`<option value="${UI.esc(r)}" ${r===roundFilter?'selected':''}>${UI.esc(r)}</option>`).join('');$('#publicTeamFilter').innerHTML=teamFilterOptions(teamFilter);renderMatchFilterToolbar();}
   function activeFilterLabel(type){
@@ -149,10 +146,6 @@
     if(type==='team'){
       title.textContent='Scegli squadra';
       html+=make('', 'Tutte le squadre', !teamFilter, '<span class="filter-option-emoji">👥</span>');
-      if(favoriteTeamId&&store.getTeam(state,favoriteTeamId)){
-        const favTeam=store.getTeam(state,favoriteTeamId);
-        html+=make(favoriteTeamId,'★ '+favTeam.name,teamFilter===favoriteTeamId,UI.logo(favTeam,false));
-      }
       state.teams.forEach(t=>html+=make(t.id,t.name,t.id===teamFilter,UI.logo(t,false)));
     }
     box.innerHTML=html;modal.classList.add('open');modal.setAttribute('aria-hidden','false');document.body.classList.add('modal-open');setTimeout(()=>modal.querySelector('.filter-option.active,.filter-option')?.focus(),0);
@@ -160,21 +153,50 @@
   function closeMatchFilterSheet(){const modal=$('#matchFilterSheet');if(!modal)return;modal.classList.remove('open');modal.setAttribute('aria-hidden','true');document.body.classList.remove('modal-open');scheduleDeferredArticleRender(460);}
   function setMatchFilter(type,value){if(type==='phase'){phaseFilter=value;roundFilter='';}else if(type==='round'){roundFilter=value;}else if(type==='team'){teamFilter=value;}persistPublicFilters();closeMatchFilterSheet();renderMatches();}
   function renderPlayerFilter(){const el=$('#publicPlayerTeamFilter');if(!el)return;if(playerTeamFilter&&!state.teams.some(t=>t.id===playerTeamFilter))playerTeamFilter='';el.innerHTML=teamFilterOptions(playerTeamFilter);}
+  function matchSortValue(m,{missing='last'}={}){
+    if(!m?.date)return missing==='first'?Number.MIN_SAFE_INTEGER:Number.MAX_SAFE_INTEGER;
+    const raw=`${m.date}T${m.time||'23:59'}`;
+    const value=Date.parse(raw);
+    return Number.isFinite(value)?value:(missing==='first'?Number.MIN_SAFE_INTEGER:Number.MAX_SAFE_INTEGER);
+  }
+  function isCompletedFavoriteMatch(m){return m?.status!=='live'&&isMatchPlayed(m);}
+  function favoriteMatchRows(matches,{results=false}={}){
+    if(!matches.length)return '<div class="favorite-match-empty">Nessuna partita disponibile.</div>';
+    return `<div class="favorite-match-list">${matches.map(m=>{
+      const home=store.teamName(state,m.homeTeamId,m.homeLabel),away=store.teamName(state,m.awayTeamId,m.awayLabel);
+      const score=store.matchGoals(state,m);
+      const scoreLabel=results?`${score.home} - ${score.away}`:(m.time||'Orario da definire');
+      return `<button class="favorite-match-row" type="button" data-match-detail="${UI.esc(m.id)}" aria-label="Apri ${UI.esc(home)} contro ${UI.esc(away)}">
+        <span class="favorite-match-copy"><strong>${UI.esc(home)} <em>vs</em> ${UI.esc(away)}</strong><small>${UI.esc(UI.fmtDate(m))} · ${UI.esc(store.PHASE_LABELS[m.phase]||m.phase||'Partita')}${m.round?' · '+UI.esc(m.round):''}</small></span>
+        <span class="favorite-match-score">${UI.esc(scoreLabel)}</span>
+      </button>`;
+    }).join('')}</div>`;
+  }
   function favoriteTeamHomeMarkup(){
     const team=favoriteTeamId?store.getTeam(state,favoriteTeamId):null;
+    const selector=`<label class="favorite-select-field"><span>Squadra preferita</span><select data-favorite-select aria-label="Seleziona la squadra preferita">${favoriteTeamOptions(team?.id||'')}</select></label>`;
     if(!team){
-      return `<div class="favorite-empty-card"><div><span class="article-kicker">Squadra preferita</span><h2>Scegli la tua squadra</h2><p class="muted">Salvala su questo dispositivo: la vedrai in evidenza in classifica, partite e tabellone.</p></div><button class="btn primary" type="button" data-open-teams-tab>Vai alle squadre</button></div>`;
+      return `<div class="favorite-empty-card">
+        <div class="favorite-empty-copy"><span class="favorite-eyebrow">Squadra preferita</span><h2>Scegli la squadra da seguire</h2><p>La scelta resta salvata su questo dispositivo e verrà usata soltanto nella Home, nella classifica e nella sezione Partite.</p></div>
+        <div class="favorite-picker">${selector}<small>Puoi cambiarla o rimuoverla in qualsiasi momento.</small></div>
+      </div>`;
     }
     const rec=teamRecord(team.id);
-    const matches=(state.matches||[]).filter(m=>m.homeTeamId===team.id||m.awayTeamId===team.id);
-    const last=matches.filter(m=>store.hasScore(state,m)||m.status==='played').slice(-1)[0];
-    const next=matches.filter(m=>!(store.hasScore(state,m)||m.status==='played')).sort((a,b)=>String(a.date||'9999').localeCompare(String(b.date||'9999'))||String(a.time||'99:99').localeCompare(String(b.time||'99:99')))[0];
-    const compactMatch=m=>{if(!m)return '<span class="muted">Non disponibile</span>';const home=store.teamName(state,m.homeTeamId,m.homeLabel),away=store.teamName(state,m.awayTeamId,m.awayLabel);return `<strong>${UI.esc(home)} vs ${UI.esc(away)}</strong><small>${UI.esc(UI.fmtDate(m))} · ${UI.esc(m.field||'Campo da definire')}${store.hasScore(state,m)?' · '+UI.esc(store.scoreText(state,m)):''}</small>`;};
+    const allMatches=(state.matches||[]).filter(m=>m.homeTeamId===team.id||m.awayTeamId===team.id);
+    const last=allMatches.filter(isCompletedFavoriteMatch).sort((a,b)=>matchSortValue(b,{missing:'first'})-matchSortValue(a,{missing:'first'})).slice(0,3);
+    const next=allMatches.filter(m=>!isCompletedFavoriteMatch(m)).sort((a,b)=>matchSortValue(a)-matchSortValue(b)).slice(0,3);
+    const staff=[team.president?.name?`Presidente: ${UI.esc(team.president.name)}`:'',team.coach?.name?`Allenatore: ${UI.esc(team.coach.name)}`:''].filter(Boolean).join(' · ');
     return `<div class="favorite-team-dashboard">
-      <div class="favorite-team-hero">${UI.logo(team,true)}<div><span class="article-kicker">La tua squadra</span><h2>${UI.esc(team.name)}</h2><p>${team.president?.name?`Presidente: ${UI.esc(team.president.name)}`:'Presidente non inserito'}${team.coach?.name?` · Allenatore: ${UI.esc(team.coach.name)}`:''}</p></div><button class="favorite-remove" type="button" data-clear-favorite aria-label="Rimuovi squadra preferita">×</button></div>
-      <div class="favorite-kpis"><span><strong>${rec.points||0}</strong>Punti</span><span><strong>${rec.played||0}</strong>PG</span><span><strong>${rec.goalsFor||0}</strong>GF</span><span><strong>${rec.diff>0?'+':''}${rec.diff||0}</strong>DR</span></div>
-      <div class="favorite-team-grid"><div><span>Prossima</span>${compactMatch(next)}</div><div><span>Ultima</span>${compactMatch(last)}</div></div>
-      <div class="row-actions"><button class="btn primary" type="button" data-team-detail="${UI.esc(team.id)}">Apri scheda</button><button class="btn" type="button" data-filter-favorite-matches="${UI.esc(team.id)}">Mostra partite</button></div>
+      <div class="favorite-team-hero">
+        <div class="favorite-team-identity">${UI.logo(team,true)}<div><span class="favorite-eyebrow">La tua squadra</span><h2>${UI.esc(team.name)}</h2><p>${staff||'Staff tecnico non inserito'} · ${(team.players||[]).length} calciatori</p></div></div>
+        <div class="favorite-team-controls">${selector}<button class="favorite-remove" type="button" data-clear-favorite aria-label="Rimuovi squadra preferita"><span aria-hidden="true">×</span> Rimuovi</button></div>
+      </div>
+      <div class="favorite-kpis"><span><strong>${rec.points||0}</strong>Punti</span><span><strong>${rec.played||0}</strong>Partite</span><span><strong>${rec.goalsFor||0}</strong>Gol fatti</span><span><strong>${rec.diff>0?'+':''}${rec.diff||0}</strong>Differenza</span></div>
+      <div class="favorite-team-grid">
+        <section><div class="favorite-list-title"><span>Prossime partite</span><small>Le prime tre in programma</small></div>${favoriteMatchRows(next)}</section>
+        <section><div class="favorite-list-title"><span>Ultimi risultati</span><small>Le ultime tre disputate</small></div>${favoriteMatchRows(last,{results:true})}</section>
+      </div>
+      <div class="row-actions favorite-home-actions"><button class="btn primary" type="button" data-team-detail="${UI.esc(team.id)}">Apri scheda completa</button></div>
     </div>`;
   }
   function renderFavoriteHome(){
@@ -230,27 +252,64 @@
   }
   function decorateFavoriteUI(){
     sanitizeFavoriteTeam();
-    document.querySelectorAll('[data-favorite-badge-auto]').forEach(el=>el.remove());
-    document.querySelectorAll('.is-favorite-team,.is-favorite-match').forEach(el=>el.classList.remove('is-favorite-team','is-favorite-match'));
+    document.querySelectorAll('.favorite-team-marker').forEach(marker=>{
+      if(Object.prototype.hasOwnProperty.call(marker.dataset,'favoriteBaseText')){
+        marker.textContent=marker.dataset.favoriteBaseText;
+        delete marker.dataset.favoriteBaseText;
+      }
+      marker.classList.remove('favorite-team-marker');
+    });
+    document.querySelectorAll('[data-preferred-summary="true"]').forEach(summary=>{
+      const base=summary.dataset.favoriteBaseAria||'';
+      base?summary.setAttribute('aria-label',base):summary.removeAttribute('aria-label');
+      delete summary.dataset.favoriteBaseAria;
+      delete summary.dataset.preferredSummary;
+    });
+    document.querySelectorAll('.favorite-standing-row,.favorite-match-card,.favorite-team-card').forEach(el=>{
+      el.classList.remove('favorite-standing-row','favorite-match-card','favorite-team-card');
+      el.removeAttribute('data-favorite-highlight');
+      if(Object.prototype.hasOwnProperty.call(el.dataset,'favoriteBaseAria')){
+        const base=el.dataset.favoriteBaseAria;
+        base?el.setAttribute('aria-label',base):el.removeAttribute('aria-label');
+        delete el.dataset.favoriteBaseAria;
+      }
+    });
     if(!favoriteTeamId)return;
-    function addFavoriteBadge(el){
-      let target=null;
-      if(el.matches('tr'))target=el.querySelector('.team-inline strong');
-      else if(el.matches('.fixture-team,.public-score-team'))target=el.querySelector('strong');
-      else if(el.matches('.bracket-team'))target=[...el.children].find(child=>child.tagName==='SPAN'&&!child.matches('[data-favorite-badge-auto]'));
-      else if(el.matches('.bracket-list-teams span'))target=el;
-      else if(el.matches('.team-disclosure'))target=el.querySelector('.disclosure-main strong');
-      else target=el.querySelector?.('strong')||null;
-      if(!target||target.parentElement?.querySelector('[data-favorite-badge-auto]'))return;
-      const badge=document.createElement('span');
-      badge.className='favorite-inline-badge';
-      badge.dataset.favoriteBadgeAuto='1';
-      badge.setAttribute('aria-label','Squadra preferita');
-      badge.textContent='★ Preferita';
-      target.insertAdjacentElement('afterend',badge);
+    const favoriteTeam=store.getTeam(state,favoriteTeamId);
+    const favoriteTeamCard=document.querySelector(`#publicTeams details.team-disclosure[data-team-id="${CSS.escape(favoriteTeamId)}"]`);
+    if(favoriteTeamCard){
+      favoriteTeamCard.classList.add('favorite-team-card');
+      favoriteTeamCard.dataset.favoriteHighlight='true';
+      const summary=favoriteTeamCard.querySelector(':scope > summary');
+      if(summary){
+        const current=summary.getAttribute('aria-label')||'';
+        summary.dataset.favoriteBaseAria=current;
+        summary.dataset.preferredSummary='true';
+        summary.setAttribute('aria-label',current?`${current}, squadra preferita`:`${favoriteTeam?.name||'Squadra'}, squadra preferita. Apri la scheda`);
+      }
+      const action=favoriteTeamCard.querySelector('.disclosure-action');
+      if(action){
+        action.dataset.favoriteBaseText=action.textContent||'Apri scheda';
+        action.textContent='★ Preferita · Apri scheda';
+        action.classList.add('favorite-team-marker');
+      }
     }
-    document.querySelectorAll(`[data-team-detail="${CSS.escape(favoriteTeamId)}"], [data-team-id="${CSS.escape(favoriteTeamId)}"]`).forEach(el=>{el.classList.add('is-favorite-team');addFavoriteBadge(el);});
-    document.querySelectorAll('[data-match-detail]').forEach(el=>{const m=state.matches.find(x=>x.id===el.dataset.matchDetail);if(m&&(m.homeTeamId===favoriteTeamId||m.awayTeamId===favoriteTeamId))el.classList.add('is-favorite-match');});
+    document.querySelectorAll(`#publicStandings tr[data-team-id="${CSS.escape(favoriteTeamId)}"]`).forEach(row=>{
+      row.classList.add('favorite-standing-row');
+      row.dataset.favoriteHighlight='true';
+      const current=row.getAttribute('aria-label')||'';
+      row.dataset.favoriteBaseAria=current;
+      row.setAttribute('aria-label',current?`${current}, squadra preferita`:'Squadra preferita');
+    });
+    document.querySelectorAll('#publicMatches .public-fixture-card[data-match-detail]').forEach(card=>{
+      const m=state.matches.find(x=>x.id===card.dataset.matchDetail);
+      if(!m||(m.homeTeamId!==favoriteTeamId&&m.awayTeamId!==favoriteTeamId))return;
+      card.classList.add('favorite-match-card');
+      card.dataset.favoriteHighlight='true';
+      const current=card.getAttribute('aria-label')||'';
+      card.dataset.favoriteBaseAria=current;
+      card.setAttribute('aria-label',current?`${current}, partita della squadra preferita`:'Partita della squadra preferita');
+    });
   }
   var _lastHomeFP="";
   function renderHome(){
@@ -265,24 +324,23 @@
       return [t.id,t.name,t.logo||"",
         (t.players||[]).map(function(p){return (p.name||"")+(p.birthYear||"")+(p.number||"");}).join(","),
         (t.president&&t.president.name)||"",(t.coach&&t.coach.name)||""];
-    }))+"|favorite:"+(favoriteTeamId||'');
-    if(fp===_lastTeamsFingerprint){decorateFavoriteUI();return;}
+    }));
+    if(fp===_lastTeamsFingerprint)return;
     _lastTeamsFingerprint=fp;
     var openId=(container.querySelector("details.ng-disclosure[open]")||{}).dataset&&
                container.querySelector("details.ng-disclosure[open]").dataset.teamId||"";
     container.classList.add("ng-teams-restoring");
-    container.innerHTML=UI.teamGrid(state,{showFavorite:true}).replaceAll('data-favorite-placeholder="','data-favorite-team="');
+    container.innerHTML=UI.teamGrid(state);
     if(openId){
       var el=container.querySelector("details.ng-disclosure[data-team-id=\""+CSS.escape(openId)+"\"]");
       if(el)el.setAttribute("open","");
     }
     requestAnimationFrame(function(){container.classList.remove("ng-teams-restoring");});
-    decorateFavoriteUI();
   }
   function renderPlayers(){ resetFiltersForNewState(); persistPublicFilters(); renderPlayerFilter(); $('#publicPlayers').innerHTML=UI.playerStatsTable(filteredPlayerStats()); }
   function renderPublicMatchCenter(){const slot=document.getElementById('publicMatchCenter');if(slot)slot.remove();}
   function renderMatches(){const slot=document.getElementById('publicMatchCenter');if(slot)slot.remove();resetFiltersForNewState();persistPublicFilters();renderFilters();$('#publicMatches').innerHTML=UI.matchList(state,filteredMatches(),true);decorateFavoriteUI();}
-  function renderBracket(){const el=$('#publicBracket');if(el)el.innerHTML=UI.bracketMarkup(state);decorateFavoriteUI();renderShareActions();}
+  function renderBracket(){const el=$('#publicBracket');if(el)el.innerHTML=UI.bracketMarkup(state);renderShareActions();}
   let _lastArticlesFP='';
   let _deferredArticleRender=false;
   let _articleRenderTimer=0;
@@ -606,7 +664,7 @@
     return `<section class="pro-team-sheet">
       <div class="pro-team-hero">
         <div class="pro-team-logo">${UI.logo(team,true)}</div>
-        <div class="pro-team-title"><span class="pill">${rec.played?`PG ${rec.played}`:'Squadra'}</span><h2>${UI.esc(team.name)}</h2>${[team.president?.name?`Presidente: ${UI.esc(team.president.name)}`:'',team.coach?.name?`Allenatore: ${UI.esc(team.coach.name)}`:''].filter(Boolean).length?`<p>${[team.president?.name?`Presidente: ${UI.esc(team.president.name)}`:'',team.coach?.name?`Allenatore: ${UI.esc(team.coach.name)}`:''].filter(Boolean).join(' · ')}</p>`:''}<div class="favorite-hero-action">${favoriteButton(team.id,'Segui')}</div></div>
+        <div class="pro-team-title"><span class="pill">${rec.played?`PG ${rec.played}`:'Squadra'}</span><h2>${UI.esc(team.name)}</h2>${[team.president?.name?`Presidente: ${UI.esc(team.president.name)}`:'',team.coach?.name?`Allenatore: ${UI.esc(team.coach.name)}`:''].filter(Boolean).length?`<p>${[team.president?.name?`Presidente: ${UI.esc(team.president.name)}`:'',team.coach?.name?`Allenatore: ${UI.esc(team.coach.name)}`:''].filter(Boolean).join(' · ')}</p>`:''}</div>
       </div>
       <div class="team-sheet-kpis">
         <div><strong>${rec.points||0}</strong><span>Punti</span></div><div><strong>${rec.goalsFor||0}</strong><span>Gol fatti</span></div><div><strong>${rec.goalsAgainst||0}</strong><span>Gol subiti</span></div><div><strong>${rec.diff>0?'+':''}${rec.diff||0}</strong><span>Diff.</span></div>
@@ -630,7 +688,7 @@
     modal.classList.add('open');document.body.classList.add('modal-open');setTimeout(()=>$('#closeTeamModal')?.focus(),0);
   }
 
-  function renderSearch(){const q=($('#globalSearch').value||'').trim().toLowerCase();const box=$('#searchResults');if(!q){box.innerHTML='<div class="empty">Scrivi per cercare squadre, giocatori o partite.</div>';return;}const teams=state.teams.filter(t=>t.name.toLowerCase().includes(q)).map(t=>`<div class="team-row search-team-result" data-team-id="${UI.esc(t.id)}">${UI.logo(t)}<div><strong>${UI.esc(t.name)}</strong><p class="muted">${t.players.length} calciatori${t.president?.name?` · Presidente: ${UI.esc(t.president.name)}`:''}${t.coach?.name?` · Allenatore: ${UI.esc(t.coach.name)}`:''}</p></div><div class="row-actions">${favoriteButton(t.id,'Segui')}<button class="btn small" data-team-detail="${UI.esc(t.id)}" type="button">Scheda</button><button class="btn small primary" data-team-pdf="${UI.esc(t.id)}" type="button">PDF</button></div></div>`);const stats=store.selectors.playerStats(state);const players=stats.filter(p=>p.name.toLowerCase().includes(q)||p.teamName.toLowerCase().includes(q)).map(p=>`<div class="player-row"><div><strong>${UI.esc(p.name)}</strong><p class="muted">${UI.esc(p.teamName)}${p.birthYear?' · '+UI.esc(p.birthYear):''}</p></div><span class="pill">PG ${p.played} · Gol ${p.goals} · 🟨 ${p.yellow} · 🟥 ${p.red}</span></div>`);const matches=state.matches.filter(m=>`${store.teamName(state,m.homeTeamId,m.homeLabel)} ${store.teamName(state,m.awayTeamId,m.awayLabel)} ${m.round} ${m.referee} ${m.field}`.toLowerCase().includes(q)).map(m=>UI.matchCard(state,m,true));const articles=store.selectors.articles(state).filter(a=>`${a.title} ${a.body}`.toLowerCase().includes(q)).map(a=>UI.articleCard(a,false));box.innerHTML=[...teams,...players,...matches,...articles].join('')||`<div class="empty">Nessun risultato per “${UI.esc(q)}”.</div>`;decorateFavoriteUI();}
+  function renderSearch(){const q=($('#globalSearch').value||'').trim().toLowerCase();const box=$('#searchResults');if(!q){box.innerHTML='<div class="empty">Scrivi per cercare squadre, giocatori o partite.</div>';return;}const teams=state.teams.filter(t=>t.name.toLowerCase().includes(q)).map(t=>`<div class="team-row search-team-result" data-team-id="${UI.esc(t.id)}">${UI.logo(t)}<div><strong>${UI.esc(t.name)}</strong><p class="muted">${t.players.length} calciatori${t.president?.name?` · Presidente: ${UI.esc(t.president.name)}`:''}${t.coach?.name?` · Allenatore: ${UI.esc(t.coach.name)}`:''}</p></div><div class="row-actions"><button class="btn small" data-team-detail="${UI.esc(t.id)}" type="button">Scheda</button><button class="btn small primary" data-team-pdf="${UI.esc(t.id)}" type="button">PDF</button></div></div>`);const stats=store.selectors.playerStats(state);const players=stats.filter(p=>p.name.toLowerCase().includes(q)||p.teamName.toLowerCase().includes(q)).map(p=>`<div class="player-row"><div><strong>${UI.esc(p.name)}</strong><p class="muted">${UI.esc(p.teamName)}${p.birthYear?' · '+UI.esc(p.birthYear):''}</p></div><span class="pill">PG ${p.played} · Gol ${p.goals} · 🟨 ${p.yellow} · 🟥 ${p.red}</span></div>`);const matches=state.matches.filter(m=>`${store.teamName(state,m.homeTeamId,m.homeLabel)} ${store.teamName(state,m.awayTeamId,m.awayLabel)} ${m.round} ${m.referee} ${m.field}`.toLowerCase().includes(q)).map(m=>UI.matchCard(state,m,true));const articles=store.selectors.articles(state).filter(a=>`${a.title} ${a.body}`.toLowerCase().includes(q)).map(a=>UI.articleCard(a,false));box.innerHTML=[...teams,...players,...matches,...articles].join('')||`<div class="empty">Nessun risultato per “${UI.esc(q)}”.</div>`;}
   function matchDetailEventList(items,emptyLabel){
     if(!items.length)return `<div class="public-match-empty">${UI.esc(emptyLabel)}</div>`;
     return items.map(item=>`<div class="public-match-event-item"><span class="event-dot ${UI.esc(item.kind||'')}">${UI.esc(item.icon||'•')}</span><div><strong>${UI.esc(item.name)}</strong>${item.meta?`<small>${UI.esc(item.meta)}</small>`:''}</div></div>`).join('');
@@ -709,46 +767,83 @@
   async function shareGroupStandingsImage(groupName,btn){await runShareTask('standings:'+groupName,btn,()=>buildStandingsShareImage(groupName),'Classifica '+groupName,state.rules.name||'Meeting Tournament',`${shareSlug(state.rules.name)}-${shareSlug(groupName)}.png`);}
   async function shareBracketImage(btn){await runShareTask('bracket',btn,()=>buildBracketShareImage(),'Tabellone '+(state.rules.name||''),state.rules.name||'Meeting Tournament',`${shareSlug(state.rules.name)}-tabellone.png`);}
   function renderShareActions(){const menu=$('#publicStandingsMenu');if(menu&&!menu.querySelector('[data-share-actions="standings"]')){const groups=store.selectors.hasGroupStage(state)?store.selectors.groupNames(state):[];const groupBtns=groups.map(g=>`<button class="btn small" type="button" data-share-group-standings="${UI.esc(g)}">Immagine ${UI.esc(g)}</button>`).join('');menu.insertAdjacentHTML('beforeend',`<div class="share-toolbar" data-share-actions="standings"><button class="btn small primary" type="button" data-share-standings>Immagine classifica</button>${groupBtns}</div>`);}const bracket=$('#publicBracket');if(bracket&&store.bracketData(state).available&&!bracket.querySelector('[data-share-actions="bracket"]'))bracket.insertAdjacentHTML('afterbegin','<div class="share-toolbar bracket-share-toolbar" data-share-actions="bracket"><button class="btn small primary" type="button" data-share-bracket>Immagine tabellone</button></div>');}
+  function loadCanvasImage(src){return new Promise(resolve=>{if(!src){resolve(null);return;}const img=new Image();img.crossOrigin='anonymous';img.onload=()=>resolve(img);img.onerror=()=>resolve(null);img.src=src;});}
+  function canvasLines(ctx,text,maxWidth){
+    const words=String(text||'').trim().split(/\s+/).filter(Boolean);const lines=[];let line='';
+    words.forEach(word=>{
+      if(ctx.measureText(word).width>maxWidth){
+        if(line){lines.push(line);line='';}
+        let chunk='';for(const ch of word){const next=chunk+ch;if(ctx.measureText(next).width<=maxWidth)chunk=next;else{if(chunk)lines.push(chunk);chunk=ch;}}if(chunk)line=chunk;
+        return;
+      }
+      const next=line?line+' '+word:word;
+      if(ctx.measureText(next).width<=maxWidth)line=next;else{if(line)lines.push(line);line=word;}
+    });
+    if(line)lines.push(line);return lines.length?lines:[''];
+  }
+  function drawCenteredTextBlock(ctx,text,cx,y,maxWidth,maxHeight,{fontSize=48,minSize=24,maxLines=3,color='#fff',fontWeight='900'}={}){
+    let size=fontSize,lines=[''];
+    while(size>=minSize){ctx.font=`${fontWeight} ${size}px Arial, sans-serif`;lines=canvasLines(ctx,text,maxWidth);const lineH=Math.round(size*1.08);if(lines.length<=maxLines&&lines.length*lineH<=maxHeight)break;size-=2;}
+    const lineH=Math.round(size*1.08);if(lines.length>maxLines){lines=lines.slice(0,maxLines);let last=lines[maxLines-1];while(last&&ctx.measureText(last+'…').width>maxWidth)last=last.slice(0,-1);lines[maxLines-1]=(last||'')+'…';}
+    ctx.fillStyle=color;ctx.font=`${fontWeight} ${size}px Arial, sans-serif`;ctx.textAlign='center';ctx.textBaseline='top';
+    lines.forEach((line,i)=>ctx.fillText(line,cx,y+i*lineH,maxWidth));ctx.textBaseline='alphabetic';return lines.length*lineH;
+  }
+  function drawShareLogo(ctx,img,cx,cy,size,label){
+    roundRectPath(ctx,cx-size/2,cy-size/2,size,size,36);ctx.fillStyle='#ffffff';ctx.fill();ctx.strokeStyle='rgba(255,122,24,.55)';ctx.lineWidth=4;ctx.stroke();
+    if(img){const pad=Math.round(size*.13),inner=size-pad*2,ar=(img.naturalWidth||img.width||1)/(img.naturalHeight||img.height||1),dw=ar>=1?inner:inner*ar,dh=ar>=1?inner/ar:inner;ctx.drawImage(img,cx-inner/2+(inner-dw)/2,cy-inner/2+(inner-dh)/2,dw,dh);}
+    else{ctx.fillStyle='#08245a';ctx.font=`900 ${Math.round(size*.28)}px Arial, sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(label||'?').slice(0,2).toUpperCase(),cx,cy);ctx.textBaseline='alphabetic';}
+  }
   async function buildMatchShareImage(m){
     const homeT=store.getTeam(state,m.homeTeamId),awayT=store.getTeam(state,m.awayTeamId);
     const home=store.teamName(state,m.homeTeamId,m.homeLabel),away=store.teamName(state,m.awayTeamId,m.awayLabel);
-    const played=isMatchPlayed(m),score=store.matchGoals(state,m);
-    const W=1600,H=1000;
-    const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;const ctx=canvas.getContext('2d');
-    ctx.textBaseline='alphabetic';
-    const bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#070806');bg.addColorStop(.58,'#17190f');bg.addColorStop(1,'#090a07');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-    ctx.fillStyle='rgba(230,199,96,.06)';ctx.fillRect(0,0,W,160);
-    roundRectPath(ctx,64,64,W-128,H-128,44);ctx.fillStyle='rgba(255,255,255,.035)';ctx.fill();ctx.strokeStyle='rgba(230,199,96,.72)';ctx.lineWidth=2;ctx.stroke();
-    ctx.fillStyle='#e6c760';ctx.font='900 34px Arial, sans-serif';ctx.textAlign='left';ctx.fillText('MEETING TOURNAMENT',112,132);
-    ctx.textAlign='right';ctx.font='800 30px Arial, sans-serif';ctx.fillText(UI.fmtDate(m),W-112,132);
-    const contextLine=`${store.PHASE_LABELS[m.phase]||m.phase||'Partita'}${m.groupName?' · '+m.groupName:''}${m.round?' · '+m.round:''}`.replace(/\s+/g,' ').trim();
-    ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font='900 42px Arial, sans-serif';ctx.fillText(contextLine,W/2,210,W-240);
-    const homeLogo=await getTeamLogoImage(homeT),awayLogo=await getTeamLogoImage(awayT);
-    function drawLogo(img,x,y,name){
-      roundRectPath(ctx,x-76,y-76,152,152,30);ctx.fillStyle='rgba(255,255,255,.07)';ctx.fill();ctx.strokeStyle='rgba(255,255,255,.10)';ctx.lineWidth=1.5;ctx.stroke();
-      if(img){
-        ctx.save();
-        roundRectPath(ctx,x-64,y-64,128,128,24);
-        ctx.clip();
-        // Sfondo neutro + letterbox: proporzioni preservate, logo non tocca il bordo
-        // sfondo trasparente
-        var pad=10; var inner=128-pad*2;
-        var ar=(img.naturalWidth||img.width||1)/(img.naturalHeight||img.height||1);
-        var dw=ar>=1?inner:inner*ar; var dh=ar>=1?inner/ar:inner;
-        ctx.drawImage(img,(x-64)+pad+(inner-dw)/2,(y-64)+pad+(inner-dh)/2,dw,dh);
-        ctx.restore();
-      }
-      else{ctx.fillStyle='#e6c760';ctx.font='900 42px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(name||'?').slice(0,2).toUpperCase(),x,y);ctx.textBaseline='alphabetic';}
-    }
-    drawLogo(homeLogo,300,375,home);drawLogo(awayLogo,1300,375,away);
-    drawTextFit(ctx,home,300,535,430,62,'900');drawTextFit(ctx,away,1300,535,430,62,'900');
-    roundRectPath(ctx,650,300,300,190,34);ctx.fillStyle='rgba(0,0,0,.36)';ctx.fill();ctx.strokeStyle='rgba(230,199,96,.66)';ctx.lineWidth=2;ctx.stroke();
-    ctx.fillStyle=played?'#7ff0bc':'#ff4c55';ctx.font='900 26px Arial';ctx.textAlign='center';ctx.fillText(played?'GIOCATA':'DA GIOCARE',800,345);
-    ctx.fillStyle='#fff';ctx.font='950 82px Arial';ctx.fillText(played?`${score.home} - ${score.away}`:'VS',800,430);
-    const meta=[['CAMPO',m.field||'Da definire'],['ARBITRO',m.referee||'Da definire'],['DATA',UI.fmtDate(m)]];
-    meta.forEach((it,i)=>{const x=130+i*450;roundRectPath(ctx,x,650,390,104,22);ctx.fillStyle='rgba(0,0,0,.42)';ctx.fill();ctx.strokeStyle='rgba(255,255,255,.10)';ctx.lineWidth=1.5;ctx.stroke();ctx.fillStyle='#e6c760';ctx.font='900 19px Arial';ctx.textAlign='left';ctx.fillText(it[0],x+28,690);ctx.fillStyle='#fff';ctx.font='850 28px Arial';ctx.fillText(it[1],x+28,725,330);});
-    const goals=(m.goals||[]).map(g=>store.goalLabel?store.goalLabel(state,m,g):store.playerName(state,g.playerId)).filter(Boolean).slice(0,10).join(' · ')||'Nessun marcatore';
-    roundRectPath(ctx,130,810,W-260,94,22);ctx.fillStyle='rgba(0,0,0,.34)';ctx.fill();ctx.strokeStyle='rgba(255,255,255,.10)';ctx.lineWidth=1.5;ctx.stroke();ctx.fillStyle='#e6c760';ctx.font='900 20px Arial';ctx.textAlign='left';ctx.fillText('MARCATORI',160,848);ctx.fillStyle='#fff';ctx.font='850 28px Arial';ctx.fillText(goals,160,884,W-320);
+    const played=isMatchPlayed(m),score=store.matchGoals(state,m),isLive=m.status==='live';
+    const W=1080,H=1350;
+    const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;const ctx=canvas.getContext('2d');ctx.textBaseline='alphabetic';
+    const bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#06132d');bg.addColorStop(.58,'#08245a');bg.addColorStop(1,'#040b18');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+    const glow=ctx.createRadialGradient(170,80,20,170,80,520);glow.addColorStop(0,'rgba(255,122,24,.34)');glow.addColorStop(1,'rgba(255,122,24,0)');ctx.fillStyle=glow;ctx.fillRect(0,0,W,650);
+    const blueGlow=ctx.createRadialGradient(980,440,20,980,440,520);blueGlow.addColorStop(0,'rgba(31,99,255,.34)');blueGlow.addColorStop(1,'rgba(31,99,255,0)');ctx.fillStyle=blueGlow;ctx.fillRect(500,0,580,920);
+    ctx.fillStyle='#ff7a18';ctx.fillRect(0,0,W,14);ctx.fillStyle='#1f63ff';ctx.fillRect(0,14,W,8);
+
+    const [homeLogo,awayLogo,brandLogo]=await Promise.all([getTeamLogoImage(homeT),getTeamLogoImage(awayT),loadCanvasImage(BRAND_LOGO)]);
+    if(brandLogo){const ar=(brandLogo.naturalWidth||brandLogo.width||1)/(brandLogo.naturalHeight||brandLogo.height||1),boxW=122,boxH=76,dw=ar>=boxW/boxH?boxW:boxH*ar,dh=ar>=boxW/boxH?boxW/ar:boxH;ctx.drawImage(brandLogo,62+(boxW-dw)/2,50+(boxH-dh)/2,dw,dh);}
+    else{roundRectPath(ctx,62,50,86,76,22);ctx.fillStyle='#ff7a18';ctx.fill();ctx.fillStyle='#06132d';ctx.font='950 28px Arial';ctx.textAlign='center';ctx.fillText('MT',105,98);}
+    ctx.fillStyle='#ffffff';ctx.font='950 31px Arial, sans-serif';ctx.textAlign='left';ctx.fillText('MEETING TOURNAMENT',200,82);
+    ctx.fillStyle='rgba(255,255,255,.7)';ctx.font='750 22px Arial, sans-serif';ctx.fillText(UI.siteTitle?.(state)||state.rules.name||'Torneo',200,116,700);
+
+    const statusLabel=isLive?'LIVE':played?'RISULTATO FINALE':'PROSSIMA PARTITA';
+    roundRectPath(ctx,792,54,226,58,29);ctx.fillStyle=isLive?'#e63946':played?'#ff7a18':'#1f63ff';ctx.fill();ctx.fillStyle='#ffffff';ctx.font='950 20px Arial';ctx.textAlign='center';ctx.fillText(statusLabel,905,91);
+
+    const phase=[store.PHASE_LABELS[m.phase]||m.phase||'',m.groupName||'',m.round||''].filter(Boolean).join(' · ');
+    ctx.fillStyle='rgba(255,255,255,.76)';ctx.font='800 22px Arial';ctx.textAlign='center';ctx.fillText(state.rules.name||'Competizione',W/2,190,W-140);
+    ctx.fillStyle='#ffffff';ctx.font='950 34px Arial';ctx.fillText(phase||'Partita',W/2,236,W-140);
+
+    roundRectPath(ctx,54,278,W-108,690,42);ctx.fillStyle='rgba(4,12,30,.72)';ctx.fill();ctx.strokeStyle='rgba(255,255,255,.15)';ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle='rgba(255,122,24,.12)';roundRectPath(ctx,74,300,430,516,34);ctx.fill();
+    ctx.fillStyle='rgba(31,99,255,.12)';roundRectPath(ctx,576,300,430,516,34);ctx.fill();
+    ctx.fillStyle='#ffb05f';ctx.font='900 19px Arial';ctx.textAlign='center';ctx.fillText('CASA',289,345);
+    ctx.fillStyle='#8eb2ff';ctx.fillText('OSPITE',791,345);
+    drawShareLogo(ctx,homeLogo,289,492,188,home);drawShareLogo(ctx,awayLogo,791,492,188,away);
+    drawCenteredTextBlock(ctx,home,289,615,360,142,{fontSize:48,minSize:24,maxLines:3});
+    drawCenteredTextBlock(ctx,away,791,615,360,142,{fontSize:48,minSize:24,maxLines:3});
+
+    roundRectPath(ctx,402,414,276,180,34);ctx.fillStyle='#06132d';ctx.fill();ctx.strokeStyle='rgba(255,122,24,.72)';ctx.lineWidth=3;ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,.64)';ctx.font='900 16px Arial';ctx.textAlign='center';ctx.fillText(played?'RISULTATO':isLive?'IN CORSO':'ORARIO',540,456);
+    ctx.fillStyle='#ffffff';ctx.font=played?'950 72px Arial':'950 56px Arial';ctx.fillText(played?`${score.home}  -  ${score.away}`:(m.time||'DA DEFINIRE'),540,535,240);
+
+    roundRectPath(ctx,104,842,872,92,24);ctx.fillStyle='rgba(255,255,255,.08)';ctx.fill();ctx.strokeStyle='rgba(255,255,255,.11)';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle='#ffb05f';ctx.font='900 18px Arial';ctx.textAlign='center';ctx.fillText('DATA E ORA',540,875);
+    ctx.fillStyle='#ffffff';ctx.font='900 29px Arial';ctx.fillText(UI.fmtDate(m),540,913,820);
+
+    const meta=[['CAMPO',m.field||'Da definire'],['ARBITRO',m.referee||'Da definire']];
+    meta.forEach((item,i)=>{const x=54+i*502;roundRectPath(ctx,x,1002,470,112,24);ctx.fillStyle='rgba(255,255,255,.075)';ctx.fill();ctx.strokeStyle=i===0?'rgba(255,122,24,.34)':'rgba(31,99,255,.34)';ctx.lineWidth=2;ctx.stroke();ctx.fillStyle=i===0?'#ffb05f':'#8eb2ff';ctx.font='900 17px Arial';ctx.textAlign='left';ctx.fillText(item[0],x+28,1042);ctx.fillStyle='#ffffff';ctx.font='850 25px Arial';ctx.fillText(item[1],x+28,1082,414);});
+
+    const goals=(m.goals||[]).map(g=>store.goalLabel?store.goalLabel(state,m,g):store.playerName(state,g.playerId)).filter(Boolean);
+    const footerTitle=played?'MARCATORI':'COMPETIZIONE';
+    const footerText=played?(goals.slice(0,8).join(' · ')||'Nessun marcatore registrato'):[state.rules.name||'',phase].filter(Boolean).join(' · ');
+    roundRectPath(ctx,54,1152,972,126,26);ctx.fillStyle='rgba(3,9,22,.72)';ctx.fill();ctx.strokeStyle='rgba(255,255,255,.11)';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle='#ff7a18';ctx.font='900 17px Arial';ctx.textAlign='left';ctx.fillText(footerTitle,82,1191);
+    ctx.fillStyle='#ffffff';ctx.font='800 24px Arial';drawWrappedText(ctx,footerText,82,1230,916,29,2);
+    ctx.fillStyle='rgba(255,255,255,.55)';ctx.font='750 17px Arial';ctx.textAlign='center';ctx.fillText('meeting tournament · immagine ufficiale partita',W/2,1320);
     return canvasToBlob(canvas);
   }
   async function shareMatchImage(m,btn){
@@ -763,48 +858,31 @@
     const showScore=played||isLive||(store.hasGoals&&store.hasGoals(state,m));
     const homeGoals=[], awayGoals=[], yellow=[], red=[];
     (m.goals||[]).forEach(g=>{const scoringTeam=store.goalScoringTeamId?store.goalScoringTeamId(state,m,g):store.playerTeamId?.(state,g.playerId);const row={icon:(store.isOwnGoalEvent&&store.isOwnGoalEvent(g))?'🥅':'⚽',kind:'goal',name:store.goalLabel?store.goalLabel(state,m,g):store.playerName(state,g.playerId),meta:(store.isOwnGoalEvent&&store.isOwnGoalEvent(g))?'Autogol':''};if(scoringTeam===m.homeTeamId)homeGoals.push(row);else if(scoringTeam===m.awayTeamId)awayGoals.push(row);else homeGoals.push(row);});
-    (m.cards||[]).forEach(c=>{const row={icon:c.type==='red'?'■':'■',kind:c.type==='red'?'red':'yellow',name:store.playerName(state,c.playerId),meta:c.type==='red'?'Espulsione':'Ammonizione'};(c.type==='red'?red:yellow).push(row);});
+    (m.cards||[]).forEach(c=>{const row={icon:'■',kind:c.type==='red'?'red':'yellow',name:store.playerName(state,c.playerId),meta:c.type==='red'?'Espulsione':'Ammonizione'};(c.type==='red'?red:yellow).push(row);});
     const status=store.matchStatusInfo?store.matchStatusInfo(state,m):(played?{label:'Giocata',cls:'is-played'}:{label:'Da giocare',cls:'is-pending'});
-    // Compone una sottostringa pulita per la pill, evitando duplicati di "Girone X" tra
-    // groupName e round (i round dei match di girone includono già il nome del girone).
     const phaseLabel=store.PHASE_LABELS[m.phase]||m.phase;
     const groupName=m.groupName||'';
     let round=m.round||'';
-    if(groupName && round.includes(groupName)){
-      // Es. round = "Girone B - Giornata 1", groupName = "Girone B" → tengo solo "Giornata 1"
-      round = round.replace(groupName,'').replace(/^[\s·:\-–—]+/,'').replace(/[\s·:\-–—]+$/,'').trim();
-    }
-    const subtitle=[UI.esc(phaseLabel),UI.esc(groupName),UI.esc(round)].filter(Boolean).join(' · ');
+    if(groupName&&round.includes(groupName))round=round.replace(groupName,'').replace(/^[\s·:\-–—]+/,'').replace(/[\s·:\-–—]+$/,'').trim();
+    const subtitle=[phaseLabel,groupName,round].filter(Boolean).join(' · ');
     const centerCls=isLive?'is-live':(played?'is-played':'is-pending');
-    // Rigori
     let pBlock='';
     if(showScore&&score.home===score.away&&store.isKnockoutPhase&&store.isKnockoutPhase(m)&&m.penalties){
       const p=store.normalizePenalties?store.normalizePenalties(m.penalties):m.penalties;
-      if(p){
-        const winner=p.home>p.away?home:(p.away>p.home?away:'');
-        pBlock=`<div class="public-penalty-block">
-          <div class="public-penalty-head"><span>Rigori</span><strong>${p.home} - ${p.away}</strong></div>
-          ${winner?`<div class="public-penalty-winner">🏆 ${UI.esc(winner)} qualificata ai rigori</div>`:''}
-        </div>`;
-      }
+      if(p){const winner=p.home>p.away?home:(p.away>p.home?away:'');pBlock=`<div class="public-penalty-block"><div class="public-penalty-head"><span>Rigori</span><strong>${p.home} - ${p.away}</strong></div>${winner?`<div class="public-penalty-winner">🏆 ${UI.esc(winner)} qualificata ai rigori</div>`:''}</div>`;}
     }
     return `<article class="public-match-detail-card ${isLive?'is-live-card':''}">
-      <section class="public-match-hero">
-        <div class="public-match-hero-top">
-          <span class="pill">${subtitle||'Partita'}</span>
-          <span class="score-badge match-status-badge ${status.cls}" role="status">${isLive?'🔴 ':''}${UI.esc(status.label)}</span>
-        </div>
+      <section class="public-match-hero match-visual-language">
+        <div class="public-match-brandline"><span>Meeting Tournament</span><strong>${UI.esc(state.rules.name||'Competizione')}</strong></div>
+        <div class="public-match-hero-top"><span class="pill">${UI.esc(subtitle||'Partita')}</span><span class="score-badge match-status-badge ${status.cls}" role="status">${isLive?'🔴 ':''}${UI.esc(status.label)}</span></div>
         <div class="public-scoreboard">
-          <div class="public-score-team public-score-home" ${m.homeTeamId?`data-team-id="${UI.esc(m.homeTeamId)}"`:''}>${UI.logo(homeT,false)}<strong>${UI.esc(home)}</strong></div>
-          <div class="public-score-center ${centerCls}"><span>${showScore?score.home:'-'}</span><em aria-hidden="true">${showScore?'-':'vs'}</em><span>${showScore?score.away:'-'}</span></div>
-          <div class="public-score-team public-score-away" ${m.awayTeamId?`data-team-id="${UI.esc(m.awayTeamId)}"`:''}>${UI.logo(awayT,false)}<strong>${UI.esc(away)}</strong></div>
+          <div class="public-score-team public-score-home">${UI.logo(homeT,false)}<span class="public-team-role">Casa</span><strong title="${UI.esc(home)}">${UI.esc(home)}</strong></div>
+          <div class="public-score-center ${centerCls}"><small>${showScore?'Risultato':'Orario'}</small>${showScore?`<div><span>${score.home}</span><em aria-hidden="true">-</em><span>${score.away}</span></div>`:`<strong>${UI.esc(m.time||'Da definire')}</strong>`}</div>
+          <div class="public-score-team public-score-away">${UI.logo(awayT,false)}<span class="public-team-role">Ospite</span><strong title="${UI.esc(away)}">${UI.esc(away)}</strong></div>
         </div>
+        <div class="public-match-kickoff"><small>Data e ora</small><strong>${UI.esc(UI.fmtDate(m))}</strong></div>
         ${pBlock}
-        <div class="public-match-meta-grid">
-          <span><small>Data e ora</small><strong>${UI.esc(UI.fmtDate(m))}</strong></span>
-          <span><small>Campo</small><strong>${UI.esc(m.field||'Da definire')}</strong></span>
-          <span><small>Arbitro</small><strong>${UI.esc(m.referee||'Da definire')}</strong></span>
-        </div>
+        <div class="public-match-meta-grid"><span><small>Campo</small><strong>${UI.esc(m.field||'Da definire')}</strong></span><span><small>Arbitro</small><strong>${UI.esc(m.referee||'Da definire')}</strong></span><span><small>Competizione</small><strong>${UI.esc(phaseLabel||state.rules.name||'Partita')}</strong></span></div>
       </section>
       <section class="public-match-panels">
         <div class="public-match-panel"><div class="panel-title"><span>⚽</span><h3>Marcatori ${UI.esc(home)}</h3></div>${matchDetailEventList(homeGoals,'Nessun marcatore')}</div>
@@ -812,12 +890,10 @@
         <div class="public-match-panel"><div class="panel-title"><span>🟨</span><h3>Cartellini gialli</h3></div>${matchDetailEventList(yellow,'Nessun ammonito')}</div>
         <div class="public-match-panel"><div class="panel-title"><span>🟥</span><h3>Cartellini rossi</h3></div>${matchDetailEventList(red,'Nessun espulso')}</div>
       </section>
-      ${isLive
-        ? '<div class="public-match-actions"><small class="muted live-share-note">⛔ La condivisione immagine sarà disponibile a partita conclusa.</small></div>'
-        : `<div class="public-match-actions"><button class="btn primary" type="button" data-share-match="${UI.esc(m.id)}">Condividi immagine</button></div>`}
+      ${isLive?'<div class="public-match-actions"><small class="muted live-share-note">⛔ La condivisione immagine sarà disponibile a partita conclusa.</small></div>':`<div class="public-match-actions"><button class="btn primary" type="button" data-share-match="${UI.esc(m.id)}">Condividi immagine</button></div>`}
     </article>`;
   }
-  function showMatch(id){const m=state.matches.find(x=>x.id===id);if(!m)return;const modal=$('#matchModal');$('#matchModalBody').innerHTML=publicMatchDetailMarkup(m);modal.classList.remove('is-closing');modal.classList.add('public-match-modal');modal.classList.add('open');document.body.classList.add('modal-open');setTimeout(()=>$('#closeModal')?.focus(),0);}
+  function showMatch(id){const m=state.matches.find(x=>x.id===id);if(!m)return;const modal=$('#matchModal');const home=store.teamName(state,m.homeTeamId,m.homeLabel),away=store.teamName(state,m.awayTeamId,m.awayLabel);const title=$('#matchModalTitle');if(title)title.textContent=`${home} vs ${away}`;$('#matchModalBody').innerHTML=publicMatchDetailMarkup(m);modal.classList.remove('is-closing');modal.classList.add('public-match-modal');modal.classList.add('open');document.body.classList.add('modal-open');setTimeout(()=>$('#closeModal')?.focus(),0);}
   let lastArticleTrigger=null;
   function ensureArticleModal(){
     let modal=$('#articleModal');
@@ -877,7 +953,6 @@
   }
   function resetFiltersForNewState(){
     if(phaseFilter && !store.selectors.phases(state).includes(phaseFilter)) phaseFilter='';
-    if(statusFilter==='favorite' && (!favoriteTeamId||!store.getTeam(state,favoriteTeamId))) statusFilter='';
     if(roundFilter && !store.selectors.rounds(state).includes(roundFilter)) roundFilter='';
     if(teamFilter && !state.teams.some(t=>t.id===teamFilter)) teamFilter='';
     if(playerTeamFilter && !state.teams.some(t=>t.id===playerTeamFilter)) playerTeamFilter='';
@@ -1018,7 +1093,6 @@
     var fp=store.deriveFingerprint(state);
     fp+="|articles:"+articleListFingerprint(state.articles||[]);
     fp+="|logos:"+(state.teams||[]).map(function(t){return (t.logo||'').length+':'+String(t.logo||'').slice(0,18);}).join(',');
-    fp+="|favorite:"+(favoriteTeamId||'');
     if(!opts.force&&fp===_lastRenderFP){
       decorateFavoriteUI();
       return;
@@ -1048,7 +1122,7 @@
   }
   const publicImport=$('#publicImport'); if(publicImport) publicImport.addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const json=JSON.parse(await file.text());state=store.normalizeState(json);save();phaseFilter='';roundFilter='';teamFilter='';statusFilter='';playerTeamFilter='';standingsGroup='all';persistPublicFilters();render();alert('Dati pubblici importati correttamente.');}catch(err){alert('File JSON non valido.');}});
   document.addEventListener('ng:tab-changed',e=>{const tab=e.detail?.tab;if(PUBLIC_TABS.has(tab)&&!e.detail?.restored)safeSessionSet(PUBLIC_ACTIVE_TAB_KEY,tab);if(tab==='articles')requestAnimationFrame(()=>renderArticles(true));});
-  $('#publicPhaseFilter').addEventListener('change',e=>{phaseFilter=e.target.value;persistPublicFilters();renderMatches();});$('#publicRoundFilter').addEventListener('change',e=>{roundFilter=e.target.value;persistPublicFilters();renderMatches();});$('#publicTeamFilter').addEventListener('change',e=>{teamFilter=e.target.value;persistPublicFilters();renderMatches();});$('#publicPlayerTeamFilter')?.addEventListener('change',e=>{playerTeamFilter=e.target.value;persistPublicFilters();renderPlayers();});document.addEventListener('change',e=>{if(e.target.id==='publicGroupStandingsFilter'){standingsGroup=e.target.value||'all';persistPublicFilters();renderHome();}});$('#globalSearch').addEventListener('input',()=>{persistPublicFilters();renderSearch();});document.addEventListener('click',async e=>{const filterOpener=e.target.closest('[data-open-match-filter]');if(filterOpener){e.preventDefault();openMatchFilterSheet(filterOpener.dataset.openMatchFilter);return;}const filterChoice=e.target.closest('[data-filter-type]');if(filterChoice){e.preventDefault();setMatchFilter(filterChoice.dataset.filterType,filterChoice.dataset.filterValue||'');return;}if(e.target.closest('[data-close-match-filter]')||e.target.id==='matchFilterSheet'){e.preventDefault();closeMatchFilterSheet();return;}if(e.target.closest('[data-clear-match-filters]')){e.preventDefault();phaseFilter='';roundFilter='';teamFilter='';statusFilter='';persistPublicFilters();renderMatches();return;}const presetBtn=e.target.closest('[data-match-preset]');if(presetBtn){e.preventDefault();statusFilter=presetBtn.dataset.matchPreset==='all'?'':presetBtn.dataset.matchPreset;persistPublicFilters();renderMatches();return;}const shareStandingsBtn=e.target.closest('[data-share-standings]');if(shareStandingsBtn){e.preventDefault();await shareStandingsImage(shareStandingsBtn);return;}const shareGroupBtn=e.target.closest('[data-share-group-standings]');if(shareGroupBtn){e.preventDefault();await shareGroupStandingsImage(shareGroupBtn.dataset.shareGroupStandings,shareGroupBtn);return;}const shareBracketBtn=e.target.closest('[data-share-bracket]');if(shareBracketBtn){e.preventDefault();await shareBracketImage(shareBracketBtn);return;}const shareBtn=e.target.closest('[data-share-match]');if(shareBtn){e.preventDefault();const m=state.matches.find(x=>x.id===shareBtn.dataset.shareMatch);if(m){if(m.status==='live'){alert('La condivisione immagine è disponibile solo per partite concluse.');return;}await shareMatchImage(m,shareBtn);}return;}const favBtn=e.target.closest('[data-favorite-team]');if(favBtn){e.preventDefault();e.stopPropagation();const id=favBtn.dataset.favoriteTeam;if(isFavoriteTeam(id))clearFavoriteTeam();else setFavoriteTeam(id);return;}const clearFavBtn=e.target.closest('[data-clear-favorite]');if(clearFavBtn){e.preventDefault();e.stopPropagation();clearFavoriteTeam();return;}if(e.target.closest('[data-open-teams-tab]')){e.preventDefault();document.querySelector('[data-tab="teams"]')?.click();return;}const favMatchBtn=e.target.closest('[data-filter-favorite-matches]');if(favMatchBtn){e.preventDefault();teamFilter=favMatchBtn.dataset.filterFavoriteMatches||favoriteTeamId;persistPublicFilters();document.querySelector('[data-tab="matches"]')?.click();renderMatches();return;}const teamTarget=e.target.closest('[data-team-detail]');if(teamTarget){e.preventDefault();showTeamDetail(teamTarget.dataset.teamDetail,teamTarget);return;}const pdfBtn=e.target.closest('[data-team-pdf]');if(pdfBtn){pdfBtn.disabled=true;const oldPdf=pdfBtn.textContent;pdfBtn.textContent='Genero PDF...';try{await downloadTeamPdf(pdfBtn.dataset.teamPdf);}catch(err){alert('Errore PDF squadra: '+(err.message||err));}finally{pdfBtn.disabled=false;pdfBtn.textContent=oldPdf;}return;}const articleTarget=e.target.closest('[data-article-open]');if(articleTarget && !e.target.closest('[data-edit-article],[data-delete-article]')){e.preventDefault();e.stopPropagation();showArticle(articleTarget.dataset.articleOpen||articleTarget.closest('[data-article-open]')?.dataset.articleOpen,articleTarget);return;}const card=e.target.closest('[data-match-detail]');if(card){e.preventDefault();showMatch(card.dataset.matchDetail);return;}if(e.target.id==='closeModal'||e.target.id==='matchModal'){e.preventDefault();closeMatchModal();return;}if(e.target.id==='closeArticleModal'||e.target.id==='articleModal')closeArticleModal();if(e.target.id==='closeTeamModal'||e.target.id==='teamModal')closeTeamModal();});
+  $('#publicPhaseFilter').addEventListener('change',e=>{phaseFilter=e.target.value;persistPublicFilters();renderMatches();});$('#publicRoundFilter').addEventListener('change',e=>{roundFilter=e.target.value;persistPublicFilters();renderMatches();});$('#publicTeamFilter').addEventListener('change',e=>{teamFilter=e.target.value;persistPublicFilters();renderMatches();});$('#publicPlayerTeamFilter')?.addEventListener('change',e=>{playerTeamFilter=e.target.value;persistPublicFilters();renderPlayers();});document.addEventListener('change',e=>{if(e.target.matches?.('[data-favorite-select]')){setFavoriteTeam(e.target.value);return;}if(e.target.id==='publicGroupStandingsFilter'){standingsGroup=e.target.value||'all';persistPublicFilters();renderHome();}});$('#globalSearch').addEventListener('input',()=>{persistPublicFilters();renderSearch();});document.addEventListener('click',async e=>{const filterOpener=e.target.closest('[data-open-match-filter]');if(filterOpener){e.preventDefault();openMatchFilterSheet(filterOpener.dataset.openMatchFilter);return;}const filterChoice=e.target.closest('[data-filter-type]');if(filterChoice){e.preventDefault();setMatchFilter(filterChoice.dataset.filterType,filterChoice.dataset.filterValue||'');return;}if(e.target.closest('[data-close-match-filter]')||e.target.id==='matchFilterSheet'){e.preventDefault();closeMatchFilterSheet();return;}if(e.target.closest('[data-clear-match-filters]')){e.preventDefault();phaseFilter='';roundFilter='';teamFilter='';statusFilter='';persistPublicFilters();renderMatches();return;}const presetBtn=e.target.closest('[data-match-preset]');if(presetBtn){e.preventDefault();statusFilter=presetBtn.dataset.matchPreset==='all'?'':presetBtn.dataset.matchPreset;persistPublicFilters();renderMatches();return;}const shareStandingsBtn=e.target.closest('[data-share-standings]');if(shareStandingsBtn){e.preventDefault();await shareStandingsImage(shareStandingsBtn);return;}const shareGroupBtn=e.target.closest('[data-share-group-standings]');if(shareGroupBtn){e.preventDefault();await shareGroupStandingsImage(shareGroupBtn.dataset.shareGroupStandings,shareGroupBtn);return;}const shareBracketBtn=e.target.closest('[data-share-bracket]');if(shareBracketBtn){e.preventDefault();await shareBracketImage(shareBracketBtn);return;}const shareBtn=e.target.closest('[data-share-match]');if(shareBtn){e.preventDefault();const m=state.matches.find(x=>x.id===shareBtn.dataset.shareMatch);if(m){if(m.status==='live'){alert('La condivisione immagine è disponibile solo per partite concluse.');return;}await shareMatchImage(m,shareBtn);}return;}const clearFavBtn=e.target.closest('[data-clear-favorite]');if(clearFavBtn){e.preventDefault();e.stopPropagation();clearFavoriteTeam();return;}const teamTarget=e.target.closest('[data-team-detail]');if(teamTarget){e.preventDefault();showTeamDetail(teamTarget.dataset.teamDetail,teamTarget);return;}const pdfBtn=e.target.closest('[data-team-pdf]');if(pdfBtn){pdfBtn.disabled=true;const oldPdf=pdfBtn.textContent;pdfBtn.textContent='Genero PDF...';try{await downloadTeamPdf(pdfBtn.dataset.teamPdf);}catch(err){alert('Errore PDF squadra: '+(err.message||err));}finally{pdfBtn.disabled=false;pdfBtn.textContent=oldPdf;}return;}const articleTarget=e.target.closest('[data-article-open]');if(articleTarget && !e.target.closest('[data-edit-article],[data-delete-article]')){e.preventDefault();e.stopPropagation();showArticle(articleTarget.dataset.articleOpen||articleTarget.closest('[data-article-open]')?.dataset.articleOpen,articleTarget);return;}const card=e.target.closest('[data-match-detail]');if(card){e.preventDefault();showMatch(card.dataset.matchDetail);return;}if(e.target.id==='closeModal'||e.target.id==='matchModal'){e.preventDefault();closeMatchModal();return;}if(e.target.id==='closeArticleModal'||e.target.id==='articleModal')closeArticleModal();if(e.target.id==='closeTeamModal'||e.target.id==='teamModal')closeTeamModal();});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeArticleModal();closeTeamModal();closeMatchFilterSheet();closeMatchModal();}if((e.key==='Enter'||e.key===' ')&&e.target?.matches?.('[data-team-detail]')){e.preventDefault();showTeamDetail(e.target.dataset.teamDetail,e.target);return;}if((e.key==='Enter'||e.key===' ')&&e.target?.matches?.('[data-article-open]')){e.preventDefault();showArticle(e.target.dataset.articleOpen,e.target);return;}const matchTarget=e.target?.closest?.('[data-match-detail]');if((e.key==='Enter'||e.key===' ')&&matchTarget){e.preventDefault();showMatch(matchTarget.dataset.matchDetail);}});
 
   document.addEventListener('error',e=>{

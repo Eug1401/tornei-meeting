@@ -1,0 +1,119 @@
+{
+  "version": "v170",
+  "generatedAt": "2026-06-23T19:44:48.145Z",
+  "passed": 22,
+  "total": 22,
+  "ok": true,
+  "checks": [
+    {
+      "name": "Persistenza per torneo",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Una sola selezione dalla Home",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Cambio e rimozione gestiti",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Dashboard Home completa",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Nessun filtro automatico della preferita",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Nessun controllo preferita in Squadre/Ricerca",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Decorazione limitata alla classifica",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Decorazione limitata alla lista Partite",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Nessun highlight su tabellone o ricerca",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Aggiornamento locale delle sole viste richieste",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Partite live escluse dagli ultimi risultati",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Classifica senza nuove colonne",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Partite evidenziate senza markup duplicato",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Export social 1080×1350",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Export robusto per nomi lunghi",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Export con colori social ufficiali",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Export include dati essenziali",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Scheda partita con linguaggio visuale condiviso",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Scheda partita responsive",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Nomi lunghi leggibili nella scheda",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Accessibilità di selezione e stato",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Cache busting aggiornato",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}

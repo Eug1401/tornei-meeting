@@ -105,13 +105,13 @@ assert(/logoMap/.test(publicJs) && /drawTeamRow/.test(publicJs), 'Bracket image 
 assert(/lineTo\(mid,y1\).*lineTo\(mid,y2\).*lineTo\(x2,y2\)/s.test(publicJs), 'Bracket image export draws full connectors between rounds.');
 assert(/blob\.size<2048/.test(publicJs), 'Bracket image export validates that the output image is not empty.');
 
-assert(/function teamGrid\(state,opts=\{\}\)/.test(uiJs) && /showFavorite/.test(uiJs), 'Shared team grid has an explicit favorite opt-in.');
-assert(/UI\.teamGrid\(state,\{showFavorite:true\}\)/.test(publicJs), 'Public team view opts into favorite controls.');
-assert(!/showFavorite:true/.test(adminRulesJs), 'Admin rules code does not opt into favorite controls.');
-assert(/data-team-id/.test(uiJs) && /fixture-team/.test(uiJs) && /bracket-team/.test(uiJs), 'Calendar and bracket markup expose team ids for favorite highlighting.');
-assert(/public-score-team[^\n]+data-team-id/.test(publicJs), 'Public match detail exposes team ids for favorite highlighting.');
-assert(/favorite-inline-badge/.test(publicJs) && /favorite-inline-badge/.test(css), 'Favorite highlighting uses a visible inline badge, not color alone.');
-assert(/tr\.is-favorite-team td:first-child:before\{content:none;\}/.test(css), 'Favorite table marker avoids absolute-position overlap in ranking cells.');
+assert(/function teamGrid\(state\)/.test(uiJs) && !/showFavorite/.test(uiJs), 'Shared team grid stays independent from the favorite-team feature.');
+assert(/UI\.teamGrid\(state\)/.test(publicJs) && !/showFavorite:true/.test(publicJs), 'Public team view does not expose favorite controls.');
+assert(!/showFavorite:true|data-favorite-team|favorite-team-btn/.test(adminRulesJs+uiJs), 'Admin and shared team components do not opt into favorite controls.');
+assert(/#publicStandings tr\[data-team-id=/.test(publicJs) && /#publicMatches \.public-fixture-card\[data-match-detail\]/.test(publicJs), 'Favorite highlighting is scoped to standings and the Matches list.');
+assert(!/public-score-team[^\n]+data-team-id/.test(publicJs), 'Public match detail remains independent from favorite highlighting.');
+assert(!/favorite-inline-badge/.test(publicJs) && /favorite-standing-row/.test(css) && /favorite-match-card/.test(css), 'Favorite highlighting uses non-invasive scoped styles without inline badges.');
+assert(/#publicStandings tr\.favorite-standing-row td/.test(css) && /box-shadow:inset 4px 0/.test(css), 'Favorite table marker preserves ranking cells and column alignment.');
 assert(/FAVORITE_TEAM_KEY_PREFIX='meeting-tournament-public-favorite-team-v2'/.test(publicJs) && /favoriteTournamentIdentity/.test(publicJs), 'Favorite team persistence is scoped to the current tournament.');
 assert(/LEGACY_FAVORITE_TEAM_KEY=\['new','generation','public','favorite','team','v1'\]\.join\('-'\)/.test(publicJs), 'Favorite team migration keeps legacy browser data without static legacy branding.');
 assert(/meeting-tournament-logo-transparent\.png/.test(publicJs) && /MEETING TOURNAMENT/.test(publicJs), 'Public PDF and image exports use Meeting Tournament branding assets/text.');

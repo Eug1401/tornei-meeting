@@ -44,6 +44,8 @@ Le modalità standalone rimosse non sono esposte nella UI e vengono respinte dal
 - Tabellone con BYE deterministici quando le qualificate non sono 2, 4, 8, 16 o 32.
 - Articoli pubblici con create/edit/delete, immagine principale compressa e validazioni su testo/file.
 - Schede squadra pubbliche con statistiche per fase.
+- Squadra preferita persistente, con riepilogo in Home, evidenziazione in classifica e Partite e indicatore nella sezione Squadre.
+- Export social della singola partita e dettaglio partita responsive con palette ufficiale.
 - Reset con snapshot JSON versionato e PDF finale prima dell'azzeramento.
 - Sincronizzazione Supabase lato client, se configurata.
 
@@ -62,6 +64,10 @@ Suite locali:
 ```bash
 node TESTS_V132/run_tournament_mode_v132.js
 node TESTS_V140/run_revision_v140.js
+node TESTS_V150/run_kings_share_calendar_v150.js
+node TESTS_V160/run_prompt4_calendar_bracket_favorite_v160.js
+node TESTS_V170/run_favorite_match_visual_v170.js
+node TESTS_V171/run_favorite_team_list_v171.js
 ```
 
 `TESTS_V128` e `TESTS_V130` sono stati rimossi perché coprivano modalità e combinazioni non più supportate.

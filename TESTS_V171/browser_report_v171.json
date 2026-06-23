@@ -1,0 +1,33 @@
+{
+  "version": "v171",
+  "environment": "Chromium headless con HTML, CSS e JavaScript reali incorporati nel test locale",
+  "viewports": {
+    "desktop": "1440x1000",
+    "mobile": "430x900"
+  },
+  "favoriteTeamList": {
+    "selected": {
+      "teamId": "t2",
+      "label": "★ Preferita · Apri scheda",
+      "ariaLabel": "Sporting Castelli Romani, squadra preferita. Apri la scheda",
+      "teamNamesUnchanged": true
+    },
+    "changed": {
+      "teamId": "t3",
+      "previousActionRestored": "Apri scheda"
+    },
+    "removed": {
+      "highlightedCards": 0,
+      "markers": 0
+    },
+    "mobile": {
+      "teamId": "t1",
+      "label": "★ Preferita · Apri scheda",
+      "scrollWidth": 360,
+      "clientWidth": 360,
+      "overflow": false
+    }
+  },
+  "pageErrors": [],
+  "ok": true
+}
